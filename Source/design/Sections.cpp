@@ -30,7 +30,7 @@ bool paramInSection (const juce::String& id, int section)
         case secMacros:    return starts ("macro");
         case secEffects:   return starts ("fx_drive") || starts ("drive_type") || starts ("crush_") || starts ("tape_")
                                   || starts ("ring_") || starts ("cho_") || starts ("dly_") || starts ("rev_") || starts ("eq_") || starts ("rk");
-        case secVoice:     return id == "glide" || id == "bend" || id == "voice_mode" || id == "tune_a4"
+        case secVoice:     return id.startsWith ("ch_") || id.startsWith ("arp_") || id == "glide" || id == "bend" || id == "voice_mode" || id == "tune_a4"
                                   || id == "scale" || id == "scale_root" || id == "master";
         case secFm:        return id.startsWith ("fm");
         default:           return false;

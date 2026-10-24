@@ -49,6 +49,9 @@ public:
     std::unique_ptr<ff::design::Mutator> mutator;
     std::unique_ptr<ff::design::MidiLearn> midiLearn;
     ff::FxRack rack;
+    ff::perf::PerformEngine perform;
+    void setArpPattern (const ff::perf::ArpPattern&);
+    ff::perf::ArpPatternPtr getArpPattern() const { return arpPattern; }
     void syncRack() { rack.sync(); }
     void setRackIr (int slot, const juce::File& f) { rack.setIrFile (slot, f); }
 
@@ -96,6 +99,8 @@ public:
 private:
     struct RackTimer : juce::Timer { FourfoldProcessor* owner = nullptr; void timerCallback() override { owner->rack.sync(); } } rackTimer;
     double rackPpq = 0.0;
+    ff::perf::ArpPatternPtr arpPattern = std::make_shared<ff::perf::ArpPattern>(), arpAudio = arpPattern;
+    std::deque<ff::perf::ArpPatternPtr> arpKeep;
     void refreshSharedPointers();
     void applyStateTree (const juce::ValueTree& tree);
 

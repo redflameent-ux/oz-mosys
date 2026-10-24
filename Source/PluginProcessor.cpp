@@ -63,6 +63,7 @@ void FourfoldProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     monoSynth.setMinimumRenderingSubdivisionSize (32, false);
     fx.prepare (sampleRate, juce::jmax (32, samplesPerBlock));
     rack.prepare (sampleRate, juce::jmax (32, samplesPerBlock));
+    perform.prepare (sampleRate);
     sampler->prepare (sampleRate, samplesPerBlock);
     roll.prepare (sampleRate);
     samplerMidi.ensureSize (8192);
@@ -129,6 +130,24 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         monoSynth.turnOffAllVoices (false);
         wasMono = mono;
     }
+    // PLAY page: chords tool + arpeggiator reshape the incoming notes
+    {
+        auto g = [this] (const char* id) { return apvts.getRawParameterValue (id)->load(); };
+        ff::perf::PerformEngine::Settings ps;
+        ps.chordsOn = g ("ch_on") > 0.5f; ps.followKey = g ("ch_follow") < 0.5f;
+        ps.key = (int) g ("ch_key"); ps.scale = (int) g ("ch_scale"); ps.type = (int) g ("ch_type");
+        ps.voicing = (int) g ("ch_voicing"); ps.octave = (int) g ("ch_octave"); ps.strum = g ("ch_strum"); ps.humanize = g ("ch_humanize");
+        ps.arpOn = g ("arp_on") > 0.5f; ps.latch = g ("arp_latch") > 0.5f; ps.rate = (int) g ("arp_rate"); ps.mode = (int) g ("arp_mode");
+        ps.octaves = (int) g ("arp_oct"); ps.gate = g ("arp_gate"); ps.swing = g ("arp_swing"); ps.numSteps = (int) g ("arp_steps");
+        if (swapLock.tryEnter()) { arpAudio = arpPattern; swapLock.exit(); }
+        double hostPpq = 0.0; bool hostPlaying = false;
+        if (auto* ph = getPlayHead())
+            if (auto pos = ph->getPosition())
+                if (pos->getIsPlaying())
+                    if (auto q = pos->getPpqPosition()) { hostPpq = *q; hostPlaying = true; }
+        perform.process (midi, n, ps, *arpAudio, shared.bpm, hostPpq, hostPlaying);
+    }
+
     // ROLL page: drawn lines become MPE notes (each on its own channel)
     roll.process (midi, n, getPlayHead(), (int) apvts.getRawParameterValue ("bend")->load());
 
@@ -320,6 +339,7 @@ void FourfoldProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.appendChild (msegsToTree(), nullptr);
     state.removeChild (state.getChildWithName ("Roll"), nullptr);
     state.appendChild (roll.getPattern()->toTree(), nullptr);
+    state.setProperty ("arpPattern", arpPattern->toString(), nullptr);
     state.removeChild (state.getChildWithName ("RackFiles"), nullptr);
     {
         juce::ValueTree rf ("RackFiles");
@@ -347,6 +367,7 @@ void FourfoldProcessor::applyStateTree (const juce::ValueTree& tree)
     msegsFromTree (tree.getChildWithName ("Msegs"));
     if (auto rt = tree.getChildWithName ("Roll"); rt.isValid())
         roll.setPattern (ff::roll::Pattern::fromTree (rt));
+    if (tree.hasProperty ("arpPattern")) setArpPattern (ff::perf::ArpPattern::fromString (tree.getProperty ("arpPattern").toString()));
     if (auto rf = tree.getChildWithName ("RackFiles"); rf.isValid())
         for (int i = 0; i < ff::numRackSlots; ++i)
         {
@@ -380,6 +401,7 @@ bool FourfoldProcessor::savePresetToFile (const juce::File& file)
     sampler->saveTo (state);
     state.removeChild (state.getChildWithName ("Msegs"), nullptr);
     state.appendChild (msegsToTree(), nullptr);
+    state.setProperty ("arpPattern", arpPattern->toString(), nullptr);
     {
         juce::ValueTree rf ("RackFiles");
         for (int r = 0; r < ff::numRackSlots; ++r) rf.setProperty ("ir" + juce::String (r + 1), rack.irFiles[(size_t) r].getFullPathName(), nullptr);
@@ -423,6 +445,17 @@ void FourfoldProcessor::setDefaultAuthor (const juce::String& a)
     juce::PropertiesFile f (o);
     f.setValue ("defaultAuthor", a);
     f.saveIfNeeded();
+}
+
+void FourfoldProcessor::setArpPattern (const ff::perf::ArpPattern& p)
+{
+    auto next = std::make_shared<const ff::perf::ArpPattern> (p);
+    {
+        const juce::SpinLock::ScopedLockType l (swapLock);
+        arpKeep.push_back (arpPattern);
+        arpPattern = next;
+    }
+    while (arpKeep.size() > 8) arpKeep.pop_front();   // old ones are long out of the audio thread's hands
 }
 
 bool FourfoldProcessor::loadPresetFromFile (const juce::File& file)

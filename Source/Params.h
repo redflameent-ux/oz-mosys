@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "dsp/Rack.h"
+#include "perform/Perform.h"
 
 // ============================================================================
 //  OZ-mosys - parameter definitions
@@ -413,6 +414,25 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         NormalisableRange<float> xr (60.0f, 4000.0f, 1.0f); xr.setSkewForCentre (300.0f);
         addF ("rk_xover", "Rack Split Frequency", xr, 250.0f, "Hz");
     }
+
+    // ---- Chords tool + arpeggiator (the PLAY page) ----
+    addB ("ch_on", "Chords On", false);
+    addC ("ch_follow", "Chords Mode", StringArray { "In key", "Fixed shape" }, 0);
+    addC ("ch_key", "Chords Key", noteNames(), 0);
+    addC ("ch_scale", "Chords Scale", perf::chordScaleNames(), 1);
+    addC ("ch_type", "Chord Type", perf::chordTypeNames(), 0);
+    addC ("ch_voicing", "Chord Voicing", StringArray { "Close", "Open", "Drop 2", "Bass + chord" }, 0);
+    addI ("ch_octave", "Chords Octave", -2, 2, 0);
+    addF ("ch_strum", "Chords Strum", { 0.0f, 1.0f }, 0.0f);
+    addF ("ch_humanize", "Chords Humanize", { 0.0f, 1.0f }, 0.0f);
+    addB ("arp_on", "Arp On", false);
+    addB ("arp_latch", "Arp Latch", false);
+    addC ("arp_rate", "Arp Rate", perf::arpRateNames(), 3);
+    addC ("arp_mode", "Arp Mode", perf::arpModeNames(), 0);
+    addI ("arp_oct", "Arp Octaves", 1, 4, 1);
+    addF ("arp_gate", "Arp Gate", { 0.05f, 1.0f }, 0.6f);
+    addF ("arp_swing", "Arp Swing", { 0.0f, 0.75f }, 0.0f);
+    addI ("arp_steps", "Arp Steps", 1, 32, 16);
 
     // ---- Sampler (the SAMPLER page) ----
     addC ("smp_play", "Sampler Play", StringArray { "Off", "Layered with synth", "Sampler only" }, 0);

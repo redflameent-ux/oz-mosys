@@ -626,6 +626,20 @@ p(C, "Octave Fuzz Bass", d(OFF, an_on=1, an_shape=1, an_oct=-1, an_level=0.8, fl
 p(C, "Wah Funk Clav", d(OFF, res_on=1, res_type=0, res_decay=0.7, res_bright=0.7, res_strike=1, flt_cutoff=0.8, amp_a=0.001,
     amp_d=0.4, amp_s=0.4, amp_r=0.1, **rk(1, 20, 0.7, 0.25, 0.7, 1.0), **rk(2, 16, 0.25, 0.5, 0.5, 0.5, mix=0.5)))
 
+# ============================== PLAY (chords + arp) ==============================
+C = "Arps & Chords"
+p(C, "Trance Arp Lead", d(wt_table=0, wt_pos=0.66, wt_unison=5, wt_detune=0.25, flt_cutoff=0.6, flt_res=0.3, flt_env=0.3,
+    e2_d=0.2, e2_s=0, amp_a=0.001, amp_s=1, amp_r=0.2, arp_on=1, arp_rate=3, arp_mode=2, arp_oct=2, arp_gate=0.5,
+    dly_mix=0.25, dly_time=375, dly_fb=0.4, rev_mix=0.25))
+p(C, "One-Finger Soul Keys", d(OFF, res_on=1, res_type=18, res_decay=3, res_bright=0.4, flt_cutoff=0.7, amp_a=0.002, amp_s=1, amp_r=0.6,
+    ch_on=1, ch_scale=2, ch_type=1, ch_voicing=1, ch_strum=0.15, ch_humanize=0.3, cho_mix=0.3, rev_mix=0.2))
+p(C, "Latch Pulse Pad", d(wt_table=1, wt_pos=0.3, wt_unison=4, wt_detune=0.2, flt_type=1, flt_cutoff=0.55, amp_a=0.01, amp_s=1, amp_r=0.4,
+    arp_on=1, arp_latch=1, arp_rate=4, arp_mode=6, arp_gate=0.8, rev_mix=0.45, dly_mix=0.2))
+p(C, "Minor Chord Stabs", d(wt_table=0, wt_pos=0.66, an_on=1, an_shape=1, an_level=0.4, flt_cutoff=0.55, flt_env=0.3, e2_d=0.3, e2_s=0,
+    amp_a=0.001, amp_d=0.4, amp_s=0, amp_r=0.2, ch_on=1, ch_scale=1, ch_type=0, rev_mix=0.3))
+p(C, "Hijaz Harp Arp", d(OFF, res_on=1, res_type=0, res_decay=2, res_bright=0.6, flt_cutoff=0.8, amp_a=0.001, amp_s=1, amp_r=1,
+    ch_on=1, ch_scale=8, ch_type=0, arp_on=1, arp_rate=3, arp_mode=0, arp_oct=2, arp_gate=0.9, rev_mix=0.35))
+
 # ----------------------------------------------------------------------------
 SRC = dict(Env2="srcEnv2", Env3="srcEnv3", Lfo1="srcLfo1", Lfo2="srcLfo2", Velocity="srcVelocity",
            ModWheel="srcModWheel", Aftertouch="srcAftertouch", KeyTrack="srcKeyTrack", Random="srcRandom",

@@ -12,6 +12,7 @@
 #include "gui/PatchPage.h"
 #include "gui/WaveDrawPage.h"
 #include "gui/FxPage.h"
+#include "gui/PlayPage.h"
 
 class FourfoldEditor : public juce::AudioProcessorEditor,
                        public juce::DragAndDropContainer,
@@ -120,17 +121,18 @@ private:
     juce::MidiKeyboardComponent keyboard;
 
     // pages
-    juce::TextButton synthTab { "SYNTH" }, patchTab { "PATCH" }, fmTab { "FM" }, fxTab { "FX" }, envTab { "ENV" }, browseTab { "BROWSE" }, samplerTab { "SAMPLER" }, rollTab { "ROLL" };
+    juce::TextButton synthTab { "SYNTH" }, patchTab { "PATCH" }, fmTab { "FM" }, fxTab { "FX" }, envTab { "ENV" }, browseTab { "BROWSE" }, samplerTab { "SAMPLER" }, rollTab { "ROLL" }, playTab { "PLAY" };
     std::unique_ptr<ff::gui::EnvelopePage> envPage;
     std::unique_ptr<ff::gui::FmPage> fmPage;
     std::unique_ptr<ff::gui::PatchPage> patchPage;
     std::unique_ptr<ff::gui::FxPage> fxPage;
+    std::unique_ptr<ff::gui::PlayPage> playPage;
     void registerPageKnob (Knob& k);
     std::unique_ptr<ff::gui::BrowsePage> browsePage;
     std::unique_ptr<ff::gui::MacroBar> macroBar;
     std::unique_ptr<SamplerPage> samplerPage;
     std::unique_ptr<ff::gui::RollPage> rollPage;
-    void showPage (int page);   // 0 synth, 1 patch, 2 fm, 3 fx, 4 env, 5 browse, 6 sampler, 7 roll
+    void showPage (int page);   // 0 synth, 1 patch, 2 fm, 3 fx, 4 env, 5 browse, 6 sampler, 7 roll, 8 play
 
     std::vector<std::unique_ptr<APVTS::ComboBoxAttachment>> comboAttachments;
     std::vector<std::unique_ptr<APVTS::ButtonAttachment>> buttonAttachments;

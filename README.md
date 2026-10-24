@@ -14,7 +14,7 @@ A five-engine synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
 World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
-198 factory presets in 21 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
+203 factory presets in 22 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
 
 ## PATCH page (Absynth / Massive-style signal flow)
@@ -23,6 +23,15 @@ Every engine is a channel with **level, pan and two module slots**: Ladder LP, L
 Below: the **mod oscillator** (ring mod on any engine, wavetable phase/position modulation, filter FM),
 **coloured noise** (white, pink, brown, digital, crackle), **feedback** around the filters, the **dual filter**
 (series or parallel with a balance knob) and **glide / velocity curves** (smooth, linear, glissando; soft, hard, fixed).
+
+## PLAY page (chords + arpeggiator)
+**Chords** (Kontakt-style): pick a key, scale (major, minor, modes, harmonic minor, Hijaz...), chord type (triad, 7th,
+9th, sus, power, add9, 11th) and voicing - one finger then plays the whole chord in key. **Strum** spreads the notes,
+**Humanize** loosens timing and velocity. The seven circles show the chords of the key; click one to hear it.
+**Arpeggiator**: rate (1/4 to 1/32, triplets), mode (up, down, up/down, as played, random, chord, converge, bounce),
+octaves, gate, swing, latch and 1-32 steps. The FM8-style pattern grid has rows for On, Tie, Accent, Note (which held
+note, or All), Octave, Transpose and Velocity, each with reset and random. Drop a **MIDI file** on the grid to copy its groove.
+It follows your DAW's tempo and position (or its own clock).
 
 ## FX page (Guitar Rig-style rack)
 Pick a unit from **Components** (double-click, or drag it onto a slot) and stack up to 8. Each unit has its own knobs,
