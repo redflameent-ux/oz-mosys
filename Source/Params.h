@@ -312,6 +312,24 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addF ("rev_size", "Reverb Size", { 0.0f, 1.0f }, 0.6f);
     addF ("rev_damp", "Reverb Damping", { 0.0f, 1.0f }, 0.5f);
 
+    // ---- Sampler (the SAMPLER page) ----
+    addC ("smp_play", "Sampler Play", StringArray { "Off", "Layered with synth", "Sampler only" }, 0);
+    addB ("smp_fx", "Sampler Through FX", true);
+    addF ("smp_level", "Sampler Level", { -36.0f, 6.0f, 0.1f }, 0.0f, "dB");
+    addI ("smp_tune", "Sampler Tune", -24, 24, 0);
+    addF ("smp_fine", "Sampler Fine", { -100.0f, 100.0f }, 0.0f, "ct");
+    addF ("smp_pan", "Sampler Pan", { -1.0f, 1.0f }, 0.0f);
+    {
+        NormalisableRange<float> ar (0.0f, 4000.0f, 1.0f); ar.setSkewForCentre (300.0f);
+        addF ("smp_attack", "Sampler Attack", ar, 0.0f, "ms");
+        NormalisableRange<float> dr (0.0f, 10000.0f, 1.0f); dr.setSkewForCentre (800.0f);
+        addF ("smp_decay", "Sampler Decay", dr, 500.0f, "ms");
+    }
+    addF ("smp_sustain", "Sampler Sustain", { 0.0f, 1.0f }, 1.0f);
+    addF ("smp_release", "Sampler Release", timeRange (0.02f, 20.0f), 1.0f, "s");
+    addB ("smp_letring", "Sampler Let Ring", true);
+    addF ("smp_vel", "Sampler Touch", { 0.0f, 1.0f }, 0.7f);
+
     return layout;
 }
 

@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 #include "gui/Widgets.h"
 #include "gui/Displays.h"
+#include "gui/SamplerPage.h"
 
 class FourfoldEditor : public juce::AudioProcessorEditor,
                        public juce::DragAndDropContainer,
@@ -108,6 +109,11 @@ private:
     juce::ComboBox driveType;
 
     juce::MidiKeyboardComponent keyboard;
+
+    // pages
+    juce::TextButton synthTab { "SYNTH" }, samplerTab { "SAMPLER" };
+    std::unique_ptr<SamplerPage> samplerPage;
+    void showPage (bool sampler);
 
     std::vector<std::unique_ptr<APVTS::ComboBoxAttachment>> comboAttachments;
     std::vector<std::unique_ptr<APVTS::ButtonAttachment>> buttonAttachments;

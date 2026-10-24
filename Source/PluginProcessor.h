@@ -4,6 +4,7 @@
 #include "Params.h"
 #include "SynthVoice.h"
 #include "dsp/Effects.h"
+#include "sampler/SamplerEngine.h"
 
 class FourfoldProcessor : public juce::AudioProcessor
 {
@@ -37,6 +38,7 @@ public:
     // ---- used by the editor ----
     juce::AudioProcessorValueTreeState apvts;
     juce::MidiKeyboardState keyboardState;
+    std::unique_ptr<ff::SamplerEngine> sampler;
 
     bool loadUserWavetable (const juce::File& file);
     bool loadGrainSample (const juce::File& file);
@@ -78,6 +80,8 @@ private:
     ff::WavetableBank::Ptr audioTable;
     ff::GrainSource::Ptr audioGrains;
     juce::SpinLock swapLock;
+    juce::AudioBuffer<float> samplerBuf;
+    juce::MidiBuffer emptyMidi;
     juce::ReferenceCountedArray<juce::ReferenceCountedObject> graveyard;   // old data freed off the audio thread
 
     juce::File userTableFile, grainFile;

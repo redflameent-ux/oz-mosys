@@ -18,6 +18,7 @@ namespace col
     const juce::Colour analog    { 0xfff2a541 };
     const juce::Colour granular  { 0xffa77bf3 };
     const juce::Colour resonator { 0xffe07a4f };
+    const juce::Colour sampler   { 0xfff5c542 };
     const juce::Colour mod       { 0xff5fe08c };
     const juce::Colour filter    { 0xffef5d8d };
     const juce::Colour fx        { 0xff6d9bff };
@@ -56,6 +57,18 @@ public:
         setColour (juce::TooltipWindow::backgroundColourId, col::panelHi);
         setColour (juce::TooltipWindow::textColourId, col::text);
         setColour (juce::TooltipWindow::outlineColourId, col::border);
+        setColour (juce::ListBox::backgroundColourId, col::bg);
+        setColour (juce::ListBox::outlineColourId, col::border);
+        setColour (juce::TextEditor::backgroundColourId, col::bg);
+        setColour (juce::TextEditor::textColourId, col::text);
+        setColour (juce::TextEditor::outlineColourId, col::border);
+        setColour (juce::TextEditor::focusedOutlineColourId, col::sampler);
+        setColour (juce::AlertWindow::backgroundColourId, col::panel);
+        setColour (juce::AlertWindow::textColourId, col::text);
+        setColour (juce::AlertWindow::outlineColourId, col::border);
+        setColour (juce::Slider::textBoxBackgroundColourId, col::bg);
+        setColour (juce::Slider::trackColourId, col::sampler);
+        setColour (juce::ScrollBar::thumbColourId, col::border.brighter (0.3f));
     }
 
     void drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h, float pos,
@@ -114,9 +127,19 @@ public:
     }
 
     void drawLinearSlider (juce::Graphics& g, int x, int y, int w, int h, float sliderPos, float, float,
-                           juce::Slider::SliderStyle, juce::Slider& s) override
+                           juce::Slider::SliderStyle style, juce::Slider& s) override
     {
         auto b = juce::Rectangle<int> (x, y, w, h).toFloat();
+        if (style == juce::Slider::LinearBar)   // the mapper's number fields
+        {
+            g.setColour (col::bg);
+            g.fillRoundedRectangle (b, 4.0f);
+            g.setColour (col::sampler.withAlpha (s.isEnabled() ? 0.22f : 0.08f));
+            g.fillRoundedRectangle (b.withRight (sliderPos), 4.0f);
+            g.setColour (col::border.brighter (0.2f));
+            g.drawRoundedRectangle (b.reduced (0.5f), 4.0f, 1.0f);
+            return;
+        }
         const float cy = b.getCentreY();
         g.setColour (col::track);
         g.fillRoundedRectangle (b.getX(), cy - 2.0f, b.getWidth(), 4.0f, 2.0f);

@@ -179,6 +179,20 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
         { "dly_tone", "Tone" }, { "rev_mix", "Reverb" }, { "rev_size", "Size" } };
     for (auto& [id, label] : fxDefs) makeKnob (fxKnobs, id, label, col::fx);
 
+    // ---------------- pages ----------------
+    for (auto* t : { &synthTab, &samplerTab })
+    {
+        t->setClickingTogglesState (false);
+        t->setColour (juce::TextButton::buttonOnColourId, col::sampler.withAlpha (0.25f));
+        addAndMakeVisible (t);
+    }
+    synthTab.onClick = [this] { showPage (false); };
+    samplerTab.onClick = [this] { showPage (true); };
+    samplerTab.setTooltip ("Pad sampler: your own recordings, 4x4 pads and the mapper");
+    samplerPage = std::make_unique<SamplerPage> (proc, proc.apvts);
+    addChildComponent (*samplerPage);
+    synthTab.setToggleState (true, juce::dontSendNotification);
+
     // ---------------- keyboard ----------------
     keyboard.setAvailableRange (24, 108);
     keyboard.setLowestVisibleKey (36);
@@ -312,12 +326,15 @@ void FourfoldEditor::resized()
 
     // ---- top bar ----
     auto top = area.removeFromTop (46);
-    logoArea = top.removeFromLeft (190);
+    logoArea = top.removeFromLeft (170);
     prevBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
-    presetBox.setBounds (top.removeFromLeft (260).reduced (4, 9));
+    presetBox.setBounds (top.removeFromLeft (220).reduced (4, 9));
     nextBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
     top.removeFromLeft (6);
-    saveBtn.setBounds (top.removeFromLeft (60).reduced (0, 9));
+    saveBtn.setBounds (top.removeFromLeft (56).reduced (0, 9));
+    top.removeFromLeft (14);
+    synthTab.setBounds (top.removeFromLeft (74).reduced (0, 9));
+    samplerTab.setBounds (top.removeFromLeft (84).reduced (2, 9));
     meterArea = top.removeFromRight (120).reduced (0, 19);
     top.removeFromRight (8);
     for (int i = 2; i >= 0; --i) topKnobs[(size_t) i]->setBounds (top.removeFromRight (56));
@@ -328,7 +345,7 @@ void FourfoldEditor::resized()
     top.removeFromRight (4);
     scaleBox.setBounds (top.removeFromRight (132).reduced (0, 11));
     top.removeFromRight (8);
-    monoToggle.setBounds (top.removeFromRight (52).reduced (0, 11));
+    monoToggle.setBounds (top.removeFromRight (58).reduced (0, 11));
     area.removeFromTop (4);
 
     // ---- engines row ----
@@ -481,6 +498,7 @@ void FourfoldEditor::resized()
     area.removeFromTop (gap);
 
     keyboard.setBounds (area);
+    samplerPage->setBounds (juce::Rectangle<int> (gap, 46 + gap + 4, editorW - 2 * gap, area.getY() - gap - (46 + gap + 4)));
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) area.getWidth() / 50.0f));
 }
 
@@ -666,4 +684,12 @@ void FourfoldEditor::loadGrainFile (const juce::File& f)
         setParam ("gr_on", 1.0f);
     else
         juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Couldn't load", "That audio file couldn't be read.");
+}
+
+void FourfoldEditor::showPage (bool sampler)
+{
+    samplerPage->setVisible (sampler);
+    if (sampler) samplerPage->toFront (false);
+    synthTab.setToggleState (! sampler, juce::dontSendNotification);
+    samplerTab.setToggleState (sampler, juce::dontSendNotification);
 }

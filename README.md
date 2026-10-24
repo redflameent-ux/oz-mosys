@@ -16,6 +16,13 @@ World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) wit
 165 factory presets in 18 banks, from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
 
+## Sampler page
+Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or the keyboard, layered with the synth or on their own.
+- **Drop a folder** (or WAV files) on the left. It becomes an instrument; folders inside it become articulations.
+- The **mapper** on the right sets each recording's root note, key range and velocity range; changes save automatically.
+- Put note names in file names (`C3.wav`, `Kick F#2 rr2.wav`) and it maps itself. C3 = middle C.
+- Samples live in `Documents\OZ-mosys\Samples` (or point **Library...** at any folder, including your Sol Intent library).
+
 ## Installing
 **Mac:** download **OZ-mosys-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.
 It installs the AU (Logic, GarageBand), the VST3 and a stand-alone app.

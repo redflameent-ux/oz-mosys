@@ -104,6 +104,35 @@ int main (int argc, char** argv)
         proc.setCurrentProgram (shot);
         std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
         ed->setVisible (true);
+        if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "sampler")
+        {
+            // make a small test instrument from generated recordings
+            auto folder = sol::Library::createInstrument ("Test Kalimba");
+            auto writeTone = [] (const juce::File& f, double hz)
+            {
+                juce::AudioBuffer<float> b (2, 48000);
+                for (int i = 0; i < 48000; ++i)
+                {
+                    const float v = (float) (std::sin (i * hz * juce::MathConstants<double>::twoPi / 48000.0) * std::exp (-i / 9000.0) * 0.6);
+                    b.setSample (0, i, v); b.setSample (1, i, v);
+                }
+                writeWav (f, b, 48000.0);
+            };
+            writeTone (folder.getChildFile ("C3.wav"), 261.63);
+            writeTone (folder.getChildFile ("E3.wav"), 329.63);
+            writeTone (folder.getChildFile ("G3.wav"), 392.0);
+            writeTone (folder.getChildFile ("C4.wav"), 523.25);
+            folder.getChildFile ("Muted").createDirectory();
+            writeTone (folder.getChildFile ("Muted").getChildFile ("C3.wav"), 261.63);
+            folder.getChildFile ("instrument.json").deleteFile();   // map from the file names
+            proc.sampler->rescanLibrary();
+            proc.sampler->loadNow ({ "Test Kalimba", "Library", folder });
+            juce::MidiBuffer m; juce::AudioBuffer<float> b (2, 512);
+            proc.processBlock (b, m);   // swap the instrument in
+        }
+        if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "sampler")
+            for (auto* c : ed->getChildren())
+                if (auto* page = dynamic_cast<SamplerPage*> (c)) { page->setVisible (true); page->toFront (false); }
         auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);
         juce::PNGImageFormat png;
         auto f = outDir.getChildFile ("screenshot.png");

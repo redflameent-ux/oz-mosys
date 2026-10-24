@@ -38,6 +38,8 @@ FourfoldProcessor::FourfoldProcessor()
     }
     monoSynth.setNoteStealingEnabled (true);
     refreshSharedPointers();
+
+    sampler = std::make_unique<ff::SamplerEngine> (apvts, keyboardState);
 }
 
 bool FourfoldProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -51,6 +53,8 @@ void FourfoldProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     synth.setCurrentPlaybackSampleRate (sampleRate);
     monoSynth.setCurrentPlaybackSampleRate (sampleRate);
     fx.prepare (sampleRate, juce::jmax (32, samplesPerBlock));
+    sampler->prepare (sampleRate, samplesPerBlock);
+    samplerBuf.setSize (2, juce::jmax (512, samplesPerBlock));
     keyboardState.reset();
 }
 
@@ -103,7 +107,16 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         monoSynth.allNotesOff (0, false);
         wasMono = mono;
     }
-    (mono ? monoSynth : synth).renderNextBlock (buffer, midi, 0, n);
+    // sampler page: off / layered with the synth / sampler only
+    const int smpPlay = (int) apvts.getRawParameterValue ("smp_play")->load();
+    (mono ? monoSynth : synth).renderNextBlock (buffer, smpPlay == 2 ? emptyMidi : midi, 0, n);
+
+    const bool smpThroughFx = apvts.getRawParameterValue ("smp_fx")->load() > 0.5f;
+    if (samplerBuf.getNumSamples() < n) samplerBuf.setSize (2, n, false, false, true);
+    samplerBuf.clear (0, n);
+    sampler->render (samplerBuf, smpPlay > 0 ? midi : emptyMidi, n);
+    if (smpThroughFx)
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch) buffer.addFrom (ch, 0, samplerBuf, juce::jmin (ch, 1), 0, n);
 
     if (buffer.getNumChannels() >= 2)
     {
@@ -119,6 +132,9 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         s.revMix = g ("rev_mix"); s.revSize = g ("rev_size"); s.revDamp = g ("rev_damp");
         fx.process (buffer, s);
     }
+
+    if (! smpThroughFx)
+        for (int ch = 0; ch < buffer.getNumChannels(); ++ch) buffer.addFrom (ch, 0, samplerBuf, juce::jmin (ch, 1), 0, n);
 
     const float master = apvts.getRawParameterValue ("master")->load();
     buffer.applyGain (master * master);
@@ -226,6 +242,7 @@ void FourfoldProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty ("userTableFile", userTableFile.getFullPathName(), nullptr);
     state.setProperty ("grainFile", grainFile.getFullPathName(), nullptr);
     state.setProperty ("presetName", currentPresetName, nullptr);
+    sampler->saveTo (state);
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
 }
@@ -243,6 +260,7 @@ void FourfoldProcessor::applyStateTree (const juce::ValueTree& tree)
     else resetGrainSample();
 
     currentPresetName = tree.getProperty ("presetName", "Init").toString();
+    sampler->restoreFrom (tree);
 }
 
 void FourfoldProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -266,6 +284,7 @@ bool FourfoldProcessor::savePresetToFile (const juce::File& file)
     state.setProperty ("userTableFile", userTableFile.getFullPathName(), nullptr);
     state.setProperty ("grainFile", grainFile.getFullPathName(), nullptr);
     state.setProperty ("presetName", currentPresetName, nullptr);
+    sampler->saveTo (state);
     if (auto xml = state.createXml())
         return xml->writeTo (file);
     return false;

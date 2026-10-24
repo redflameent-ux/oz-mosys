@@ -22,9 +22,11 @@ inline void applyFactoryPreset (juce::AudioProcessorValueTreeState& state, int i
     if (! juce::isPositiveAndBelow (index, (int) list.size())) return;
     const auto& preset = list[(size_t) index];
 
+    // synth presets leave the sampler page alone
     for (auto* p : state.processor.getParameters())
         if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p))
-            rp->setValueNotifyingHost (rp->getDefaultValue());
+            if (! rp->getParameterID().startsWith ("smp_"))
+                rp->setValueNotifyingHost (rp->getDefaultValue());
 
     for (auto& [id, value] : preset.values)
         if (auto* rp = state.getParameter (id))
