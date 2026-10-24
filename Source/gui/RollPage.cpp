@@ -1119,7 +1119,7 @@ void RollPage::exportMidi()
 
     chooser = std::make_unique<FileChooser> ("Export MPE MIDI", rollFolder().getChildFile ("OZ-mosys pattern.mid"), "*.mid");
     chooser->launchAsync (FileBrowserComponent::saveMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::warnAboutOverwriting,
-        [this, seq] (const FileChooser& fc)
+        [this, seq, tpq] (const FileChooser& fc)
         {
             auto f = fc.getResult();
             if (f == File()) return;
