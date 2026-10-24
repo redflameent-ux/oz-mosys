@@ -1,4 +1,4 @@
-# Fourfold
+# OZ-mosys
 
 A four-in-one synth plugin (VST3 + stand-alone) for Windows.
 
@@ -12,11 +12,11 @@ A four-in-one synth plugin (VST3 + stand-alone) for Windows.
 Plus a ladder / state-variable filter and Drive, Chorus, Ping-pong Delay and Reverb.
 
 ## Installing
-Download **Fourfold-Setup.exe** from this repo's **Releases** page and run it. It puts the plugin in
-`C:\Program Files\Common Files\VST3`. In FL Studio: *Options > Manage plugins > Find more plugins*, then look for Fourfold under Generators.
+Download **OZ-mosys-Setup.exe** from this repo's **Releases** page and run it. It puts the plugin in
+`C:\Program Files\Common Files\VST3`. In FL Studio: *Options > Manage plugins > Find more plugins*, then look for OZ-mosys under Generators.
 
 ## Where things are saved
-Your presets: `Documents\Fourfold\Presets`.
+Your presets: `Documents\OZ-mosys\Presets`.
 
 ## Building
 Every push to `main` builds the Windows installer automatically (GitHub Actions). All original code; no code or sounds from other products.

@@ -20,7 +20,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     prevBtn.onClick = [this] { stepPreset (-1); };
     nextBtn.onClick = [this] { stepPreset (+1); };
     saveBtn.onClick = [this] { savePreset(); };
-    saveBtn.setTooltip ("Save the current sound as a preset (Documents/Fourfold/Presets)");
+    saveBtn.setTooltip ("Save the current sound as a preset (Documents/OZ-mosys/Presets)");
     makeKnob (topKnobs, "master", "Master", col::text);
     makeKnob (topKnobs, "glide", "Glide", col::text);
     makeKnob (topKnobs, "bend", "Bend", col::text);
@@ -236,12 +236,14 @@ void FourfoldEditor::paint (juce::Graphics& g)
     // logo
     g.setColour (col::text);
     g.setFont (font (22.0f, true));
-    g.drawText ("FOURFOLD", logoArea, juce::Justification::centredLeft);
+    const juce::String logo ("OZ-mosys");
+    g.drawText (logo, logoArea, juce::Justification::centredLeft);
+    const float logoW = juce::GlyphArrangement::getStringWidth (font (22.0f, true), logo);
     const juce::Colour dots[4] = { col::wavetable, col::analog, col::granular, col::mod };
     for (int i = 0; i < 4; ++i)
     {
         g.setColour (dots[i]);
-        g.fillEllipse ((float) logoArea.getX() + 128.0f + i * 11.0f, (float) logoArea.getCentreY() - 3.5f, 7.0f, 7.0f);
+        g.fillEllipse ((float) logoArea.getX() + logoW + 10.0f + i * 11.0f, (float) logoArea.getCentreY() - 3.5f, 7.0f, 7.0f);
     }
 
     for (auto& pnl : panels)
@@ -533,7 +535,7 @@ void FourfoldEditor::refreshPresetList()
     for (int i = 0; i < (int) f.size(); ++i) presetBox.addItem (f[(size_t) i].name, i + 1);
 
     userPresetFiles.clear();
-    for (auto& e : juce::RangedDirectoryIterator (FourfoldProcessor::getUserPresetFolder(), false, "*.ffpreset"))
+    for (auto& e : juce::RangedDirectoryIterator (FourfoldProcessor::getUserPresetFolder(), false, "*.ozpreset"))
         userPresetFiles.push_back (e.getFile());
     std::sort (userPresetFiles.begin(), userPresetFiles.end());
     if (! userPresetFiles.empty())
@@ -568,13 +570,13 @@ void FourfoldEditor::stepPreset (int delta)
 
 void FourfoldEditor::savePreset()
 {
-    chooser = std::make_unique<juce::FileChooser> ("Save preset", FourfoldProcessor::getUserPresetFolder().getChildFile (proc.currentPresetName + ".ffpreset"), "*.ffpreset");
+    chooser = std::make_unique<juce::FileChooser> ("Save preset", FourfoldProcessor::getUserPresetFolder().getChildFile (proc.currentPresetName + ".ozpreset"), "*.ozpreset");
     chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting,
         [this] (const juce::FileChooser& fc)
         {
             auto f = fc.getResult();
             if (f == juce::File()) return;
-            if (! f.hasFileExtension ("ffpreset")) f = f.withFileExtension ("ffpreset");
+            if (! f.hasFileExtension ("ozpreset")) f = f.withFileExtension ("ozpreset");
             proc.savePresetToFile (f);
             refreshPresetList();
         });

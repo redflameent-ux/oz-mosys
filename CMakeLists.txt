@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Fourfold VERSION 0.1.0)
+project(OZmosys VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,12 +38,12 @@ set(FOURFOLD_LIBS
     juce::juce_audio_formats
     juce::juce_dsp)
 
-juce_add_plugin(Fourfold
-    COMPANY_NAME "Fourfold Audio"
-    PLUGIN_MANUFACTURER_CODE Ffld
-    PLUGIN_CODE Ff4x
+juce_add_plugin(OZmosys
+    COMPANY_NAME "OZ-mosys"
+    PLUGIN_MANUFACTURER_CODE Ozmo
+    PLUGIN_CODE Ozms
     FORMATS VST3 Standalone
-    PRODUCT_NAME "Fourfold"
+    PRODUCT_NAME "OZ-mosys"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
@@ -52,9 +52,9 @@ juce_add_plugin(Fourfold
     VST3_CATEGORIES Instrument Synth
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
-target_sources(Fourfold PRIVATE ${FOURFOLD_SOURCES})
-target_compile_definitions(Fourfold PUBLIC ${FOURFOLD_DEFS})
-target_link_libraries(Fourfold
+target_sources(OZmosys PRIVATE ${FOURFOLD_SOURCES})
+target_compile_definitions(OZmosys PUBLIC ${FOURFOLD_DEFS})
+target_link_libraries(OZmosys
     PRIVATE ${FOURFOLD_LIBS}
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 

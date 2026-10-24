@@ -2,7 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 // ============================================================================
-//  Fourfold - parameter definitions
+//  OZ-mosys - parameter definitions
 //  Four engines in one synth: Wavetable, Analog, Granular + a deep mod system.
 // ============================================================================
 

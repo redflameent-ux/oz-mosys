@@ -215,7 +215,7 @@ void FourfoldProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 juce::File FourfoldProcessor::getUserPresetFolder()
 {
-    auto dir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Fourfold").getChildFile ("Presets");
+    auto dir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Presets");
     dir.createDirectory();
     return dir;
 }
