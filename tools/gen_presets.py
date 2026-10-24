@@ -600,6 +600,32 @@ p(C, "Performer Pluck Seq", d(wt_table=3, wt_pos=0.5, flt_cutoff=0.55, flt_res=0
     _mseg1=perf([5, 8, 5, 5, 8, 5, 8, 5], [1, 0, 0.7, 0.9, 0, 0.6, 0, 1])),
   [("Mseg1", "Amp", -0.9), ("Mseg1", "WtPos", 0.3)])
 
+# ============================== FX RACK showcases ==============================
+def rk(slot, unit, a=None, b=None, c=None, d=None, mix=1.0):
+    k = "rk%d_" % slot
+    out = {k+"type": unit, k+"mix": mix}
+    for name, v in (("a", a), ("b", b), ("c", c), ("d", d)):
+        if v is not None: out[k+name] = v
+    return out
+C = "FX Rack"
+p(C, "Amp Stack Lead", d(wt_table=0, wt_pos=0.66, an_on=1, an_shape=1, an_level=0.5, flt_cutoff=0.8, amp_a=0.005, amp_s=1, amp_r=0.3,
+    voice_mode=1, glide=0.05, rev_mix=0.1, **rk(1, 1, 0.55, 0.6, 0.6), **rk(2, 6, 0.6, 0.55, 0.65, 0.5), **rk(3, 8, 0.66, 0.5, 0.25, 0.6),
+    **rk(4, 10, 0.5, 0.35, 0.3, 0.45, mix=0.25)))
+p(C, "Dusty Tape Keys", d(OFF, res_on=1, res_type=18, res_decay=3, res_bright=0.4, flt_cutoff=0.7, amp_a=0.002, amp_s=1, amp_r=0.6,
+    rev_mix=0.15, **rk(1, 24, 0.35, 0.35, 0.25, 0.5), **rk(2, 25, 0.45, 0.25, 0.45, 0.0)))
+p(C, "Stutter Pluck", d(wt_table=3, wt_pos=0.4, flt_cutoff=0.6, flt_res=0.3, amp_a=0.001, amp_d=0.6, amp_s=0.3, amp_r=0.3,
+    rev_mix=0.2, **rk(1, 28, 0.4, 0.45, 0.7, 0.3), **rk(2, 10, 0.5, 0.35, 0.2, 0.5, mix=0.3)))
+p(C, "Half Time Haze", d(wt_table=1, wt_pos=0.4, wt_unison=4, wt_detune=0.2, gr_on=1, gr_level=0.4, flt_type=1, flt_cutoff=0.6,
+    amp_a=0.4, amp_s=1, amp_r=2, **rk(1, 26, 0.3, 0.0, 0.6), **rk(2, 13, 0.7, 0.4, 0.4, 1.0, mix=0.4)))
+p(C, "Shimmer Bells", d(OFF, fm_on=1, fm1_ratio=1, fm1_level=1, fm1_d=4, fm1_s=0, fm1_r=3, fm2_ratio=3.5, fm2_d=2, fm2_s=0, fm_m21=0.4,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=3, rev_mix=0, **rk(1, 13, 0.85, 0.7, 0.35, 1.0, mix=0.45), **rk(2, 11, 0.4, 0.3, 0.3, 0.6, mix=0.25)))
+p(C, "Reverse Swell Pad", d(wt_table=2, wt_pos=0.5, wt_unison=5, wt_detune=0.25, flt_type=1, flt_cutoff=0.65, amp_a=0.8, amp_s=1, amp_r=2,
+    **rk(1, 27, 0.6, 0.7, 0.4), **rk(2, 14, 0.75, 0.5, 1.0, 0.2, mix=0.35)))
+p(C, "Octave Fuzz Bass", d(OFF, an_on=1, an_shape=1, an_oct=-1, an_level=0.8, flt_cutoff=0.5, amp_a=0.002, amp_s=1, amp_r=0.15,
+    voice_mode=1, **rk(1, 18, 0.6, 0.15, 0.7), **rk(2, 2, 0.6, 0.45, 0.2, 0.45), **rk(3, 8, 0.7, 0.4, 0.1, 0.6)))
+p(C, "Wah Funk Clav", d(OFF, res_on=1, res_type=0, res_decay=0.7, res_bright=0.7, res_strike=1, flt_cutoff=0.8, amp_a=0.001,
+    amp_d=0.4, amp_s=0.4, amp_r=0.1, **rk(1, 20, 0.7, 0.25, 0.7, 1.0), **rk(2, 16, 0.25, 0.5, 0.5, 0.5, mix=0.5)))
+
 # ----------------------------------------------------------------------------
 SRC = dict(Env2="srcEnv2", Env3="srcEnv3", Lfo1="srcLfo1", Lfo2="srcLfo2", Velocity="srcVelocity",
            ModWheel="srcModWheel", Aftertouch="srcAftertouch", KeyTrack="srcKeyTrack", Random="srcRandom",

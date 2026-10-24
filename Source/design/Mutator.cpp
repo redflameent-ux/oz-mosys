@@ -88,6 +88,7 @@ void Mutator::randomise (Snapshot& s, float amountIn)
         if (p == nullptr) continue;
         const float a = aBase * sectionAmount[(size_t) sec];
         if (a <= 0.0001f) continue;
+        if (id.startsWith ("rk") && (id.endsWith ("_type") || id == "rk_split")) continue;   // never swap rack units at random
 
         if (isToggle (p))
         {

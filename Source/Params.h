@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "dsp/Rack.h"
 
 // ============================================================================
 //  OZ-mosys - parameter definitions
@@ -394,6 +395,24 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addF ("rev_mix", "Reverb Mix", { 0.0f, 1.0f }, 0.15f);
     addF ("rev_size", "Reverb Size", { 0.0f, 1.0f }, 0.6f);
     addF ("rev_damp", "Reverb Damping", { 0.0f, 1.0f }, 0.5f);
+
+    // ---- FX rack (8 slots; 1-4 low / 5-8 high when split) ----
+    for (int i = 1; i <= numRackSlots; ++i)
+    {
+        const String pre = "rk" + String (i), nm = "Rack " + String (i);
+        addC (pre + "_type", nm + " Unit", rackUnitNames(), 0);
+        addB (pre + "_on", nm + " On", true);
+        addF (pre + "_a", nm + " A", { 0.0f, 1.0f }, 0.5f);
+        addF (pre + "_b", nm + " B", { 0.0f, 1.0f }, 0.5f);
+        addF (pre + "_c", nm + " C", { 0.0f, 1.0f }, 0.5f);
+        addF (pre + "_d", nm + " D", { 0.0f, 1.0f }, 0.5f);
+        addF (pre + "_mix", nm + " Mix", { 0.0f, 1.0f }, 1.0f);
+    }
+    addB ("rk_split", "Rack Split", false);
+    {
+        NormalisableRange<float> xr (60.0f, 4000.0f, 1.0f); xr.setSkewForCentre (300.0f);
+        addF ("rk_xover", "Rack Split Frequency", xr, 250.0f, "Hz");
+    }
 
     // ---- Sampler (the SAMPLER page) ----
     addC ("smp_play", "Sampler Play", StringArray { "Off", "Layered with synth", "Sampler only" }, 0);

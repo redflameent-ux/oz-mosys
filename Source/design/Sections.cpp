@@ -29,7 +29,7 @@ bool paramInSection (const juce::String& id, int section)
         case secMatrix:    return id.startsWith ("mod") && id.length() > 3 && juce::CharacterFunctions::isDigit (id[3]);
         case secMacros:    return starts ("macro");
         case secEffects:   return starts ("fx_drive") || starts ("drive_type") || starts ("crush_") || starts ("tape_")
-                                  || starts ("ring_") || starts ("cho_") || starts ("dly_") || starts ("rev_") || starts ("eq_");
+                                  || starts ("ring_") || starts ("cho_") || starts ("dly_") || starts ("rev_") || starts ("eq_") || starts ("rk");
         case secVoice:     return id == "glide" || id == "bend" || id == "voice_mode" || id == "tune_a4"
                                   || id == "scale" || id == "scale_root" || id == "master";
         case secFm:        return id.startsWith ("fm");

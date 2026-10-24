@@ -14,7 +14,7 @@ A five-engine synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
 World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
-190 factory presets in 20 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
+198 factory presets in 21 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
 
 ## PATCH page (Absynth / Massive-style signal flow)
@@ -23,6 +23,16 @@ Every engine is a channel with **level, pan and two module slots**: Ladder LP, L
 Below: the **mod oscillator** (ring mod on any engine, wavetable phase/position modulation, filter FM),
 **coloured noise** (white, pink, brown, digital, crackle), **feedback** around the filters, the **dual filter**
 (series or parallel with a balance knob) and **glide / velocity curves** (smooth, linear, glissando; soft, hard, fixed).
+
+## FX page (Guitar Rig-style rack)
+Pick a unit from **Components** (double-click, or drag it onto a slot) and stack up to 8. Each unit has its own knobs,
+a Mix knob, bypass, move up/down and remove. **Split Low / High** sends the lows through slots 1-4 and the highs
+through 5-8. The rack comes after the classic effects on the SYNTH page.
+- **Distortion:** Screamer, Big Fuzz, Rat Box, Bit Grit  -  **Amps:** Clean, Crunch, Lead  -  **Cabinets:** Cabinet, IR Loader (any impulse WAV)
+- **Delay & Echo:** Tape Echo, Multitap, Granular Delay  -  **Reverb:** Shimmer, Hall
+- **Modulation:** Ensemble, Phaser, Flanger, Octaver, Tremolo  -  **Filters:** Auto-Wah, EQ  -  **Dynamics:** Compressor, Maximizer
+- **Lo-fi / Tape:** Tape (hiss, wow, flutter, age), Vinyl (crackle, rumble, wear, brake)
+- **Time FX:** Half Time, Reverse, Stutter - all locked to your song's tempo
 
 ## FM page
 Press **FM**. The grid is the FM matrix: each row's operator modulates each column's operator; **OUT** sets how loud each

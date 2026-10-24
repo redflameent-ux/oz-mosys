@@ -91,7 +91,7 @@ jobs:
           codesign --force --deep -s - "$ROOT/Library/Audio/Plug-Ins/Components/OZ-mosys.component"
           codesign --force --deep -s - "$ROOT/Library/Audio/Plug-Ins/VST3/OZ-mosys.vst3"
           codesign --force --deep -s - "$ROOT/Applications/OZ-mosys.app"
-          pkgbuild --root "$ROOT" --identifier com.ozmosys.synth --version 0.10.0 --install-location / OZ-mosys-Mac.pkg
+          pkgbuild --root "$ROOT" --identifier com.ozmosys.synth --version 0.11.0 --install-location / OZ-mosys-Mac.pkg
           (cd "$ROOT/Library/Audio/Plug-Ins" && zip -qry "$GITHUB_WORKSPACE/OZ-mosys-Mac.zip" Components/OZ-mosys.component VST3/OZ-mosys.vst3)
 
       - name: Check the AU passes Apple's validator

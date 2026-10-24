@@ -44,6 +44,9 @@ FourfoldProcessor::FourfoldProcessor()
     for (int i = 0; i < numMsegs; ++i) setMseg (i, defaultMseg (i));
     mutator = std::make_unique<ff::design::Mutator> (*this);
     midiLearn = std::make_unique<ff::design::MidiLearn> (*this);
+    rack.bind (apvts);
+    rackTimer.owner = this;
+    rackTimer.startTimerHz (15);
 }
 
 bool FourfoldProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -59,6 +62,7 @@ void FourfoldProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     synth.setMinimumRenderingSubdivisionSize (32, false);
     monoSynth.setMinimumRenderingSubdivisionSize (32, false);
     fx.prepare (sampleRate, juce::jmax (32, samplesPerBlock));
+    rack.prepare (sampleRate, juce::jmax (32, samplesPerBlock));
     sampler->prepare (sampleRate, samplesPerBlock);
     roll.prepare (sampleRate);
     samplerMidi.ensureSize (8192);
@@ -180,6 +184,20 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         fx.process (buffer, s);
     }
 
+    // ---- FX rack (tempo-synced units follow the host transport, or run on their own) ----
+    {
+        ff::RackTime rt;
+        rt.bpm = shared.bpm;
+        bool hostTime = false;
+        if (auto* ph = getPlayHead())
+            if (auto pos = ph->getPosition())
+                if (pos->getIsPlaying())
+                    if (auto q = pos->getPpqPosition()) { rt.ppq = *q; rt.playing = true; hostTime = true; }
+        if (! hostTime) rt.ppq = rackPpq;
+        rackPpq = rt.ppq + n * rt.bpm / 60.0 / juce::jmax (1.0, getSampleRate());
+        rack.process (buffer, rt);
+    }
+
     if (! smpThroughFx)
         for (int ch = 0; ch < buffer.getNumChannels(); ++ch) buffer.addFrom (ch, 0, samplerBuf, juce::jmin (ch, 1), 0, n);
 
@@ -286,6 +304,8 @@ void FourfoldProcessor::setCurrentProgram (int index)
     for (int i = 0; i < 8; ++i) macroNames.set (i, "Macro " + juce::String (i + 1));
     currentPresetName = getProgramName (index);
     presetInfo = { "OZ-mosys", fp.category, fp.category.toLowerCase().replace (" & ", ", "), {}, fp.mapX, fp.mapY, fp.movement, true };
+    for (auto& f : rack.irFiles) f = juce::File();
+    rack.sync();
 }
 
 // ---------------------------------------------------------------------------
@@ -300,6 +320,12 @@ void FourfoldProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.appendChild (msegsToTree(), nullptr);
     state.removeChild (state.getChildWithName ("Roll"), nullptr);
     state.appendChild (roll.getPattern()->toTree(), nullptr);
+    state.removeChild (state.getChildWithName ("RackFiles"), nullptr);
+    {
+        juce::ValueTree rf ("RackFiles");
+        for (int i = 0; i < ff::numRackSlots; ++i) rf.setProperty ("ir" + juce::String (i + 1), rack.irFiles[(size_t) i].getFullPathName(), nullptr);
+        state.appendChild (rf, nullptr);
+    }
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
 }
@@ -321,6 +347,13 @@ void FourfoldProcessor::applyStateTree (const juce::ValueTree& tree)
     msegsFromTree (tree.getChildWithName ("Msegs"));
     if (auto rt = tree.getChildWithName ("Roll"); rt.isValid())
         roll.setPattern (ff::roll::Pattern::fromTree (rt));
+    if (auto rf = tree.getChildWithName ("RackFiles"); rf.isValid())
+        for (int i = 0; i < ff::numRackSlots; ++i)
+        {
+            const juce::String path = rf.getProperty ("ir" + juce::String (i + 1)).toString();
+            if (path.isNotEmpty() && juce::File (path).existsAsFile()) rack.setIrFile (i, juce::File (path));
+        }
+    rack.sync();
 }
 
 void FourfoldProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -347,6 +380,11 @@ bool FourfoldProcessor::savePresetToFile (const juce::File& file)
     sampler->saveTo (state);
     state.removeChild (state.getChildWithName ("Msegs"), nullptr);
     state.appendChild (msegsToTree(), nullptr);
+    {
+        juce::ValueTree rf ("RackFiles");
+        for (int r = 0; r < ff::numRackSlots; ++r) rf.setProperty ("ir" + juce::String (r + 1), rack.irFiles[(size_t) r].getFullPathName(), nullptr);
+        state.appendChild (rf, nullptr);
+    }
     if (! presetInfo.measured) measureCurrentSound();
     state.setProperty ("author", presetInfo.author, nullptr);
     state.setProperty ("bank", presetInfo.bank, nullptr);

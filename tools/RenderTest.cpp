@@ -100,6 +100,7 @@ int main (int argc, char** argv)
         for (auto& kv : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("OZ_SET", {}), ",", ""))
             if (auto* p = proc.apvts.getParameter (kv.upToFirstOccurrenceOf ("=", false, false)))
                 p->setValueNotifyingHost (p->convertTo0to1 (kv.fromFirstOccurrenceOf ("=", false, false).getFloatValue()));
+        proc.syncRack();
         if (levels)
             if (auto* p = proc.apvts.getParameter ("master")) p->setValueNotifyingHost (p->convertTo0to1 (0.7f));
         if (ff::factoryPresets()[(size_t) preset].name == "Macro Morph")
@@ -161,6 +162,10 @@ int main (int argc, char** argv)
         const auto want = juce::SystemStats::getEnvironmentVariable ("OZ_SHOT", {});
         for (int i = 0; i < (int) ff::factoryPresets().size(); ++i) if (ff::factoryPresets()[(size_t) i].name == want) shot = i;
         proc.setCurrentProgram (shot);
+        for (auto& kv : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("OZ_SET", {}), ",", ""))
+            if (auto* p = proc.apvts.getParameter (kv.upToFirstOccurrenceOf ("=", false, false)))
+                p->setValueNotifyingHost (p->convertTo0to1 (kv.fromFirstOccurrenceOf ("=", false, false).getFloatValue()));
+        proc.syncRack();
         if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "roll")
         {
             ff::roll::Pattern pat;

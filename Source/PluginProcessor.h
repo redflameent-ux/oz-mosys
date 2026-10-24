@@ -48,6 +48,9 @@ public:
     ff::roll::RollEngine roll;
     std::unique_ptr<ff::design::Mutator> mutator;
     std::unique_ptr<ff::design::MidiLearn> midiLearn;
+    ff::FxRack rack;
+    void syncRack() { rack.sync(); }
+    void setRackIr (int slot, const juce::File& f) { rack.setIrFile (slot, f); }
 
     bool loadUserWavetable (const juce::File& file);
     bool loadGrainSample (const juce::File& file);
@@ -91,6 +94,8 @@ public:
     juce::StringArray macroNames { "Macro 1", "Macro 2", "Macro 3", "Macro 4", "Macro 5", "Macro 6", "Macro 7", "Macro 8" };
 
 private:
+    struct RackTimer : juce::Timer { FourfoldProcessor* owner = nullptr; void timerCallback() override { owner->rack.sync(); } } rackTimer;
+    double rackPpq = 0.0;
     void refreshSharedPointers();
     void applyStateTree (const juce::ValueTree& tree);
 
