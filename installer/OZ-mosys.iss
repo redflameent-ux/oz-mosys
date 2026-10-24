@@ -1,7 +1,7 @@
 ; Inno Setup script - builds OZ-mosys-Setup.exe
 [Setup]
 AppName=OZ-mosys
-AppVersion=0.1.0
+AppVersion=0.2.0
 AppPublisher=OZ-mosys
 DefaultDirName={autopf}\OZ-mosys
 DefaultGroupName=OZ-mosys

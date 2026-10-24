@@ -113,7 +113,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     };
 
     // ---- Master ----
-    addF ("master", "Master Volume", { 0.0f, 1.0f }, 0.7f);
+    addF ("master", "Master Volume", { 0.0f, 1.5f }, 0.7f);
     addF ("glide", "Glide", timeRange (0.0f, 2.0f), 0.0f, "s");
     addI ("bend", "Pitch Bend Range", 0, 24, 2);
     addF ("amp_vel", "Velocity Sensitivity", { 0.0f, 1.0f }, 0.5f);

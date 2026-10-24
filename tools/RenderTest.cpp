@@ -23,6 +23,8 @@ int main (int argc, char** argv)
     const juce::File outDir (argc > 1 ? juce::String (argv[1]) : juce::File::getCurrentWorkingDirectory().getFullPathName());
     outDir.createDirectory();
     const bool screenshot = argc > 2 && juce::String (argv[2]) == "--screenshot";
+    const bool levels = argc > 2 && juce::String (argv[2]) == "--levels";
+    juce::String levelJson ("{\n");
 
     const double sr = 48000.0;
     const int block = 512;
@@ -33,11 +35,18 @@ int main (int argc, char** argv)
         FourfoldProcessor proc;
         proc.setPlayConfigDetails (0, 2, sr, block);
         proc.prepareToPlay (sr, block);
+        const juce::String only = juce::SystemStats::getEnvironmentVariable ("OZ_ONLY", {});
+        if (only.isNotEmpty() && ff::factoryPresets()[(size_t) preset].name != only) continue;
         proc.setCurrentProgram (preset);
+        for (auto& kv : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("OZ_SET", {}), ",", ""))
+            if (auto* p = proc.apvts.getParameter (kv.upToFirstOccurrenceOf ("=", false, false)))
+                p->setValueNotifyingHost (p->convertTo0to1 (kv.fromFirstOccurrenceOf ("=", false, false).getFloatValue()));
+        if (levels)
+            if (auto* p = proc.apvts.getParameter ("master")) p->setValueNotifyingHost (p->convertTo0to1 (0.7f));
         if (ff::factoryPresets()[(size_t) preset].name == "Macro Morph")
             if (auto* p = proc.apvts.getParameter ("macro1")) p->setValueNotifyingHost (0.7f);
 
-        const int total = (int) (sr * 4.0);
+        const int total = (int) (sr * 8.0);
         juce::AudioBuffer<float> out (2, total), buf (2, block);
         const int notes[] = { 48, 55, 60, 64 };
         const double t0 = juce::Time::getMillisecondCounterHiRes();
@@ -46,8 +55,8 @@ int main (int argc, char** argv)
             juce::MidiBuffer midi;
             const int n = juce::jmin (block, total - pos);
             if (pos == 0) for (int nn : notes) midi.addEvent (juce::MidiMessage::noteOn (1, nn, (juce::uint8) 100), 0);
-            if (pos <= (int) (sr * 2.0) && pos + block > (int) (sr * 2.0))
-                for (int nn : notes) midi.addEvent (juce::MidiMessage::noteOff (1, nn), (int) (sr * 2.0) - pos);
+            if (pos <= (int) (sr * 6.0) && pos + block > (int) (sr * 6.0))
+                for (int nn : notes) midi.addEvent (juce::MidiMessage::noteOff (1, nn), (int) (sr * 6.0) - pos);
             buf.setSize (2, n, false, false, true);
             proc.processBlock (buf, midi);
             for (int ch = 0; ch < 2; ++ch) out.copyFrom (ch, pos, buf, ch, 0, n);
@@ -62,9 +71,27 @@ int main (int argc, char** argv)
         const auto name = ff::factoryPresets()[(size_t) preset].name;
         const bool ok = finite && peak > 0.01f && peak < 1.5f && rmsHeld > 0.003f;
         if (! ok) ++failures;
-        std::printf ("%-14s peak %.3f  rms %.4f  render %.0f ms for 4 s audio (%.1f%% of real time)  %s\n",
-                     name.toRawUTF8(), peak, rmsHeld, ms, ms / 40.0, ok ? "OK" : "PROBLEM");
+        std::printf ("%-20s peak %.3f  rms %.4f  render %.0f ms for 8 s audio (%.1f%% of real time)  %s\n",
+                     name.toRawUTF8(), peak, rmsHeld, ms, ms / 80.0, ok ? "OK" : "PROBLEM");
+        {
+            // loudest 100 ms window: fair to both slow pads and short plucks
+            float rmsEarly = 0.0f;
+            const int win = (int) (sr * 0.1);
+            for (int st = 0; st + win <= total; st += win / 2)
+                rmsEarly = juce::jmax (rmsEarly, 0.5f * (out.getRMSLevel (0, st, win) + out.getRMSLevel (1, st, win)));
+            const float target = 0.16f;
+            const float gain = 0.49f * target / juce::jmax (1.0e-4f, rmsEarly);
+            const float byPeak = 0.7f * std::sqrt (0.85f / juce::jmax (1.0e-4f, peak));   // never clip
+            const float master = juce::jlimit (0.3f, 1.5f, juce::jmin (std::sqrt (gain), byPeak));
+            levelJson << "  \"" << name << "\": " << juce::String (master, 3) << ",\n";
+        }
         writeWav (outDir.getChildFile (juce::String (preset) + "_" + name.replace (" ", "_") + ".wav"), out, sr);
+    }
+
+    if (levels)
+    {
+        levelJson = levelJson.trimEnd().dropLastCharacters (1) + "\n}\n";
+        outDir.getChildFile ("levels.json").replaceWithText (levelJson);
     }
 
     if (screenshot)

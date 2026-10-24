@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(OZmosys VERSION 0.1.0)
+project(OZmosys VERSION 0.2.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,6 +23,7 @@ set(FOURFOLD_SOURCES
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
     Source/SynthVoice.cpp
+    Source/Presets.cpp
     Source/dsp/Wavetable.cpp)
 
 set(FOURFOLD_DEFS
@@ -42,7 +43,7 @@ juce_add_plugin(OZmosys
     COMPANY_NAME "OZ-mosys"
     PLUGIN_MANUFACTURER_CODE Ozmo
     PLUGIN_CODE Ozms
-    FORMATS VST3 Standalone
+    FORMATS VST3 AU Standalone
     PRODUCT_NAME "OZ-mosys"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE

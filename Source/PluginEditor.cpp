@@ -531,8 +531,16 @@ void FourfoldEditor::refreshPresetList()
     juce::ScopedValueSetter<bool> svs (ignorePresetChange, true);
     presetBox.clear (juce::dontSendNotification);
     const auto& f = factoryPresets();
-    presetBox.addSectionHeading ("Factory");
-    for (int i = 0; i < (int) f.size(); ++i) presetBox.addItem (f[(size_t) i].name, i + 1);
+    juce::String lastCategory;
+    for (int i = 0; i < (int) f.size(); ++i)
+    {
+        if (f[(size_t) i].category != lastCategory)
+        {
+            lastCategory = f[(size_t) i].category;
+            presetBox.addSectionHeading (lastCategory);
+        }
+        presetBox.addItem (f[(size_t) i].name, i + 1);
+    }
 
     userPresetFiles.clear();
     for (auto& e : juce::RangedDirectoryIterator (FourfoldProcessor::getUserPresetFolder(), false, "*.ozpreset"))

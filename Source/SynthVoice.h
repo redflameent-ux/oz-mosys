@@ -106,8 +106,6 @@ private:
     float velocity = 1.0f, aftertouch = 0.0f, randomValue = 0.0f;
     float driftValue = 0.0f, driftTarget = 0.0f;
     float scanOffset = 0.0f;
-    float noteOffFade = 1.0f;
-    bool  fastRelease = false;
     double sampleRate = 48000.0;
 };
 

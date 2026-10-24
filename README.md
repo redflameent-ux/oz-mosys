@@ -1,6 +1,6 @@
 # OZ-mosys
 
-A four-in-one synth plugin (VST3 + stand-alone) for Windows.
+A four-in-one synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alone on Mac.
 
 | Engine | Inspired by | What it does |
 |---|---|---|
@@ -11,12 +11,18 @@ A four-in-one synth plugin (VST3 + stand-alone) for Windows.
 
 Plus a ladder / state-variable filter and Drive, Chorus, Ping-pong Delay and Reverb.
 
+61 factory presets in five banks: Signature, Dark & Cinematic, Reggae & Dub, Trance & Electronic, Hip-Hop & Trap.
+Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
+
 ## Installing
-Download **OZ-mosys-Setup.exe** from this repo's **Releases** page and run it. It puts the plugin in
+**Mac:** download **OZ-mosys-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.
+It installs the AU (Logic, GarageBand), the VST3 and a stand-alone app.
+
+**Windows:** download **OZ-mosys-Setup.exe** from this repo's **Releases** page and run it. It puts the plugin in
 `C:\Program Files\Common Files\VST3`. In FL Studio: *Options > Manage plugins > Find more plugins*, then look for OZ-mosys under Generators.
 
 ## Where things are saved
 Your presets: `Documents\OZ-mosys\Presets`.
 
 ## Building
-Every push to `main` builds the Windows installer automatically (GitHub Actions). All original code; no code or sounds from other products.
+Every push to `main` builds the Windows and Mac installers automatically (GitHub Actions). Presets are generated from `tools/gen_presets.py`. All original code; no code or sounds from other products.

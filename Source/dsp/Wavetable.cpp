@@ -34,17 +34,16 @@ WavetableBank::Ptr WavetableBank::fromSpectra (const std::vector<Spectrum>& spec
         }
     }
 
-    // Normalise the whole table so the loudest full-bandwidth frame peaks at 1.
-    float peak = 0.0f;
+    // Normalise each frame so sweeping the position keeps a steady loudness.
     for (int f = 0; f < bank->numFrames; ++f)
     {
-        const float* p = bank->frame (f, 0);
-        for (int i = 0; i < frameSize; ++i) peak = juce::jmax (peak, std::abs (p[i]));
-    }
-    if (peak > 1.0e-9f)
-    {
+        float peak = 0.0f;
+        const float* p0 = bank->frame (f, 0);
+        for (int i = 0; i < frameSize; ++i) peak = juce::jmax (peak, std::abs (p0[i]));
+        if (peak < 1.0e-9f) continue;
         const float g = 1.0f / peak;
-        for (auto& s : bank->data) s *= g;
+        float* d = bank->data.data() + (size_t) f * numLevels * frameSize;
+        for (int i = 0; i < numLevels * frameSize; ++i) d[i] *= g;
     }
     return bank;
 }
@@ -116,10 +115,16 @@ WavetableBank::Ptr WavetableBank::fromAudioFile (const juce::File& file)
 // ---------------------------------------------------------------------------
 // Built-in tables, designed from scratch as harmonic spectra.
 // ---------------------------------------------------------------------------
-static Spectrum sineSeries (const std::function<float (int)>& amp)
+static Spectrum sineSeries (const std::function<float (int)>& amp, bool spreadPhases = false)
 {
+    // spreadPhases uses Schroeder phases: same timbre, far less peaky waveform (louder, smoother)
     Spectrum s ((size_t) numBins);
-    for (int k = 1; k < numBins; ++k) s[(size_t) k] = { 0.0f, -amp (k) };
+    for (int k = 1; k < numBins; ++k)
+    {
+        const float a = amp (k);
+        if (spreadPhases) s[(size_t) k] = std::polar (a, juce::MathConstants<float>::pi * (float) (k * k) / 64.0f);
+        else              s[(size_t) k] = { 0.0f, -a };
+    }
     return s;
 }
 
@@ -166,7 +171,7 @@ WavetableBank::Ptr WavetableBank::createBuiltIn (int index)
                 spectra.push_back (sineSeries ([=] (int k)
                 {
                     return 0.35f / (float) k + gauss ((float) k, centre, width) * (k == 1 ? 1.0f : 0.8f);
-                }));
+                }, true));
             }
             return fromSpectra (spectra, "Harmonic Sweep");
         }
@@ -187,7 +192,7 @@ WavetableBank::Ptr WavetableBank::createBuiltIn (int index)
                     const float hz = (float) k * f0;
                     float a = gauss (hz, F[0], 90.0f) + 0.7f * gauss (hz, F[1], 120.0f) + 0.35f * gauss (hz, F[2], 160.0f);
                     return (a + 0.02f) / std::sqrt ((float) k);
-                }));
+                }, true));
             }
             return fromSpectra (spectra, "Vocal Formants");
         }
