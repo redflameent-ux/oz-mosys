@@ -98,7 +98,10 @@ int main (int argc, char** argv)
     {
         FourfoldProcessor proc;
         proc.prepareToPlay (sr, block);
-        proc.setCurrentProgram (1);
+        int shot = 1;
+        const auto want = juce::SystemStats::getEnvironmentVariable ("OZ_SHOT", {});
+        for (int i = 0; i < (int) ff::factoryPresets().size(); ++i) if (ff::factoryPresets()[(size_t) i].name == want) shot = i;
+        proc.setCurrentProgram (shot);
         std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
         ed->setVisible (true);
         auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);

@@ -67,14 +67,26 @@ private:
 
     // granular
     juce::ToggleButton grOn;
-    juce::TextButton grLoad { "Load Sample" }, grReset { "Built-in" };
+    juce::TextButton grLoad { "Load Sample" };
+    juce::ComboBox grSource;
     ff::gui::GrainDisplay grDisplay;
     std::vector<std::unique_ptr<Knob>> grKnobs;
+
+    // resonator
+    juce::ToggleButton resOn;
+    juce::ComboBox resType;
+    ff::gui::ResonatorDisplay resDisplay;
+    std::vector<std::unique_ptr<Knob>> resKnobs;
+
+    // tuning / voice
+    juce::ToggleButton monoToggle;
+    juce::ComboBox scaleBox, rootBox;
+    std::vector<std::unique_ptr<Knob>> tuneKnobs;
 
     // filter + envelopes + lfos
     juce::ToggleButton fltOn;
     juce::ComboBox fltType;
-    std::vector<std::unique_ptr<Knob>> fltKnobs, ampKnobs, e2Knobs, e3Knobs, lfoKnobs;
+    std::vector<std::unique_ptr<Knob>> fltKnobs, ampKnobs, e2Knobs, e3Knobs, lfoKnobs, lfoFadeKnobs;
     juce::ComboBox lfoShape[2];
     juce::ToggleButton lfoRetrig[2];
 
@@ -93,6 +105,7 @@ private:
 
     // fx
     std::vector<std::unique_ptr<Knob>> fxKnobs;
+    juce::ComboBox driveType;
 
     juce::MidiKeyboardComponent keyboard;
 

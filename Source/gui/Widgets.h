@@ -17,6 +17,7 @@ namespace col
     const juce::Colour wavetable { 0xff3ad1e8 };
     const juce::Colour analog    { 0xfff2a541 };
     const juce::Colour granular  { 0xffa77bf3 };
+    const juce::Colour resonator { 0xffe07a4f };
     const juce::Colour mod       { 0xff5fe08c };
     const juce::Colour filter    { 0xffef5d8d };
     const juce::Colour fx        { 0xff6d9bff };

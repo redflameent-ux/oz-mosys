@@ -7,11 +7,13 @@ A four-in-one synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 | **Wavetable** | Serum | 6 built-in tables + import your own (.wav, 2048-sample frames), position morphing, 5 warp modes, up to 7-voice unison |
 | **Analog** | Analog Lab | Band-limited triangle / saw / pulse morph, sub, noise, analog drift |
 | **Granular** | Omnisphere | Turns any audio file into pads and textures: position, scan, size, density, spray, pitch randomness, reverse, stereo width |
+| **Resonator** | physical modelling | Plucked strings and sitar (with jawari buzz and sympathetic strings), Tibetan and crystal bowls, gong, handpan, tongue drum, tingsha, music box, tabla, hand drum, clay pot, 808 cowbell, scrap metal, anvil, pipe, vibraphone, marimba, e-piano. Strike or bow/rub, auto re-pluck |
 | **Mod system** | Pigments | 3 envelopes, 2 LFOs, 4 macros, velocity, mod wheel, aftertouch, key track, random. Drag a green chip onto any knob to route it; right-click a knob to remove |
 
-Plus a ladder / state-variable filter and Drive, Chorus, Ping-pong Delay and Reverb.
+Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
+World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
-61 factory presets in five banks: Signature, Dark & Cinematic, Reggae & Dub, Trance & Electronic, Hip-Hop & Trap.
+165 factory presets in 18 banks, from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
 
 ## Installing

@@ -4,11 +4,11 @@
 using namespace ff;
 using namespace ff::gui;
 
-static constexpr int editorW = 1180, editorH = 800;
+static constexpr int editorW = 1300, editorH = 830;
 
 FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     : AudioProcessorEditor (p), proc (p),
-      wtDisplay (p), anDisplay (p), grDisplay (p),
+      wtDisplay (p), anDisplay (p), grDisplay (p), resDisplay (p),
       keyboard (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
 {
     setLookAndFeel (&lnf);
@@ -24,6 +24,13 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     makeKnob (topKnobs, "master", "Master", col::text);
     makeKnob (topKnobs, "glide", "Glide", col::text);
     makeKnob (topKnobs, "bend", "Bend", col::text);
+    makeToggle (monoToggle, "voice_mode", "MONO", col::text);
+    monoToggle.setTooltip ("Mono: one note at a time. New notes cut the last one (hi-hat choke, sliding 808s).");
+    makeCombo (scaleBox, "scale", scaleNames());
+    scaleBox.setTooltip ("Tuning system: ragas and maqamat with their real micro-tones, or just intonation");
+    makeCombo (rootBox, "scale_root", noteNames());
+    rootBox.setTooltip ("Root note the scale tuning is built on");
+    makeKnob (tuneKnobs, "tune_a4", "A4 Hz", col::text);
     refreshPresetList();
 
     // ---------------- wavetable ----------------
@@ -51,6 +58,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     addAndMakeVisible (anDisplay);
     makeKnob (anKnobs, "an_shape", "Shape", col::analog, dstAnShape);
     makeKnob (anKnobs, "an_pw", "Pulse W", col::analog, dstAnPw);
+    makeKnob (anKnobs, "an_tone", "Osc", col::analog);
     makeKnob (anKnobs, "an_sub", "Sub", col::analog);
     makeKnob (anKnobs, "an_noise", "Noise", col::analog);
     makeKnob (anKnobs, "an_drift", "Drift", col::analog);
@@ -62,11 +70,11 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
 
     // ---------------- granular ----------------
     makeToggle (grOn, "gr_on", "GRANULAR", col::granular);
-    for (auto* b : { &grLoad, &grReset }) addAndMakeVisible (b);
+    addAndMakeVisible (grLoad);
     grLoad.setTooltip ("Load any audio file to turn into texture (or drag one onto the display)");
-    grReset.setTooltip ("Go back to the built-in texture");
     grLoad.onClick = [this] { loadGrainSample(); };
-    grReset.onClick = [this] { proc.resetGrainSample(); };
+    makeCombo (grSource, "gr_source", grainSourceNames());
+    grSource.setTooltip ("What the granular engine plays: a built-in texture or your own sample");
     addAndMakeVisible (grDisplay);
     grDisplay.onFileDropped = [this] (const juce::File& f) { loadGrainFile (f); };
     makeKnob (grKnobs, "gr_pos", "Position", col::granular, dstGrPos);
@@ -80,6 +88,23 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     makeKnob (grKnobs, "gr_oct", "Octave", col::granular);
     makeKnob (grKnobs, "gr_semi", "Semi", col::granular, dstGrPitch);
     makeKnob (grKnobs, "gr_level", "Level", col::granular, dstGrLevel);
+
+    // ---------------- resonator ----------------
+    makeToggle (resOn, "res_on", "RESONATOR", col::resonator);
+    makeCombo (resType, "res_type", resonatorTypeNames());
+    resType.setTooltip ("What is vibrating: strings, bowls, bells, drums, metal...");
+    addAndMakeVisible (resDisplay);
+    makeKnob (resKnobs, "res_decay", "Decay", col::resonator, dstResDecay);
+    makeKnob (resKnobs, "res_bright", "Bright", col::resonator, dstResBright);
+    makeKnob (resKnobs, "res_damp", "Damping", col::resonator);
+    makeKnob (resKnobs, "res_strike", "Strike", col::resonator);
+    makeKnob (resKnobs, "res_bow", "Bow/Rub", col::resonator, dstResBow);
+    makeKnob (resKnobs, "res_buzz", "Buzz", col::resonator, dstResBuzz);
+    makeKnob (resKnobs, "res_retrig", "Re-pluck", col::resonator);
+    makeKnob (resKnobs, "res_oct", "Octave", col::resonator);
+    makeKnob (resKnobs, "res_semi", "Semi", col::resonator, dstResPitch);
+    makeKnob (resKnobs, "res_pan", "Pan", col::resonator);
+    makeKnob (resKnobs, "res_level", "Level", col::resonator, dstResLevel);
 
     // ---------------- filter ----------------
     makeToggle (fltOn, "flt_on", "FILTER", col::filter);
@@ -104,6 +129,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
         const juce::String pre = "lfo" + juce::String (i + 1);
         makeCombo (lfoShape[i], pre + "_shape", lfoShapeNames());
         makeKnob (lfoKnobs, pre + "_rate", "Rate", col::mod, i == 0 ? dstLfo1Rate : dstLfo2Rate);
+        makeKnob (lfoFadeKnobs, pre + "_fade", "Fade In", col::mod);
         makeToggle (lfoRetrig[i], pre + "_retrig", "RETRIG", col::mod);
         lfoRetrig[i].setTooltip ("On: the LFO restarts with every note. Off: it free-runs.");
     }
@@ -142,17 +168,16 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     }
 
     // ---------------- fx ----------------
-    makeKnob (fxKnobs, "fx_drive", "Drive", col::fx);
-    makeKnob (fxKnobs, "cho_mix", "Chorus", col::fx);
-    makeKnob (fxKnobs, "cho_rate", "Ch Rate", col::fx);
-    makeKnob (fxKnobs, "cho_depth", "Ch Depth", col::fx);
-    makeKnob (fxKnobs, "rev_mix", "Reverb", col::fx);
-    makeKnob (fxKnobs, "rev_size", "Size", col::fx);
-    makeKnob (fxKnobs, "dly_mix", "Delay", col::fx);
-    makeKnob (fxKnobs, "dly_time", "Time", col::fx);
-    makeKnob (fxKnobs, "dly_fb", "Feedback", col::fx);
-    makeKnob (fxKnobs, "dly_tone", "Tone", col::fx);
-    makeKnob (fxKnobs, "rev_damp", "Damping", col::fx);
+    makeCombo (driveType, "drive_type", driveTypeNames());
+    driveType.setTooltip ("Drive character: Warm (tape), Rat (hard clip, mid bite), Fuzz");
+    const std::pair<const char*, const char*> fxDefs[] = {
+        { "fx_drive", "Drive" }, { "crush_bits", "Bits" }, { "crush_rate", "Downsample" },
+        { "tape_wow", "Wow/Flutter" }, { "tape_age", "Tape Age" }, { "tape_hiss", "Hiss" },
+        { "cho_mix", "Chorus" }, { "cho_rate", "Ch Rate" }, { "cho_depth", "Ch Depth" },
+        { "ring_freq", "Ring Hz" }, { "ring_mix", "Ring Mix" }, { "rev_damp", "Rev Damp" },
+        { "dly_mix", "Delay" }, { "dly_time", "Time" }, { "dly_fb", "Feedback" },
+        { "dly_tone", "Tone" }, { "rev_mix", "Reverb" }, { "rev_size", "Size" } };
+    for (auto& [id, label] : fxDefs) makeKnob (fxKnobs, id, label, col::fx);
 
     // ---------------- keyboard ----------------
     keyboard.setAvailableRange (24, 108);
@@ -239,8 +264,8 @@ void FourfoldEditor::paint (juce::Graphics& g)
     const juce::String logo ("OZ-mosys");
     g.drawText (logo, logoArea, juce::Justification::centredLeft);
     const float logoW = juce::GlyphArrangement::getStringWidth (font (22.0f, true), logo);
-    const juce::Colour dots[4] = { col::wavetable, col::analog, col::granular, col::mod };
-    for (int i = 0; i < 4; ++i)
+    const juce::Colour dots[5] = { col::wavetable, col::analog, col::granular, col::resonator, col::mod };
+    for (int i = 0; i < 5; ++i)
     {
         g.setColour (dots[i]);
         g.fillEllipse ((float) logoArea.getX() + logoW + 10.0f + i * 11.0f, (float) logoArea.getCentreY() - 3.5f, 7.0f, 7.0f);
@@ -296,22 +321,32 @@ void FourfoldEditor::resized()
     meterArea = top.removeFromRight (120).reduced (0, 19);
     top.removeFromRight (8);
     for (int i = 2; i >= 0; --i) topKnobs[(size_t) i]->setBounds (top.removeFromRight (56));
+    top.removeFromRight (10);
+    tuneKnobs[0]->setBounds (top.removeFromRight (56));
+    top.removeFromRight (4);
+    rootBox.setBounds (top.removeFromRight (54).reduced (0, 11));
+    top.removeFromRight (4);
+    scaleBox.setBounds (top.removeFromRight (132).reduced (0, 11));
+    top.removeFromRight (8);
+    monoToggle.setBounds (top.removeFromRight (52).reduced (0, 11));
     area.removeFromTop (4);
 
     // ---- engines row ----
     auto row1 = area.removeFromTop (282);
-    const int engW = (row1.getWidth() - 2 * gap) / 3;
+    const int engW = (row1.getWidth() - 3 * gap) / 4;
     auto wtR = row1.removeFromLeft (engW); row1.removeFromLeft (gap);
     auto anR = row1.removeFromLeft (engW); row1.removeFromLeft (gap);
-    auto grR = row1;
+    auto grR = row1.removeFromLeft (engW); row1.removeFromLeft (gap);
+    auto rsR = row1;
     panels.push_back ({ wtR, {}, col::wavetable });
     panels.push_back ({ anR, {}, col::analog });
     panels.push_back ({ grR, {}, col::granular });
+    panels.push_back ({ rsR, {}, col::resonator });
 
     {
         auto r = wtR.reduced (10, 8);
         auto head = r.removeFromTop (24);
-        wtOn.setBounds (head.removeFromLeft (96));
+        wtOn.setBounds (head.removeFromLeft (92));
         head.removeFromLeft (6);
         wtLoad.setBounds (head.removeFromRight (58));
         head.removeFromRight (4);
@@ -331,19 +366,29 @@ void FourfoldEditor::resized()
         r.removeFromTop (6);
         anDisplay.setBounds (r.removeFromTop (92));
         r.removeFromTop (26);
-        layoutGrid (anKnobs, r, 5);
+        layoutGrid (anKnobs, r, 6);
     }
     {
         auto r = grR.reduced (10, 8);
         auto head = r.removeFromTop (24);
-        grOn.setBounds (head.removeFromLeft (96));
-        grReset.setBounds (head.removeFromRight (64));
-        head.removeFromRight (4);
-        grLoad.setBounds (head.removeFromRight (88));
+        grOn.setBounds (head.removeFromLeft (92));
+        grLoad.setBounds (head.removeFromRight (90));
         r.removeFromTop (6);
         grDisplay.setBounds (r.removeFromTop (92));
-        r.removeFromTop (26);
+        r.removeFromTop (4);
+        grSource.setBounds (r.removeFromTop (22).removeFromLeft (150));
         layoutGrid (grKnobs, r, 6);
+    }
+    {
+        auto r = rsR.reduced (10, 8);
+        auto head = r.removeFromTop (24);
+        resOn.setBounds (head.removeFromLeft (100));
+        head.removeFromLeft (6);
+        resType.setBounds (head);
+        r.removeFromTop (6);
+        resDisplay.setBounds (r.removeFromTop (92));
+        r.removeFromTop (4);
+        layoutGrid (resKnobs, r.withTrimmedTop (22), 6);
     }
     area.removeFromTop (gap);
 
@@ -386,14 +431,16 @@ void FourfoldEditor::resized()
         r.removeFromTop (4);
         lfoShape[i].setBounds (r.removeFromTop (22));
         r.removeFromTop (4);
-        lfoKnobs[(size_t) i]->setBounds (r.removeFromTop (78));
+        auto kr = r.removeFromTop (78);
+        lfoKnobs[(size_t) i]->setBounds (kr.removeFromLeft (kr.getWidth() / 2));
+        lfoFadeKnobs[(size_t) i]->setBounds (kr);
     }
     area.removeFromTop (gap);
 
     // ---- macros / matrix / fx ----
-    auto row3 = area.removeFromTop (214);
+    auto row3 = area.removeFromTop (240);
     auto mR = row3.removeFromLeft (210); row3.removeFromLeft (gap);
-    auto fxR = row3.removeFromRight (380); row3.removeFromRight (gap);
+    auto fxR = row3.removeFromRight (440); row3.removeFromRight (gap);
     auto mxR = row3;
     panels.push_back ({ mR, "MACROS", col::mod });
     panels.push_back ({ mxR, "MOD MATRIX  -  drag a source onto any knob", col::mod });
@@ -427,7 +474,8 @@ void FourfoldEditor::resized()
     }
     {
         auto r = fxR.reduced (8, 8);
-        r.removeFromTop (22);
+        driveType.setBounds (r.removeFromTop (20).removeFromRight (90));
+        r.removeFromTop (2);
         layoutGrid (fxKnobs, r, 6);
     }
     area.removeFromTop (gap);
@@ -442,6 +490,7 @@ void FourfoldEditor::timerCallback()
     wtDisplay.update();
     anDisplay.update();
     grDisplay.update();
+    resDisplay.update();
 
     // mod rings: sum of amounts routed to each destination
     float sums[numModDests] {};
@@ -456,7 +505,7 @@ void FourfoldEditor::timerCallback()
         {
             float amt = sums[k->dest];
             // pitch destinations span +-24 semitones; show them relative to the knob's range
-            if (k->dest == dstWtPitch || k->dest == dstAnPitch || k->dest == dstGrPitch) amt *= 2.0f;
+            if (k->dest == dstWtPitch || k->dest == dstAnPitch || k->dest == dstGrPitch || k->dest == dstResPitch) amt *= 2.0f;
             if (k->dest == dstAnShape) amt *= 1.0f;
             k->setModAmount (juce::jlimit (-1.0f, 1.0f, amt));
         }

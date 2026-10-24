@@ -33,6 +33,7 @@ enum ModDest
     dstGrPos, dstGrSize, dstGrDensity, dstGrSpray, dstGrPitch, dstGrLevel,
     dstCutoff, dstResonance, dstFltDrive,
     dstAmp, dstPan, dstPitchAll, dstLfo1Rate, dstLfo2Rate,
+    dstResPitch, dstResBright, dstResDecay, dstResBow, dstResLevel, dstResBuzz,
     numModDests
 };
 
@@ -43,7 +44,8 @@ inline const juce::StringArray& modDestNames()
         "Analog Shape", "Analog PW", "Analog Pitch", "Analog Level",
         "Grain Position", "Grain Size", "Grain Density", "Grain Spray", "Grain Pitch", "Grain Level",
         "Filter Cutoff", "Filter Resonance", "Filter Drive",
-        "Volume", "Pan", "Pitch (All)", "LFO 1 Rate", "LFO 2 Rate" };
+        "Volume", "Pan", "Pitch (All)", "LFO 1 Rate", "LFO 2 Rate",
+        "Res Pitch", "Res Brightness", "Res Decay", "Res Bow", "Res Level", "Res Buzz" };
     return names;
 }
 
@@ -73,6 +75,54 @@ inline const juce::StringArray& lfoShapeNames()
 {
     static const juce::StringArray names { "Sine", "Triangle", "Saw", "Square", "Sample & Hold", "Smooth Random" };
     return names;
+}
+
+inline const juce::StringArray& grainSourceNames()
+{
+    static const juce::StringArray names { "Breathing Choir", "Monk Chant", "Breath & Wind", "Rain & Water", "Your Sample" };
+    return names;
+}
+constexpr int grainSourceUser = 4;
+
+inline const juce::StringArray& driveTypeNames()
+{
+    static const juce::StringArray names { "Warm", "Rat", "Fuzz" };
+    return names;
+}
+
+// ---- tunings ---------------------------------------------------------------
+inline const juce::StringArray& scaleNames()
+{
+    static const juce::StringArray names { "Equal (12-TET)", "Just Intonation", "Raga Bhairav", "Maqam Rast",
+                                           "Maqam Bayati", "Maqam Hijaz", "Pythagorean" };
+    return names;
+}
+
+inline const juce::StringArray& noteNames()
+{
+    static const juce::StringArray names { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    return names;
+}
+
+// Cents offset from equal temperament for a note `degree` semitones above the root.
+inline float scaleOffsetCents (int scale, int degree)
+{
+    static const float table[7][12] = {
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        // 5-limit just: 1 16/15 9/8 6/5 5/4 4/3 45/32 3/2 8/5 5/3 16/9 15/8
+        { 0, 11.73f, 3.91f, 15.64f, -13.69f, -1.96f, -9.78f, 1.96f, 13.69f, -15.64f, -3.91f, -11.73f },
+        // Bhairav: very flat komal Re and komal Dha, just Ga / Ni
+        { 0, -9.78f, 3.91f, 15.64f, -13.69f, -1.96f, -9.78f, 1.96f, -7.82f, -15.64f, -3.91f, -11.73f },
+        // Rast (on the root): 3rd and 7th a quarter-tone flat
+        { 0, 0, 0, 0, -50.0f, 0, 0, 0, 0, 0, 0, -50.0f },
+        // Bayati (on the root): 2nd a quarter-tone flat
+        { 0, 0, -50.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        // Hijaz: raised flat-2 and lowered major-3 (wide augmented second)
+        { 0, 10.0f, 0, 0, -15.0f, 0, 0, 0, 10.0f, 0, 0, 0 },
+        // Pythagorean (pure fifths)
+        { 0, -9.78f, 3.91f, -5.87f, 7.82f, -1.96f, 11.73f, 1.96f, -7.82f, 5.87f, -3.91f, 9.78f },
+    };
+    return table[juce::jlimit (0, 6, scale)][((degree % 12) + 12) % 12];
 }
 
 // ---- helpers ---------------------------------------------------------------
@@ -117,6 +167,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addF ("glide", "Glide", timeRange (0.0f, 2.0f), 0.0f, "s");
     addI ("bend", "Pitch Bend Range", 0, 24, 2);
     addF ("amp_vel", "Velocity Sensitivity", { 0.0f, 1.0f }, 0.5f);
+    addC ("voice_mode", "Voice Mode", StringArray { "Poly", "Mono" }, 0);
+    addF ("tune_a4", "Tuning (A4)", { 400.0f, 480.0f, 0.01f }, 440.0f, "Hz");
+    addC ("scale", "Scale Tuning", scaleNames(), 0);
+    addC ("scale_root", "Scale Root", noteNames(), 0);
 
     // ---- Wavetable engine ----
     addB ("wt_on", "WT On", true);
@@ -140,6 +194,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addI ("an_oct", "Analog Octave", -3, 3, 0);
     addI ("an_semi", "Analog Semitone", -12, 12, 0);
     addF ("an_fine", "Analog Fine", { -100.0f, 100.0f }, 0.0f, "ct");
+    addF ("an_tone", "Analog Osc Level", { 0.0f, 1.0f }, 1.0f);
     addF ("an_sub", "Analog Sub", { 0.0f, 1.0f }, 0.0f);
     addF ("an_noise", "Analog Noise", { 0.0f, 1.0f }, 0.0f);
     addF ("an_drift", "Analog Drift", { 0.0f, 1.0f }, 0.3f);
@@ -159,6 +214,29 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addI ("gr_oct", "Grain Octave", -3, 3, 0);
     addI ("gr_semi", "Grain Semitone", -12, 12, 0);
     addF ("gr_level", "Grain Level", { 0.0f, 1.0f }, 0.7f);
+    addC ("gr_source", "Grain Source", grainSourceNames(), 0);
+
+    // ---- Resonator engine (physical modelling) ----
+    addB ("res_on", "Resonator On", false);
+    addC ("res_type", "Resonator Type", StringArray { "Plucked String", "Sitar", "Tibetan Bowl", "Crystal Bowl", "Gong",
+                                                       "Handpan", "Tongue Drum", "Tingsha / Bell", "Music Box", "Tabla",
+                                                       "Hand Drum", "Clay Pot", "808 Cowbell", "Scrap Metal", "Anvil", "Metal Pipe",
+                                                       "Vibraphone", "Marimba", "E-Piano" }, 0);
+    addF ("res_decay", "Res Decay", timeRange (0.02f, 20.0f), 2.0f, "s");
+    addF ("res_bright", "Res Brightness", { 0.0f, 1.0f }, 0.6f);
+    addF ("res_damp", "Res Damping", { 0.0f, 1.0f }, 0.5f);
+    addF ("res_strike", "Res Strike Hardness", { 0.0f, 1.0f }, 0.6f);
+    addF ("res_bow", "Res Bow / Rub", { 0.0f, 1.0f }, 0.0f);
+    addF ("res_buzz", "Res Buzz", { 0.0f, 1.0f }, 0.0f);
+    {
+        NormalisableRange<float> rr (0.0f, 16.0f);
+        rr.setSkewForCentre (3.0f);
+        addF ("res_retrig", "Res Re-pluck Rate", rr, 0.0f, "Hz");
+    }
+    addI ("res_oct", "Res Octave", -3, 3, 0);
+    addI ("res_semi", "Res Semitone", -12, 12, 0);
+    addF ("res_level", "Res Level", { 0.0f, 1.0f }, 0.75f);
+    addF ("res_pan", "Res Pan", { -1.0f, 1.0f }, 0.0f);
 
     // ---- Filter ----
     addB ("flt_on", "Filter On", true);
@@ -190,6 +268,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         rr.setSkewForCentre (2.0f);
         addF (pre + "_rate", "LFO " + String (i) + " Rate", rr, i == 1 ? 0.5f : 5.0f, "Hz");
         addB (pre + "_retrig", "LFO " + String (i) + " Retrigger", true);
+        addF (pre + "_fade", "LFO " + String (i) + " Fade In", timeRange (0.0f, 5.0f), 0.0f, "s");
     }
 
     // ---- Macros ----
@@ -206,6 +285,22 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     // ---- Effects ----
     addF ("fx_drive", "FX Drive", { 0.0f, 1.0f }, 0.0f);
+    addC ("drive_type", "Drive Type", driveTypeNames(), 0);
+    addF ("crush_bits", "Bit Depth", { 3.0f, 24.0f, 1.0f }, 24.0f, "bit");
+    {
+        NormalisableRange<float> cr (1.0f, 32.0f, 1.0f);
+        cr.setSkewForCentre (6.0f);
+        addF ("crush_rate", "Sample-Rate Reduce", cr, 1.0f, "x");
+    }
+    addF ("tape_wow", "Tape Wow & Flutter", { 0.0f, 1.0f }, 0.0f);
+    addF ("tape_hiss", "Tape Hiss", { 0.0f, 1.0f }, 0.0f);
+    addF ("tape_age", "Tape Age", { 0.0f, 1.0f }, 0.0f);
+    {
+        NormalisableRange<float> rf (20.0f, 3000.0f);
+        rf.setSkewForCentre (300.0f);
+        addF ("ring_freq", "Ring Mod Freq", rf, 300.0f, "Hz");
+    }
+    addF ("ring_mix", "Ring Mod Mix", { 0.0f, 1.0f }, 0.0f);
     addF ("cho_mix", "Chorus Mix", { 0.0f, 1.0f }, 0.0f);
     addF ("cho_rate", "Chorus Rate", { 0.05f, 5.0f }, 0.6f, "Hz");
     addF ("cho_depth", "Chorus Depth", { 0.0f, 1.0f }, 0.4f);

@@ -63,13 +63,16 @@ private:
     void applyStateTree (const juce::ValueTree& tree);
 
     ff::SharedState shared;
-    juce::Synthesiser synth;
+    juce::Synthesiser synth, monoSynth;
+    bool wasMono = false;
     std::vector<ff::SynthVoice*> voices;
     ff::EffectsChain fx;
 
     std::array<ff::WavetableBank::Ptr, ff::numBuiltInTables> builtInTables;
     ff::WavetableBank::Ptr userTable;
-    ff::GrainSource::Ptr builtInGrains, userGrains;
+    std::array<ff::GrainSource::Ptr, 4> builtInGrains;
+    ff::GrainSource::Ptr userGrains;
+    ff::GrainSource::Ptr selectedGrains() const;
 
     // pointers the audio thread is using this block
     ff::WavetableBank::Ptr audioTable;

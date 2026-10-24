@@ -4,15 +4,19 @@
 #include "dsp/Wavetable.h"
 #include "dsp/Granular.h"
 #include "dsp/DspCore.h"
+#include "dsp/Resonator.h"
 
 namespace ff
 {
 // Raw, lock-free pointers to every parameter the voices need.
 struct ParamRefs
 {
-    std::atomic<float> *glide, *bend, *ampVel;
+    std::atomic<float> *glide, *bend, *ampVel, *tuneA4, *scale, *scaleRoot;
+    std::atomic<float> *resOn, *resType, *resDecay, *resBright, *resDamp, *resStrike, *resBow, *resBuzz, *resRetrig,
+                       *resOct, *resSemi, *resLevel, *resPan;
+    std::atomic<float> *lfoFade[2];
     std::atomic<float> *wtOn, *wtTable, *wtPos, *wtWarp, *wtWarpAmt, *wtOct, *wtSemi, *wtFine, *wtUnison, *wtDetune, *wtSpread, *wtLevel, *wtPan;
-    std::atomic<float> *anOn, *anShape, *anPw, *anOct, *anSemi, *anFine, *anSub, *anNoise, *anDrift, *anLevel, *anPan;
+    std::atomic<float> *anOn, *anTone, *anShape, *anPw, *anOct, *anSemi, *anFine, *anSub, *anNoise, *anDrift, *anLevel, *anPan;
     std::atomic<float> *grOn, *grPos, *grScan, *grSize, *grDensity, *grSpray, *grPitchRand, *grStereo, *grReverse, *grOct, *grSemi, *grLevel;
     std::atomic<float> *fltOn, *fltType, *fltCutoff, *fltRes, *fltDrive, *fltEnv, *fltKey;
     std::atomic<float> *env[3][4];
@@ -24,10 +28,14 @@ struct ParamRefs
     {
         auto g = [&] (const juce::String& id) { auto* p = s.getRawParameterValue (id); jassert (p != nullptr); return p; };
         glide = g ("glide"); bend = g ("bend"); ampVel = g ("amp_vel");
+        tuneA4 = g ("tune_a4"); scale = g ("scale"); scaleRoot = g ("scale_root");
+        resOn = g ("res_on"); resType = g ("res_type"); resDecay = g ("res_decay"); resBright = g ("res_bright");
+        resDamp = g ("res_damp"); resStrike = g ("res_strike"); resBow = g ("res_bow"); resBuzz = g ("res_buzz");
+        resRetrig = g ("res_retrig"); resOct = g ("res_oct"); resSemi = g ("res_semi"); resLevel = g ("res_level"); resPan = g ("res_pan");
         wtOn = g ("wt_on"); wtTable = g ("wt_table"); wtPos = g ("wt_pos"); wtWarp = g ("wt_warp"); wtWarpAmt = g ("wt_warpamt");
         wtOct = g ("wt_oct"); wtSemi = g ("wt_semi"); wtFine = g ("wt_fine"); wtUnison = g ("wt_unison"); wtDetune = g ("wt_detune");
         wtSpread = g ("wt_spread"); wtLevel = g ("wt_level"); wtPan = g ("wt_pan");
-        anOn = g ("an_on"); anShape = g ("an_shape"); anPw = g ("an_pw"); anOct = g ("an_oct"); anSemi = g ("an_semi"); anFine = g ("an_fine");
+        anOn = g ("an_on"); anTone = g ("an_tone"); anShape = g ("an_shape"); anPw = g ("an_pw"); anOct = g ("an_oct"); anSemi = g ("an_semi"); anFine = g ("an_fine");
         anSub = g ("an_sub"); anNoise = g ("an_noise"); anDrift = g ("an_drift"); anLevel = g ("an_level"); anPan = g ("an_pan");
         grOn = g ("gr_on"); grPos = g ("gr_pos"); grScan = g ("gr_scan"); grSize = g ("gr_size"); grDensity = g ("gr_density");
         grSpray = g ("gr_spray"); grPitchRand = g ("gr_pitchrand"); grStereo = g ("gr_stereo"); grReverse = g ("gr_reverse");
@@ -43,6 +51,7 @@ struct ParamRefs
         {
             const juce::String pre = "lfo" + juce::String (i + 1);
             lfoShape[i] = g (pre + "_shape"); lfoRate[i] = g (pre + "_rate"); lfoRetrig[i] = g (pre + "_retrig");
+            lfoFade[i] = g (pre + "_fade");
         }
         for (int i = 0; i < 4; ++i) macro[i] = g ("macro" + juce::String (i + 1));
         for (int i = 0; i < numModSlots; ++i) { modSrc[i] = g (slotSrc (i)); modDst[i] = g (slotDst (i)); modAmt[i] = g (slotAmt (i)); }
@@ -99,6 +108,9 @@ private:
     VoiceFilter filter;
     AnalogOsc analog;
     GrainCloud cloud;
+    Resonator resonator;
+    float noteTime = 0.0f;
+    float tuneOffset = 0.0f;   // A4 tuning + scale tuning, in semitones
 
     static constexpr int maxUnison = 7;
     float wtPhase[maxUnison] {};

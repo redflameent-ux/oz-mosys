@@ -1,6 +1,7 @@
 #pragma once
 #include "Widgets.h"
 #include "../PluginProcessor.h"
+#include "../dsp/Resonator.h"
 
 namespace ff::gui
 {
@@ -216,6 +217,85 @@ public:
 private:
     FourfoldProcessor& proc;
     float shape = -1.0f, pw = 0.5f, subLvl = 0.0f;
+};
+
+// Shows the Resonator's partials (or a vibrating string for the string models).
+class ResonatorDisplay : public juce::Component
+{
+public:
+    explicit ResonatorDisplay (FourfoldProcessor& p) : proc (p) {}
+
+    void update()
+    {
+        auto& a = proc.apvts;
+        const int t = (int) a.getRawParameterValue ("res_type")->load();
+        const float b = a.getRawParameterValue ("res_bright")->load();
+        const float d = a.getRawParameterValue ("res_damp")->load();
+        const float bz = a.getRawParameterValue ("res_buzz")->load();
+        if (t != type || std::abs (b - bright) > 0.003f || std::abs (d - damp) > 0.003f || std::abs (bz - buzz) > 0.003f)
+        {
+            type = t; bright = b; damp = d; buzz = bz;
+            repaint();
+        }
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        auto r = getLocalBounds().toFloat();
+        g.setColour (col::bg);
+        g.fillRoundedRectangle (r, 6.0f);
+        auto area = r.reduced (12.0f, 16.0f);
+
+        if (type <= 1)
+        {
+            // a plucked string: a few harmonics frozen mid-vibration
+            juce::Path p;
+            const int pts = 200;
+            for (int i = 0; i <= pts; ++i)
+            {
+                const float x = (float) i / pts;
+                float y = 0.0f;
+                for (int k = 1; k <= 8; ++k)
+                    y += std::sin (juce::MathConstants<float>::pi * k * x) * std::pow ((float) k, -(2.2f - bright * 1.6f)) * (k % 2 ? 1.0f : 0.6f);
+                if (buzz > 0.01f || type == 1) y += (type == 1 ? 0.25f : buzz * 0.3f) * std::sin (x * 60.0f) * std::sin (juce::MathConstants<float>::pi * x);
+                const float px = area.getX() + x * area.getWidth();
+                const float py = area.getCentreY() - y * area.getHeight() * 0.38f;
+                if (i == 0) p.startNewSubPath (px, py); else p.lineTo (px, py);
+            }
+            g.setColour (col::resonator.withAlpha (0.18f));
+            g.strokePath (p, juce::PathStrokeType (6.0f));
+            g.setColour (col::resonator);
+            g.strokePath (p, juce::PathStrokeType (1.8f));
+        }
+        else
+        {
+            // partials: position = frequency ratio, height = loudness, width = how long it rings
+            const auto& modes = modesFor (type);
+            float maxRatio = 1.0f;
+            for (auto& m : modes) maxRatio = juce::jmax (maxRatio, m.ratio);
+            maxRatio *= 1.1f;
+            g.setColour (col::border);
+            g.drawHorizontalLine ((int) area.getBottom(), area.getX(), area.getRight());
+            for (auto& m : modes)
+            {
+                const float x = area.getX() + std::log2 (m.ratio) / std::log2 (maxRatio) * area.getWidth() * 0.95f + 4.0f;
+                const float tilt = std::pow (m.ratio, -(1.0f - bright) * 1.5f);
+                const float h = juce::jlimit (0.03f, 1.0f, m.gain * tilt) * area.getHeight();
+                const float life = std::pow (m.decay, 0.3f + 2.0f * damp);
+                g.setColour (col::resonator.withAlpha (0.25f + 0.75f * life));
+                g.fillRoundedRectangle (x - 2.0f, area.getBottom() - h, 4.0f, h, 2.0f);
+            }
+        }
+
+        g.setColour (col::dim);
+        g.setFont (font (10.0f));
+        g.drawText (resonatorTypeNames()[type], r.reduced (8.0f, 2.0f).toNearestInt(), juce::Justification::topLeft);
+    }
+
+private:
+    FourfoldProcessor& proc;
+    int type = -1;
+    float bright = 0, damp = 0, buzz = 0;
 };
 
 } // namespace ff::gui

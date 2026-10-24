@@ -13,13 +13,19 @@ void SynthVoice::setCurrentPlaybackSampleRate (double sr)
     ampEnv.setSampleRate (sr); env2.setSampleRate (sr); env3.setSampleRate (sr);
     filter.setSampleRate (sr);
     cloud.prepare (sr);
+    resonator.prepare (sr);
 }
 
 void SynthVoice::startNote (int midiNote, float vel, juce::SynthesiserSound*, int pitchWheel)
 {
     auto& p = shared.p;
     velocity = vel;
-    targetNote = (float) midiNote;
+    // tuning: A4 reference + per-scale-degree offsets (ragas, maqamat, just)
+    const int root = (int) rd (p.scaleRoot);
+    tuneOffset = 12.0f * std::log2 (rd (p.tuneA4) / 440.0f)
+               + scaleOffsetCents ((int) rd (p.scale), midiNote - root) * 0.01f;
+    targetNote = (float) midiNote + tuneOffset;
+    noteTime = 0.0f;
     const bool glideOn = rd (p.glide) > 0.001f && shared.lastNote >= 0.0f;
     note = glideOn ? shared.lastNote : targetNote;
     shared.lastNote = targetNote;
@@ -35,6 +41,7 @@ void SynthVoice::startNote (int midiNote, float vel, juce::SynthesiserSound*, in
     analog.reset (rng.nextFloat());
     filter.reset();
     cloud.reset (rng);
+    resonator.noteOn (rng);
 
     for (int i = 0; i < 2; ++i)
     {
@@ -159,10 +166,13 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         }
     };
     accumulate (false);
+    noteTime += secs;
     for (int i = 0; i < 2; ++i)
     {
         const float rate = rd (p.lfoRate[i]) * std::exp2 ((i == 0 ? mod[dstLfo1Rate] : mod[dstLfo2Rate]) * 4.0f);
-        src[srcLfo1 + i] = lfo[i].advance ((int) rd (p.lfoShape[i]), rate, secs, rng);
+        const float fade = rd (p.lfoFade[i]);
+        const float fadeGain = fade > 0.001f ? juce::jmin (1.0f, noteTime / fade) : 1.0f;
+        src[srcLfo1 + i] = lfo[i].advance ((int) rd (p.lfoShape[i]), rate, secs, rng) * fadeGain;
     }
     accumulate (true);
 
@@ -235,6 +245,7 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         const float pw = juce::jlimit (0.03f, 0.97f, rd (p.anPw) + mod[dstAnPw] * 0.5f);
         const float sub = rd (p.anSub);
         const float noise = rd (p.anNoise);
+        const float tone = rd (p.anTone);
         const float level = juce::jlimit (0.0f, 1.0f, rd (p.anLevel) + mod[dstAnLevel]) * 0.7f;
         const float pan = rd (p.anPan);
         const float gL = std::cos ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
@@ -243,7 +254,7 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         {
             float subS = 0.0f;
             float s = analog.process (inc, shape, pw, subS);
-            s += subS * sub + (rng.nextFloat() * 2.0f - 1.0f) * noise * 0.5f;
+            s = s * tone + subS * sub + (rng.nextFloat() * 2.0f - 1.0f) * noise * 0.7f;
             L[i] += s * gL; R[i] += s * gR;
         }
     }
@@ -273,6 +284,28 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         for (int i = 0; i < n; ++i) { L[i] += gL[i] * level; R[i] += gR[i] * level; }
     }
     else displayGrPos = -1.0f;
+
+    // ===================== RESONATOR ENGINE =====================
+    if (rd (p.resOn) > 0.5f)
+    {
+        Resonator::Settings rs;
+        rs.type = (int) rd (p.resType);
+        rs.decay = juce::jlimit (0.02f, 30.0f, rd (p.resDecay) * std::exp2 (mod[dstResDecay] * 3.0f));
+        rs.bright = juce::jlimit (0.0f, 1.0f, rd (p.resBright) + mod[dstResBright]);
+        rs.damp = rd (p.resDamp);
+        rs.strike = rd (p.resStrike);
+        rs.bow = juce::jlimit (0.0f, 1.0f, rd (p.resBow) + mod[dstResBow]);
+        rs.buzz = juce::jlimit (0.0f, 1.0f, rd (p.resBuzz) + mod[dstResBuzz]);
+        rs.retrigHz = rd (p.resRetrig);
+        const float pitch = basePitch + rd (p.resOct) * 12.0f + rd (p.resSemi) + mod[dstResPitch] * 24.0f;
+        float tmp[32] {};
+        resonator.process (rs, hzFor (pitch), tmp, n, rng);
+        const float level = juce::jlimit (0.0f, 1.0f, rd (p.resLevel) + mod[dstResLevel]);
+        const float pan = rd (p.resPan);
+        const float gL = std::cos ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
+        const float gR = std::sin ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
+        for (int i = 0; i < n; ++i) { L[i] += tmp[i] * gL; R[i] += tmp[i] * gR; }
+    }
 
     // ===================== FILTER =====================
     const float e2Start = env2.getValue();

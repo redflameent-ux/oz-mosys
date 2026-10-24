@@ -175,6 +175,334 @@ p(C, "Vox Chop Lead", dict(wt_table=2, wt_pos=0.5, flt_type=1, flt_cutoff=0.8, l
 p(C, "Mafia Strings", dict(wt_table=0, wt_pos=0.66, wt_unison=5, wt_detune=0.25, an_on=1, an_shape=1, an_level=0.4,
     flt_cutoff=0.55, flt_env=0.25, e2_d=0.3, e2_s=0, amp_a=0.003, amp_d=0.4, amp_s=0.2, amp_r=0.3, rev_mix=0.35))
 
+
+# Resonator types: 0 String 1 Sitar 2 Tibetan Bowl 3 Crystal Bowl 4 Gong 5 Handpan 6 Tongue Drum 7 Tingsha/Bell
+#   8 Music Box 9 Tabla 10 Hand Drum 11 Clay Pot 12 808 Cowbell 13 Scrap Metal 14 Anvil 15 Metal Pipe
+#   16 Vibraphone 17 Marimba 18 E-Piano
+# Scales: 0 Equal 1 Just 2 Bhairav 3 Rast 4 Bayati 5 Hijaz 6 Pythagorean.  Roots: 0=C 2=D 4=E 7=G 9=A
+# Grain sources: 0 Choir 1 Monk Chant 2 Breath & Wind 3 Rain & Water 4 Your Sample
+# Drive types: 0 Warm 1 Rat 2 Fuzz
+NOISE = dict(an_on=1, an_tone=0, an_noise=1, an_drift=0)          # analog engine as a pure noise source
+OFF = dict(wt_on=0)
+def d(*parts, **kw):
+    out = {}
+    for p_ in parts: out.update(p_)
+    out.update(kw); return out
+
+# ============================== SACRED WORLD ==============================
+C = "Sacred World"
+p(C, "Sitar Raga", d(OFF, res_on=1, res_type=1, res_decay=3.5, res_bright=0.7, res_strike=0.8, res_buzz=0.5,
+    scale=2, flt_on=0, amp_a=0.001, amp_s=1, amp_r=2.5, lfo2_rate=5.5, lfo2_fade=0.8, rev_mix=0.35, rev_size=0.8),
+  [("Lfo2", "PitchAll", 0.003), ("ModWheel", "ResPitch", 0.04)])
+p(C, "Tanpura Drone", d(OFF, res_on=1, res_type=1, res_decay=6, res_bright=0.55, res_strike=0.5, res_buzz=0.7,
+    res_retrig=0.8, flt_on=0, amp_a=0.3, amp_s=1, amp_r=4, scale=1, cho_mix=0.2, rev_mix=0.5, rev_size=0.9))
+p(C, "Koto Cascade", d(OFF, res_on=1, res_type=0, res_decay=2.2, res_bright=0.8, res_strike=0.9, res_buzz=0.1,
+    flt_type=1, flt_cutoff=0.85, amp_a=0.001, amp_s=1, amp_r=1.5, dly_mix=0.3, dly_time=280, dly_fb=0.4, rev_mix=0.35),
+  [("Velocity", "ResBright", 0.3)])
+p(C, "Guzheng Glissando", d(OFF, res_on=1, res_type=0, res_decay=3.5, res_bright=0.75, res_strike=0.75,
+    flt_type=1, flt_cutoff=0.9, amp_a=0.001, amp_s=1, amp_r=2.5, lfo2_rate=4.5, lfo2_fade=0.6, cho_mix=0.25,
+    dly_mix=0.25, dly_time=330, rev_mix=0.45, rev_size=0.85),
+  [("Lfo2", "PitchAll", 0.004)])
+p(C, "Oud Dry Pluck", d(OFF, res_on=1, res_type=0, res_decay=0.9, res_bright=0.5, res_strike=0.65, res_buzz=0.15,
+    scale=5, scale_root=2, flt_cutoff=0.6, amp_a=0.001, amp_s=1, amp_r=0.3, rev_mix=0.12))
+p(C, "Saz Ostinato", d(OFF, res_on=1, res_type=1, res_decay=1.6, res_bright=0.75, res_strike=0.9, res_buzz=0.35,
+    scale=5, scale_root=2, flt_type=2, flt_cutoff=0.65, flt_res=0.15, amp_a=0.001, amp_s=1, amp_r=0.6,
+    cho_mix=0.45, tape_wow=0.4, rev_mix=0.25))
+p(C, "Erhu Lament", d(OFF, res_on=1, res_type=0, res_decay=8, res_bright=0.6, res_strike=0.1, res_bow=0.75,
+    flt_type=1, flt_cutoff=0.75, amp_a=0.12, amp_s=1, amp_r=0.6, glide=0.12, voice_mode=1,
+    lfo2_rate=5.5, lfo2_fade=0.7, rev_mix=0.4, rev_size=0.85),
+  [("Lfo2", "PitchAll", 0.008), ("ModWheel", "ResBow", 0.3)])
+p(C, "Kemenche Grit", d(OFF, res_on=1, res_type=0, res_decay=8, res_bright=0.75, res_strike=0.1, res_bow=0.85,
+    res_buzz=0.3, flt_type=2, flt_cutoff=0.68, flt_res=0.3, amp_a=0.08, amp_s=1, amp_r=0.4, voice_mode=1, glide=0.08,
+    lfo2_rate=6.5, lfo2_fade=0.4, scale=5, scale_root=2, fx_drive=0.25, rev_mix=0.3),
+  [("Lfo2", "PitchAll", 0.006)])
+p(C, "Bansuri Breath", d(NOISE, wt_table=0, wt_pos=0.0, wt_level=0.7, an_level=0.25, flt_type=1, flt_cutoff=0.62,
+    amp_a=0.06, amp_s=0.9, amp_r=0.35, voice_mode=1, glide=0.07, lfo2_rate=5.0, lfo2_fade=0.9,
+    scale=2, rev_mix=0.45, rev_size=0.85),
+  [("Lfo2", "PitchAll", 0.005), ("Env2", "PitchAll", -0.01), ("ModWheel", "AnLevel", 0.4)])
+p(C, "Shakuhachi Drop", d(NOISE, wt_table=0, wt_pos=0.08, wt_level=0.65, an_level=0.35, flt_type=1, flt_cutoff=0.58,
+    amp_a=0.05, amp_s=0.85, amp_r=0.6, e3_a=0, e3_d=0.6, e3_s=0, voice_mode=1, glide=0.15,
+    lfo2_rate=4.0, lfo2_fade=1.2, rev_mix=0.5, rev_size=0.9),
+  [("Env3", "PitchAll", 0.02), ("Env3", "AnLevel", 0.4), ("Lfo2", "PitchAll", 0.006)])
+p(C, "Ney Mourning", d(NOISE, wt_table=2, wt_pos=0.85, wt_level=0.55, an_level=0.4, flt_type=1, flt_cutoff=0.55,
+    amp_a=0.3, amp_s=1, amp_r=1.2, voice_mode=1, glide=0.1, scale=4, scale_root=2, lfo2_rate=4.5, lfo2_fade=1.5,
+    rev_mix=0.55, rev_size=0.95),
+  [("Lfo2", "PitchAll", 0.005)])
+p(C, "Native Flute", d(NOISE, wt_table=0, wt_pos=0.15, wt_level=0.75, an_level=0.15, flt_type=1, flt_cutoff=0.6,
+    amp_a=0.08, amp_s=0.9, amp_r=0.5, voice_mode=1, glide=0.05, lfo2_rate=5.5, lfo2_fade=1.0,
+    rev_mix=0.45, rev_size=0.8),
+  [("Lfo2", "PitchAll", 0.004)])
+
+# ============================== RESONANCE & DRONES ==============================
+C = "Resonance & Drones"
+p(C, "Tibetan Bowl Strike", d(OFF, res_on=1, res_type=2, res_decay=9, res_bright=0.55, res_damp=0.4, res_strike=0.5,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=8, rev_mix=0.4, rev_size=0.9))
+p(C, "Bowl Rubbed", d(OFF, res_on=1, res_type=2, res_decay=12, res_bright=0.45, res_strike=0.2, res_bow=0.6,
+    flt_on=0, amp_a=1.5, amp_s=1, amp_r=8, lfo1_rate=0.12, rev_mix=0.5, rev_size=0.95),
+  [("Lfo1", "ResBow", 0.2)])
+p(C, "Crystal 528", d(OFF, res_on=1, res_type=3, res_decay=14, res_bright=0.4, res_strike=0.3, res_bow=0.35,
+    tune_a4=444, flt_on=0, amp_a=0.6, amp_s=1, amp_r=10, rev_mix=0.55, rev_size=0.95))
+p(C, "Crystal 432", d(OFF, res_on=1, res_type=3, res_decay=14, res_bright=0.4, res_strike=0.3, res_bow=0.35,
+    tune_a4=432, flt_on=0, amp_a=0.6, amp_s=1, amp_r=10, rev_mix=0.55, rev_size=0.95))
+p(C, "Temple Gong", d(OFF, res_on=1, res_type=4, res_oct=-1, res_decay=10, res_bright=0.5, res_damp=0.35, res_strike=0.35,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=9, rev_mix=0.5, rev_size=0.95))
+p(C, "Handpan Kurd", d(OFF, res_on=1, res_type=5, res_decay=3.5, res_bright=0.6, res_strike=0.55,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=3, cho_mix=0.15, rev_mix=0.4, rev_size=0.8),
+  [("Velocity", "ResBright", 0.3)])
+p(C, "Steel Tongue", d(OFF, res_on=1, res_type=6, res_decay=4, res_bright=0.4, res_strike=0.35,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=3, rev_mix=0.4))
+p(C, "Tingsha Mark", d(OFF, res_on=1, res_type=7, res_oct=2, res_decay=6, res_bright=0.8, res_strike=0.95,
+    flt_type=3, flt_cutoff=0.45, amp_a=0.001, amp_s=1, amp_r=5, rev_mix=0.45, rev_size=0.9))
+p(C, "Shruti Box", d(NOISE, wt_table=5, wt_pos=0.25, wt_unison=3, wt_detune=0.08, wt_level=0.7, an_level=0.12,
+    flt_cutoff=0.5, amp_a=0.7, amp_s=1, amp_r=1.5, lfo1_rate=0.25, scale=1, rev_mix=0.35),
+  [("Lfo1", "Amp", 0.15)])
+p(C, "Rain Temple", d(OFF, gr_on=1, gr_source=3, gr_pos=0.5, gr_size=250, gr_density=30, gr_spray=0.9, gr_stereo=1,
+    gr_level=0.6, res_on=1, res_type=3, res_decay=10, res_bow=0.25, res_strike=0.2, res_level=0.5,
+    flt_type=1, flt_cutoff=0.7, amp_a=2, amp_s=1, amp_r=5, rev_mix=0.6, rev_size=0.95))
+
+# ============================== MEMPHIS DRUMS ==============================
+C = "Memphis Drums"
+DRUM = dict(amp_a=0.001, amp_s=0, voice_mode=0)
+p(C, "808 Cowbell", d(OFF, DRUM, res_on=1, res_type=12, res_decay=0.35, res_bright=0.8, res_strike=1, res_oct=1,
+    flt_type=2, flt_cutoff=0.68, flt_res=0.15, amp_d=0.35, amp_r=0.2, crush_bits=12, rev_mix=0.05))
+p(C, "Cowbell Gutter Tape", d(OFF, DRUM, res_on=1, res_type=12, res_decay=0.4, res_bright=0.7, res_strike=1, res_oct=1,
+    flt_type=2, flt_cutoff=0.62, amp_d=0.4, amp_r=0.2, fx_drive=0.4, tape_wow=0.5, tape_age=0.6, tape_hiss=0.3, rev_mix=0))
+p(C, "Blown 808 Kick", d(DRUM, wt_table=0, wt_pos=0, wt_oct=-2, e2_a=0, e2_d=0.06, e2_s=0, flt_cutoff=0.45,
+    amp_d=1.6, amp_r=0.5, voice_mode=1, fx_drive=0.6, tape_age=0.7, tape_wow=0.2, rev_mix=0),
+  [("Env2", "PitchAll", 0.5)])
+p(C, "DR-660 Snare", d(OFF, DRUM, NOISE, an_level=0.7, res_on=1, res_type=10, res_oct=1, res_decay=0.12,
+    res_strike=0.9, res_level=0.6, flt_type=3, flt_cutoff=0.38, amp_d=0.16, amp_r=0.1, crush_bits=12, crush_rate=2, rev_mix=0))
+p(C, "Rimshot Tick", d(OFF, DRUM, NOISE, an_level=0.4, res_on=1, res_type=11, res_oct=2, res_decay=0.05, res_bright=0.9, res_strike=1, res_level=1,
+    flt_type=3, flt_cutoff=0.45, amp_d=0.06, amp_r=0.04, crush_bits=12, rev_mix=0))
+p(C, "Closed Hat Choke", d(OFF, DRUM, NOISE, an_level=0.6, res_on=1, res_type=13, res_oct=3, res_decay=0.05,
+    res_bright=1, res_strike=1, res_level=0.5, flt_type=3, flt_cutoff=0.72, amp_d=0.05, amp_r=0.03, voice_mode=1,
+    amp_vel=0.9, crush_bits=12, rev_mix=0),
+  [("KeyTrack", "Cutoff", 0.2)])
+p(C, "Open Hat Choke", d(OFF, DRUM, NOISE, an_level=0.55, res_on=1, res_type=13, res_oct=3, res_decay=0.4,
+    res_bright=1, res_strike=1, res_level=0.5, flt_type=3, flt_cutoff=0.7, amp_d=0.45, amp_r=0.2, voice_mode=1,
+    amp_vel=0.9, crush_bits=12, rev_mix=0))
+p(C, "Lo-Fi Splash", d(OFF, DRUM, NOISE, an_level=0.5, res_on=1, res_type=13, res_oct=2, res_decay=1.4, res_bright=0.6,
+    res_level=0.6, flt_type=1, flt_cutoff=0.55, amp_d=1.3, amp_r=0.4, crush_bits=10, crush_rate=3, tape_age=0.5, rev_mix=0.15))
+p(C, "Reverse Crash", d(OFF, NOISE, an_level=0.5, res_on=1, res_type=13, res_oct=2, res_decay=3, res_bow=0.7,
+    res_strike=0.1, res_level=0.6, flt_type=1, flt_cutoff=0.6, amp_a=1.6, amp_s=1, amp_r=0.03, crush_bits=12, tape_age=0.4, rev_mix=0.2))
+p(C, "Snare Roll Machine", d(OFF, NOISE, an_level=0.7, res_on=1, res_type=10, res_oct=1, res_decay=0.08, res_strike=0.9,
+    res_retrig=12, res_level=0.6, flt_type=3, flt_cutoff=0.4, amp_a=0.001, amp_s=1, amp_r=0.08, crush_bits=12, rev_mix=0),
+  [("ModWheel", "Amp", 0.0)])
+p(C, "Memphis Clap", d(OFF, DRUM, NOISE, an_level=0.9, flt_type=2, flt_cutoff=0.6, flt_res=0.2, amp_d=0.18, amp_r=0.12,
+    lfo1_shape=3, lfo1_rate=90, crush_bits=12, rev_mix=0.12),
+  [("Lfo1", "Amp", 0.6)])
+p(C, "Tape Tom", d(DRUM, wt_table=0, wt_pos=0.05, e2_a=0, e2_d=0.12, e2_s=0, flt_cutoff=0.5, amp_d=0.6, amp_r=0.3,
+    tape_age=0.6, tape_wow=0.3, fx_drive=0.3, rev_mix=0.1),
+  [("Env2", "PitchAll", 0.25)])
+
+# ============================== CHANTS & DARK KEYS ==============================
+C = "Chants & Dark Keys"
+p(C, "Gyuto Throat Chant", d(OFF, gr_on=1, gr_source=1, gr_pos=0.3, gr_size=350, gr_density=25, gr_spray=0.15,
+    gr_stereo=0.7, gr_level=0.9, an_on=1, an_shape=0, an_oct=-1, an_sub=0.6, an_level=0.25, flt_type=1, flt_cutoff=0.55,
+    amp_a=0.8, amp_s=1, amp_r=3, gr_scan=0.1, tape_wow=0.3, rev_mix=0.5, rev_size=0.9))
+p(C, "Chopped Mantra", d(OFF, gr_on=1, gr_source=1, gr_pos=0.5, gr_size=120, gr_density=18, gr_level=0.9,
+    flt_type=1, flt_cutoff=0.55, lfo1_shape=3, lfo1_rate=4, amp_a=0.005, amp_s=1, amp_r=0.2,
+    tape_wow=0.5, tape_age=0.5, tape_hiss=0.4, rev_mix=0.2),
+  [("Lfo1", "Amp", 1.0), ("Random", "Pan", 0.8)])
+p(C, "Gothic Piano Hit", d(OFF, res_on=1, res_type=18, res_decay=3, res_bright=0.45, res_strike=0.8, res_oct=-1,
+    an_on=1, an_shape=0, an_level=0.3, flt_cutoff=0.6, amp_a=0.001, amp_d=2.5, amp_s=0.2, amp_r=1.5, amp_vel=0.8,
+    crush_bits=12, rev_mix=0.55, rev_size=0.9))
+p(C, "Detuned Music Box", d(OFF, res_on=1, res_type=8, res_oct=1, res_decay=2.5, res_bright=0.7, res_strike=0.9,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=2, tape_wow=0.6, tape_age=0.4, tape_hiss=0.3, rev_mix=0.4))
+p(C, "PCM Dread Strings", d(wt_table=0, wt_pos=0.66, wt_unison=5, wt_detune=0.2, flt_cutoff=0.45, amp_a=0.6, amp_s=1,
+    amp_r=2, crush_bits=12, crush_rate=2, cho_mix=0.4, rev_mix=0.5))
+p(C, "M1 Organ Gloom", d(wt_table=5, wt_pos=0.7, an_on=1, an_shape=2, an_level=0.3, flt_cutoff=0.55, amp_a=0.005,
+    amp_s=1, amp_r=0.4, crush_bits=14, cho_mix=0.3, rev_mix=0.4))
+p(C, "Harmonium Bed", d(NOISE, wt_table=5, wt_pos=0.45, wt_unison=2, wt_detune=0.1, an_level=0.1, flt_cutoff=0.55,
+    amp_a=0.4, amp_s=1, amp_r=0.8, lfo1_rate=0.2, scale=1, rev_mix=0.3),
+  [("Lfo1", "Amp", 0.1)])
+p(C, "Dungchen Horn", d(wt_table=2, wt_pos=0.9, wt_oct=-2, wt_level=0.6, an_on=1, an_shape=1, an_oct=-2, an_sub=0.7,
+    an_level=0.6, flt_cutoff=0.38, flt_res=0.3, flt_drive=0.4, amp_a=0.8, amp_s=1, amp_r=2, lfo2_rate=0.2,
+    rev_mix=0.55, rev_size=0.95),
+  [("Lfo2", "WtPos", 0.15)])
+
+# ============================== TRAP LOW-END & FUSION PERCUSSION ==============================
+C = "Trap & Fusion Percussion"
+p(C, "808 Long Tail Glide", d(wt_table=0, wt_pos=0, wt_oct=-1, flt_on=0, e2_a=0, e2_d=0.06, e2_s=0, amp_a=0.001,
+    amp_d=3, amp_s=0.7, amp_r=1, voice_mode=1, glide=0.15, fx_drive=0.5, tape_age=0.3, rev_mix=0),
+  [("Env2", "PitchAll", 0.2)])
+p(C, "Hard Digital Kick", d(NOISE, wt_table=0, wt_pos=0.05, wt_oct=-2, an_level=0.15, flt_cutoff=0.6, e2_a=0,
+    e2_d=0.03, e2_s=0, amp_a=0.001, amp_d=0.35, amp_s=0, amp_r=0.1, voice_mode=1, fx_drive=0.4, rev_mix=0),
+  [("Env2", "PitchAll", 0.7), ("Env2", "AnLevel", 1.0)])
+p(C, "Rolling Hats", d(OFF, NOISE, an_level=0.6, res_on=1, res_type=13, res_oct=3, res_decay=0.04, res_bright=1,
+    res_strike=1, res_retrig=8, res_level=0.5, flt_type=3, flt_cutoff=0.75, amp_a=0.001, amp_s=1, amp_r=0.05,
+    amp_vel=1, rev_mix=0),
+  [("Random", "Pan", 0.5), ("ModWheel", "ResPitch", 0.1)])
+p(C, "Woodblock Clap", d(OFF, DRUM, NOISE, an_level=0.6, res_on=1, res_type=17, res_oct=2, res_decay=0.08, res_strike=1,
+    flt_type=2, flt_cutoff=0.62, amp_d=0.15, amp_r=0.1, rev_mix=0.12))
+p(C, "Tabla Dayan", d(OFF, DRUM, res_on=1, res_type=9, res_decay=0.8, res_bright=0.6, res_strike=0.9, flt_on=0,
+    amp_d=1, amp_r=0.5, rev_mix=0.15),
+  [("Velocity", "ResBright", 0.3)])
+p(C, "Tabla Bayan Bend", d(OFF, DRUM, res_on=1, res_type=10, res_oct=-1, res_decay=0.7, res_bright=0.3, res_strike=0.5,
+    e2_a=0.02, e2_d=0.35, e2_s=0, flt_on=0, amp_d=1, amp_r=0.5, rev_mix=0.1),
+  [("Env2", "ResPitch", 0.15)])
+p(C, "Darbuka Doum Tek", d(OFF, DRUM, res_on=1, res_type=10, res_decay=0.3, res_bright=0.75, res_strike=0.9, flt_on=0,
+    amp_d=0.4, amp_r=0.2, rev_mix=0.1),
+  [("KeyTrack", "ResBright", 0.4)])
+p(C, "Udu Bloop", d(OFF, DRUM, res_on=1, res_type=11, res_oct=-1, res_decay=0.5, res_bright=0.3, res_strike=0.3,
+    e2_a=0.01, e2_d=0.15, e2_s=0, flt_on=0, amp_d=0.6, amp_r=0.3, rev_mix=0.1),
+  [("Env2", "ResPitch", -0.12)])
+p(C, "Shaker Rain", d(OFF, DRUM, NOISE, an_level=0.6, flt_type=3, flt_cutoff=0.78, amp_a=0.01, amp_d=0.12, amp_r=0.08,
+    rev_mix=0.1))
+p(C, "Rainstick", d(OFF, NOISE, an_level=0.3, gr_on=1, gr_source=3, gr_size=60, gr_density=90, gr_spray=1, gr_stereo=1,
+    gr_level=0.8, flt_type=3, flt_cutoff=0.55, amp_a=0.6, amp_s=1, amp_r=1.5, rev_mix=0.35))
+
+# ============================== INDUSTRIAL ==============================
+C = "Industrial"
+p(C, "Scrap Iron Hit", d(OFF, DRUM, res_on=1, res_type=13, res_decay=0.8, res_bright=0.75, res_strike=1, flt_on=0,
+    amp_d=0.9, amp_r=0.4, fx_drive=0.5, drive_type=1, rev_mix=0.2))
+p(C, "Anvil Strike", d(OFF, DRUM, res_on=1, res_type=14, res_oct=1, res_decay=1.2, res_bright=0.9, res_strike=1, flt_on=0,
+    amp_d=1.2, amp_r=0.5, rev_mix=0.25))
+p(C, "Pipe Clang", d(OFF, DRUM, res_on=1, res_type=15, res_decay=3, res_bright=0.7, res_strike=0.9, flt_on=0,
+    amp_d=3, amp_r=1, dly_mix=0.25, dly_time=90, dly_fb=0.5, rev_mix=0.3))
+p(C, "Metal Cowbell Hybrid", d(OFF, DRUM, res_on=1, res_type=12, res_oct=1, res_decay=0.4, res_strike=1, an_on=0,
+    flt_type=2, flt_cutoff=0.7, amp_d=0.5, amp_r=0.3, fx_drive=0.6, drive_type=1, ring_freq=1200, ring_mix=0.3, rev_mix=0.1))
+p(C, "Gated Drop-D Chug", d(OFF, res_on=1, res_type=0, res_oct=-1, res_decay=0.35, res_bright=0.35, res_strike=1,
+    flt_cutoff=0.6, amp_a=0.001, amp_d=0.12, amp_s=0, amp_r=0.03, fx_drive=0.85, drive_type=1, rev_mix=0))
+p(C, "Feedback Scream", d(OFF, res_on=1, res_type=0, res_oct=1, res_decay=15, res_bright=0.9, res_bow=0.6, res_strike=0.2,
+    flt_type=2, flt_cutoff=0.75, flt_res=0.6, amp_a=1.2, amp_s=1, amp_r=1, voice_mode=1, lfo2_rate=6, lfo2_fade=2,
+    fx_drive=0.9, drive_type=2, rev_mix=0.3),
+  [("Lfo2", "PitchAll", 0.004)])
+p(C, "Steam Pipe Flute", d(NOISE, wt_table=0, wt_pos=0.1, an_level=0.7, flt_type=1, flt_cutoff=0.7, amp_a=0.05, amp_s=0.9,
+    amp_r=0.4, voice_mode=1, ring_freq=720, ring_mix=0.45, crush_bits=8, dly_mix=0.35, dly_time=40, dly_fb=0.7, rev_mix=0.2))
+p(C, "Demonic Bowl", d(OFF, res_on=1, res_type=2, res_oct=-1, res_decay=12, res_bow=0.7, res_strike=0.2, flt_cutoff=0.6,
+    amp_a=1.5, amp_s=1, amp_r=5, fx_drive=0.8, drive_type=0, tape_age=0.3, rev_mix=0.45))
+p(C, "Closer Noise Snare", d(OFF, DRUM, NOISE, an_level=0.9, flt_type=2, flt_cutoff=0.6, flt_res=0.2, amp_d=0.22,
+    amp_r=0.15, fx_drive=0.6, drive_type=2, crush_bits=10, rev_mix=0.08))
+p(C, "Prophet Saw Teeth", d(wt_table=0, wt_pos=0.66, wt_unison=4, wt_detune=0.35, an_on=1, an_shape=1, an_oct=-1,
+    an_level=0.6, flt_cutoff=0.4, flt_res=0.4, flt_env=0.3, e2_d=0.25, e2_s=0.2, amp_s=1, amp_r=0.1, glide=0.04,
+    fx_drive=0.5, drive_type=1, rev_mix=0))
+p(C, "Glitch Grains", d(OFF, gr_on=1, gr_source=0, gr_size=18, gr_density=60, gr_spray=1, gr_pitchrand=12,
+    gr_reverse=0.5, gr_stereo=1, gr_level=0.9, flt_on=0, amp_s=1, amp_r=0.5, crush_bits=8, crush_rate=4, rev_mix=0.1),
+  [("Lfo1", "GrPos", 0.5)])
+
+# ============================== JAPANESE ACID JAZZ ==============================
+C = "Japanese Acid Jazz"
+p(C, "Tokyo Rhodes", d(OFF, res_on=1, res_type=18, res_decay=3, res_bright=0.55, res_strike=0.7, res_buzz=0.15,
+    flt_on=0, amp_a=0.001, amp_d=3, amp_s=0.3, amp_r=0.5, amp_vel=0.8, lfo1_rate=4.5, cho_mix=0.35, rev_mix=0.2),
+  [("Lfo1", "Pan", 0.4), ("Velocity", "ResBuzz", 0.3)])
+p(C, "Vibes Tremolo", d(OFF, res_on=1, res_type=16, res_decay=4, res_bright=0.55, res_strike=0.6, flt_on=0,
+    amp_a=0.001, amp_s=1, amp_r=2, lfo1_rate=5, lfo1_retrig=0, rev_mix=0.3),
+  [("Lfo1", "Amp", 0.3)])
+p(C, "Shibuya Clav", d(OFF, an_on=1, an_shape=2, an_pw=0.15, an_level=0.8, flt_cutoff=0.4, flt_res=0.45, flt_env=0.4,
+    e2_d=0.15, e2_s=0, amp_a=0.001, amp_d=0.3, amp_s=0.2, amp_r=0.08, amp_vel=0.9, fx_drive=0.2, cho_mix=0.2, rev_mix=0.1),
+  [("Velocity", "Cutoff", 0.3)])
+p(C, "Upright Walk", d(OFF, res_on=1, res_type=0, res_oct=-1, res_decay=1.5, res_bright=0.35, res_strike=0.5,
+    flt_cutoff=0.5, amp_a=0.001, amp_s=1, amp_r=0.25, amp_vel=0.6, rev_mix=0.08))
+p(C, "Flute Loop Jazz", d(NOISE, wt_table=0, wt_pos=0.1, an_level=0.18, flt_type=1, flt_cutoff=0.65, amp_a=0.04,
+    amp_s=0.9, amp_r=0.3, lfo2_rate=5, lfo2_fade=0.6, tape_wow=0.3, tape_age=0.3, dly_mix=0.2, rev_mix=0.3),
+  [("Lfo2", "PitchAll", 0.004)])
+p(C, "Smoky Organ", d(wt_table=5, wt_pos=0.6, flt_cutoff=0.7, amp_a=0.005, amp_s=1, amp_r=0.15, lfo1_rate=6.5,
+    lfo1_retrig=0, fx_drive=0.25, rev_mix=0.15),
+  [("Lfo1", "Amp", 0.12), ("Lfo1", "PitchAll", 0.002)])
+
+# ============================== 60s PSYCH ==============================
+C = "60s Psych"
+p(C, "Fuzz Lead 66", d(OFF, res_on=1, res_type=0, res_decay=6, res_bright=0.6, res_strike=0.9, flt_cutoff=0.7,
+    amp_a=0.001, amp_s=1, amp_r=0.4, voice_mode=1, glide=0.04, lfo2_rate=5.5, lfo2_fade=0.8, fx_drive=0.75, drive_type=2,
+    rev_mix=0.3),
+  [("Lfo2", "PitchAll", 0.004)])
+p(C, "Farfisa Swirl", d(wt_table=4, wt_pos=0.1, an_on=1, an_shape=2, an_level=0.3, flt_cutoff=0.75, amp_a=0.003,
+    amp_s=1, amp_r=0.1, lfo2_rate=6, cho_mix=0.6, cho_rate=0.8, rev_mix=0.25),
+  [("Lfo2", "PitchAll", 0.003)])
+p(C, "Mellotron Flutes", d(NOISE, wt_table=0, wt_pos=0.05, wt_unison=2, wt_detune=0.08, an_level=0.12,
+    flt_type=1, flt_cutoff=0.6, amp_a=0.12, amp_s=0.9, amp_r=0.6, tape_wow=0.6, tape_age=0.5, tape_hiss=0.25, rev_mix=0.3))
+p(C, "Electric Sitar", d(OFF, res_on=1, res_type=1, res_decay=2.5, res_bright=0.8, res_strike=0.9, res_buzz=0.6,
+    flt_on=0, amp_a=0.001, amp_s=1, amp_r=1, cho_mix=0.3, rev_mix=0.3))
+p(C, "Backwards Guitar", d(OFF, res_on=1, res_type=0, res_decay=4, res_bright=0.6, res_bow=0.4, res_strike=0.3,
+    flt_cutoff=0.65, amp_a=0.9, amp_s=1, amp_r=0.05, fx_drive=0.3, drive_type=0, tape_wow=0.4, dly_mix=0.3, rev_mix=0.4))
+p(C, "Phase Out Pad", d(wt_table=1, wt_pos=0.3, wt_unison=3, wt_detune=0.15, flt_type=4, flt_cutoff=0.55, flt_res=0.6,
+    amp_a=0.8, amp_s=1, amp_r=2, lfo1_shape=1, lfo1_rate=0.25, cho_mix=0.4, rev_mix=0.45),
+  [("Lfo1", "Cutoff", 0.3)])
+
+# ============================== DUNGEON SYNTH ==============================
+C = "Dungeon Synth"
+p(C, "Crypt Choir", d(wt_table=2, wt_pos=0.9, wt_unison=4, wt_detune=0.15, gr_on=1, gr_source=0, gr_level=0.5,
+    flt_type=1, flt_cutoff=0.5, amp_a=1.2, amp_s=1, amp_r=3, crush_bits=14, rev_mix=0.6, rev_size=0.95))
+p(C, "Castle Strings", d(wt_table=0, wt_pos=0.66, wt_unison=4, wt_detune=0.15, flt_cutoff=0.4, amp_a=0.8, amp_s=1,
+    amp_r=2.5, tape_age=0.4, tape_wow=0.2, rev_mix=0.55, rev_size=0.9))
+p(C, "Lute of the Keep", d(OFF, res_on=1, res_type=0, res_decay=2.2, res_bright=0.45, res_strike=0.6, flt_cutoff=0.65,
+    amp_a=0.001, amp_s=1, amp_r=1.2, cho_mix=0.15, rev_mix=0.45))
+p(C, "Tomb Organ", d(wt_table=5, wt_pos=0.85, wt_oct=-1, an_on=1, an_shape=2, an_oct=-1, an_level=0.3, flt_cutoff=0.5,
+    amp_a=0.3, amp_s=1, amp_r=2, rev_mix=0.65, rev_size=0.95))
+p(C, "Fantasy Horn", d(wt_table=0, wt_pos=0.6, wt_unison=2, wt_detune=0.1, flt_cutoff=0.32, flt_env=0.25, e2_a=0.15,
+    e2_d=0.8, e2_s=0.6, amp_a=0.15, amp_s=1, amp_r=0.8, rev_mix=0.5))
+p(C, "Torchlit Bells", d(OFF, res_on=1, res_type=7, res_decay=4, res_bright=0.45, res_strike=0.5, flt_on=0, amp_a=0.001,
+    amp_s=1, amp_r=3, crush_bits=12, rev_mix=0.55, rev_size=0.95))
+
+# ============================== 8-BIT LO-FI ==============================
+C = "8-Bit Lo-Fi"
+CHIP = dict(crush_bits=6, crush_rate=4)
+p(C, "Square Lead 50", d(OFF, an_on=1, an_shape=2, an_pw=0.5, an_drift=0, an_level=0.7, flt_on=0, amp_a=0.001, amp_s=0.9,
+    amp_r=0.05, voice_mode=1, lfo2_rate=6, lfo2_fade=0.3, crush_bits=8, rev_mix=0.05),
+  [("Lfo2", "PitchAll", 0.006)])
+p(C, "Pulse 12 Arp", d(OFF, CHIP, an_on=1, an_shape=2, an_pw=0.12, an_drift=0, an_level=0.7, flt_on=0, amp_a=0.001,
+    amp_d=0.15, amp_s=0.3, amp_r=0.05, dly_mix=0.2, dly_time=150, rev_mix=0))
+p(C, "Triangle Bass", d(OFF, an_on=1, an_shape=0, an_oct=-1, an_drift=0, an_level=0.9, flt_on=0, amp_a=0.001, amp_s=1,
+    amp_r=0.05, voice_mode=1, crush_bits=5, rev_mix=0))
+p(C, "Noise Drum Chip", d(OFF, DRUM, NOISE, an_level=0.8, flt_on=0, amp_d=0.12, amp_r=0.05, crush_bits=4, crush_rate=8, rev_mix=0),
+  [("KeyTrack", "Amp", 0.0)])
+p(C, "Game Over Pad", d(CHIP, wt_table=4, wt_pos=0.3, flt_cutoff=0.6, amp_a=0.3, amp_s=1, amp_r=1.5, tape_wow=0.4,
+    tape_age=0.4, rev_mix=0.35))
+p(C, "Lo-Fi Chip Keys", d(OFF, res_on=1, res_type=18, res_decay=1.5, res_strike=0.7, flt_cutoff=0.6, amp_a=0.001,
+    amp_s=1, amp_r=0.5, crush_bits=8, crush_rate=3, tape_wow=0.5, tape_age=0.5, tape_hiss=0.4, rev_mix=0.2))
+
+# ============================== KRAUTROCK ==============================
+C = "Krautrock"
+p(C, "Motorik Bass", d(OFF, an_on=1, an_shape=1, an_oct=-1, an_sub=0.4, an_level=0.9, flt_cutoff=0.35, flt_res=0.3,
+    flt_env=0.3, e2_d=0.15, e2_s=0, amp_a=0.001, amp_d=0.25, amp_s=0.5, amp_r=0.08, rev_mix=0))
+p(C, "Kosmische Sequence", d(wt_table=4, wt_pos=0.2, flt_cutoff=0.35, flt_res=0.55, flt_env=0.4, e2_d=0.12, e2_s=0,
+    amp_a=0.001, amp_d=0.25, amp_s=0, amp_r=0.15, lfo1_rate=0.05, dly_mix=0.4, dly_time=375, dly_fb=0.55, rev_mix=0.3),
+  [("Lfo1", "Cutoff", 0.25)])
+p(C, "Organ Drone Kraut", d(wt_table=5, wt_pos=0.5, an_on=1, an_shape=1, an_level=0.3, flt_cutoff=0.55, amp_a=0.2,
+    amp_s=1, amp_r=1, lfo1_shape=1, lfo1_rate=0.1, fx_drive=0.3, rev_mix=0.35),
+  [("Lfo1", "Cutoff", 0.15)])
+p(C, "Tape Echo Guitar", d(OFF, res_on=1, res_type=0, res_decay=2, res_bright=0.65, res_strike=0.8, flt_cutoff=0.7,
+    amp_a=0.001, amp_s=1, amp_r=0.5, fx_drive=0.35, dly_mix=0.45, dly_time=420, dly_fb=0.6, dly_tone=0.4, tape_wow=0.3, rev_mix=0.2))
+p(C, "Cluster Synth", d(wt_table=1, wt_pos=0.5, wt_unison=3, wt_detune=0.4, flt_type=2, flt_cutoff=0.6, flt_res=0.5,
+    amp_a=0.4, amp_s=1, amp_r=2, lfo1_shape=5, lfo1_rate=0.3, ring_freq=180, ring_mix=0.2, rev_mix=0.45),
+  [("Lfo1", "Cutoff", 0.3), ("Lfo1", "WtPos", 0.3)])
+p(C, "Neu! Hammer Pulse", d(wt_table=0, wt_pos=0.66, flt_cutoff=0.5, lfo1_shape=3, lfo1_rate=4, lfo1_retrig=0, amp_s=1,
+    amp_r=0.2, rev_mix=0.2),
+  [("Lfo1", "Amp", 0.6)])
+
+# ============================== ZAMROCK ==============================
+C = "Zamrock"
+p(C, "Lusaka Fuzz", d(OFF, res_on=1, res_type=0, res_decay=3, res_bright=0.6, res_strike=0.9, flt_cutoff=0.65,
+    amp_a=0.001, amp_s=1, amp_r=0.3, fx_drive=0.85, drive_type=2, tape_age=0.4, rev_mix=0.15))
+p(C, "Garage Organ", d(wt_table=5, wt_pos=0.8, flt_cutoff=0.7, amp_a=0.003, amp_s=1, amp_r=0.1, fx_drive=0.45,
+    drive_type=1, tape_age=0.4, rev_mix=0.2))
+p(C, "Copperbelt Bass", d(OFF, res_on=1, res_type=0, res_oct=-1, res_decay=1, res_bright=0.4, res_strike=0.7,
+    flt_cutoff=0.45, amp_a=0.001, amp_s=1, amp_r=0.1, fx_drive=0.35, tape_age=0.5, rev_mix=0))
+p(C, "Wah Rhythm", d(OFF, res_on=1, res_type=0, res_decay=0.6, res_bright=0.7, res_strike=1, flt_type=2, flt_cutoff=0.55,
+    flt_res=0.6, amp_a=0.001, amp_d=0.2, amp_s=0.3, amp_r=0.1, fx_drive=0.6, drive_type=2, rev_mix=0.1),
+  [("ModWheel", "Cutoff", 0.35), ("Env2", "Cutoff", 0.25)])
+p(C, "Afro Psych Lead", d(wt_table=0, wt_pos=0.8, an_on=1, an_shape=2, an_pw=0.3, an_level=0.4, flt_cutoff=0.6,
+    amp_a=0.01, amp_s=1, amp_r=0.3, voice_mode=1, glide=0.05, fx_drive=0.6, drive_type=2, tape_age=0.5, tape_wow=0.3,
+    rev_mix=0.2))
+
+# ============================== JAZZ NOIR ==============================
+C = "Jazz Noir"
+p(C, "Muted Trumpet", d(wt_table=2, wt_pos=0.45, wt_level=0.8, flt_type=2, flt_cutoff=0.6, flt_res=0.35, amp_a=0.04,
+    amp_s=0.9, amp_r=0.25, voice_mode=1, glide=0.04, lfo2_rate=5, lfo2_fade=0.6, rev_mix=0.35),
+  [("Lfo2", "PitchAll", 0.004), ("Velocity", "Cutoff", 0.2)])
+p(C, "Midnight Vibes", d(OFF, res_on=1, res_type=16, res_decay=5, res_bright=0.4, res_strike=0.5, flt_on=0, amp_a=0.001,
+    amp_s=1, amp_r=3, lfo1_rate=3.5, lfo1_retrig=0, rev_mix=0.45, rev_size=0.85),
+  [("Lfo1", "Amp", 0.2)])
+p(C, "Smoke Rhodes", d(OFF, res_on=1, res_type=18, res_decay=4, res_bright=0.35, res_strike=0.5, flt_cutoff=0.6,
+    amp_a=0.002, amp_d=3, amp_s=0.3, amp_r=0.8, cho_mix=0.3, tape_age=0.3, rev_mix=0.35))
+p(C, "Noir Upright", d(OFF, res_on=1, res_type=0, res_oct=-1, res_decay=1.8, res_bright=0.3, res_strike=0.45,
+    flt_cutoff=0.45, amp_a=0.001, amp_s=1, amp_r=0.35, amp_vel=0.6, rev_mix=0.15))
+p(C, "Brushed Snare", d(OFF, NOISE, an_level=0.5, flt_type=2, flt_cutoff=0.68, amp_a=0.06, amp_d=0.4, amp_s=0,
+    amp_r=0.2, rev_mix=0.2))
+p(C, "Rain-Slick Pad", d(wt_table=1, wt_pos=0.2, wt_unison=3, wt_detune=0.12, gr_on=1, gr_source=3, gr_level=0.3,
+    gr_spray=0.8, flt_type=1, flt_cutoff=0.5, amp_a=1.5, amp_s=1, amp_r=3, tape_hiss=0.3, tape_age=0.3, rev_mix=0.55))
+
 # ----------------------------------------------------------------------------
 SRC = dict(Env2="srcEnv2", Env3="srcEnv3", Lfo1="srcLfo1", Lfo2="srcLfo2", Velocity="srcVelocity",
            ModWheel="srcModWheel", Aftertouch="srcAftertouch", KeyTrack="srcKeyTrack", Random="srcRandom",
@@ -183,18 +511,23 @@ DST = dict(WtPos="dstWtPos", WtWarp="dstWtWarp", WtPitch="dstWtPitch", WtDetune=
            AnShape="dstAnShape", AnPw="dstAnPw", AnPitch="dstAnPitch", AnLevel="dstAnLevel",
            GrPos="dstGrPos", GrSize="dstGrSize", GrDensity="dstGrDensity", GrSpray="dstGrSpray", GrPitch="dstGrPitch",
            GrLevel="dstGrLevel", Cutoff="dstCutoff", Resonance="dstResonance", FltDrive="dstFltDrive",
-           Amp="dstAmp", Pan="dstPan", PitchAll="dstPitchAll", Lfo1Rate="dstLfo1Rate", Lfo2Rate="dstLfo2Rate")
+           Amp="dstAmp", Pan="dstPan", PitchAll="dstPitchAll", Lfo1Rate="dstLfo1Rate", Lfo2Rate="dstLfo2Rate",
+           ResPitch="dstResPitch", ResBright="dstResBright", ResDecay="dstResDecay", ResBow="dstResBow",
+           ResLevel="dstResLevel", ResBuzz="dstResBuzz")
 
 def add_macros(values, routes):
     """Every new preset gets two useful macros: 1 = brightness, 2 = character."""
     used = {r[0] for r in routes}
     if "Macro1" not in used:
-        routes.append(("Macro1", "Cutoff", 0.35))
+        if values.get("flt_on", 1) != 0: routes.append(("Macro1", "Cutoff", 0.35))
+        elif values.get("res_on", 0):    routes.append(("Macro1", "ResDecay", 0.5))
     if "Macro2" not in used:
         wt = values.get("wt_on", 1) != 0
         gr = values.get("gr_on", 0) != 0
         an = values.get("an_on", 0) != 0
-        if wt:   routes.append(("Macro2", "WtPos", 0.4))
+        rs = values.get("res_on", 0) != 0
+        if rs:   routes.append(("Macro2", "ResBright", 0.4))
+        elif wt: routes.append(("Macro2", "WtPos", 0.4))
         elif gr: routes.append(("Macro2", "GrSpray", 0.5))
         elif an: routes.append(("Macro2", "AnShape", 0.4))
     return routes
@@ -220,7 +553,7 @@ def main():
     for cat, name, values, routes in P:
         values = dict(values)
         if name in levels: values["master"] = levels[name]
-        routes = add_macros(values, list(routes))
+        routes = add_macros(values, [r for r in routes if r[2] != 0])
         vals = ", ".join('{ "%s", %s }' % (k, fmt(v)) for k, v in values.items())
         rts = ", ".join("{ %s, %s, %s }" % (SRC[s], DST[d], fmt(a)) for s, d, a in routes)
         out.append('        { "%s", "%s",\n          { %s },\n          { %s } },' % (name, cat, vals, rts))

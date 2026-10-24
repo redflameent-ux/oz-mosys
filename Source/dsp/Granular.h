@@ -62,6 +62,143 @@ public:
         return s;
     }
 
+    // Low "throat singing" drone: harmonic series through slowly shifting vowel
+    // formants, with a sub-octave growl (kargyraa style).
+    static Ptr createMonkChant()
+    {
+        Ptr s = new GrainSource();
+        s->name = "Built-in: Monk Chant";
+        s->sampleRate = 48000.0;
+        s->rootMidiNote = 36.0f;                 // C1-ish drone
+        const int len = 48000 * 8;
+        s->buffer.setSize (2, len);
+        const double f0 = 65.406, sr = s->sampleRate, twoPi = juce::MathConstants<double>::twoPi;
+        juce::Random rng (909);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            auto* d = s->buffer.getWritePointer (ch);
+            double ph = 0.0, subPh = 0.0;
+            float lp = 0.0f;
+            std::array<double, 41> amps {};
+            for (int i = 0; i < len; ++i)
+            {
+                const double t = i / sr;
+                const double vib = 1.0 + 0.003 * std::sin (twoPi * 4.7 * t + ch);
+                // vowel morph "oo" -> "aa" -> "oh" over the loop
+                if ((i & 255) == 0)
+                {
+                    const double m = 0.5 + 0.5 * std::sin (twoPi * t / 8.0);
+                    const double F1 = 300.0 + 400.0 * m, F2 = 800.0 + 500.0 * m;
+                    for (int k = 1; k <= 40; ++k)
+                    {
+                        const double hz = f0 * k;
+                        amps[(size_t) k] = std::exp (-0.5 * std::pow ((hz - F1) / 90.0, 2))
+                                         + 0.6 * std::exp (-0.5 * std::pow ((hz - F2) / 120.0, 2)) + 0.15 / k;
+                    }
+                }
+                double v = 0.0;
+                for (int k = 1; k <= 40; ++k)
+                    v += amps[(size_t) k] * std::sin (twoPi * k * ph + k * 0.7);
+                const double growl = 0.35 * std::sin (twoPi * subPh) * (0.6 + 0.4 * std::sin (twoPi * 0.31 * t));
+                ph += f0 * vib / sr;   ph -= std::floor (ph);
+                subPh += f0 * 0.5 * vib / sr; subPh -= std::floor (subPh);
+                lp += 0.05f * ((rng.nextFloat() * 2.0f - 1.0f) - lp);
+                d[i] = (float) (v * 0.15 + growl) + lp * 0.05f;
+            }
+        }
+        finish (*s);
+        return s;
+    }
+
+    // Breath & wind: noise through slowly wandering resonant band-passes.
+    static Ptr createBreath()
+    {
+        Ptr s = new GrainSource();
+        s->name = "Built-in: Breath & Wind";
+        s->sampleRate = 48000.0;
+        const int len = 48000 * 8;
+        s->buffer.setSize (2, len);
+        juce::Random rng (31337);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            auto* d = s->buffer.getWritePointer (ch);
+            float ic1 = 0, ic2 = 0, ic3 = 0, ic4 = 0;
+            for (int i = 0; i < len; ++i)
+            {
+                const float t = (float) i / 48000.0f;
+                const float gust = 0.55f + 0.45f * std::sin (t * 0.9f + ch) * std::sin (t * 0.37f + 1.0f);
+                const float fc1 = 400.0f + 900.0f * (0.5f + 0.5f * std::sin (t * 0.5f + ch));
+                const float fc2 = 1800.0f + 1500.0f * (0.5f + 0.5f * std::sin (t * 0.23f + 2.0f));
+                auto svf = [] (float x, float fc, float q, float& a, float& b)
+                {
+                    const float g = std::tan (juce::MathConstants<float>::pi * fc / 48000.0f);
+                    const float k = 1.0f / q, a1 = 1.0f / (1.0f + g * (g + k)), a2 = g * a1;
+                    const float v3 = x - b, v1 = a1 * a + a2 * v3, v2 = b + a2 * a + g * a2 * v3;
+                    a = 2.0f * v1 - a; b = 2.0f * v2 - b;
+                    return v1;
+                };
+                const float n = rng.nextFloat() * 2.0f - 1.0f;
+                d[i] = gust * (svf (n, fc1, 4.0f, ic1, ic2) + 0.5f * svf (n, fc2, 6.0f, ic3, ic4));
+            }
+        }
+        finish (*s);
+        return s;
+    }
+
+    // Rain & water: a soft noise bed with random droplet "plinks".
+    static Ptr createRain()
+    {
+        Ptr s = new GrainSource();
+        s->name = "Built-in: Rain & Water";
+        s->sampleRate = 48000.0;
+        const int len = 48000 * 8;
+        s->buffer.setSize (2, len);
+        juce::Random rng (2024);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            auto* d = s->buffer.getWritePointer (ch);
+            float lp = 0.0f, hp = 0.0f;
+            for (int i = 0; i < len; ++i)
+            {
+                const float n = rng.nextFloat() * 2.0f - 1.0f;
+                lp += 0.3f * (n - lp);
+                hp = lp - hp * 0.0f;
+                d[i] = hp * 0.12f;
+            }
+            // droplets: short rising sine chirps
+            const int drops = 900;
+            for (int k = 0; k < drops; ++k)
+            {
+                const int start = rng.nextInt (len - 4000);
+                const float f = 900.0f + rng.nextFloat() * 3500.0f;
+                const float amp = 0.05f + rng.nextFloat() * 0.25f;
+                const int dl = 400 + rng.nextInt (1600);
+                double ph = 0.0;
+                for (int j = 0; j < dl; ++j)
+                {
+                    const float env = std::exp (-6.0f * (float) j / dl);
+                    ph += (f * (1.0f + 0.8f * (float) j / dl)) / 48000.0;
+                    d[start + j] += amp * env * (float) std::sin (ph * juce::MathConstants<double>::twoPi);
+                }
+            }
+        }
+        finish (*s);
+        return s;
+    }
+
+    static void finish (GrainSource& s)
+    {
+        const int len = s.buffer.getNumSamples();
+        const int fade = 2400;
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            s.buffer.applyGainRamp (ch, 0, fade, 0.0f, 1.0f);
+            s.buffer.applyGainRamp (ch, len - fade, fade, 1.0f, 0.0f);
+        }
+        const float mag = s.buffer.getMagnitude (0, len);
+        if (mag > 1.0e-4f) s.buffer.applyGain (0.9f / mag);
+    }
+
     static Ptr fromFile (const juce::File& file)
     {
         juce::AudioFormatManager fm;
