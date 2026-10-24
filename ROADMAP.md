@@ -1,6 +1,9 @@
 # OZ-mosys roadmap
 
-Ideas collected from the synths we love, each rebuilt in the OZ-mosys style.
+The idea: bring back the sound-design depth of the older plugins that are hard to find or no longer run
+(Absynth 5, FM8, Massive), plus favourite parts of Absynth 6, Omnisphere, Pigments, Analog Lab, Serum and Kontakt -
+each rebuilt in the OZ-mosys style. Priority goes to **making your own presets**: deep editing, routing and
+customisation come before performance extras.
 
 ## Done
 - v0.6: Absynth-style browser + sound map, mutator, fine tuning, subpresets, ENV page (4 MSEGs),
@@ -12,12 +15,14 @@ Ideas collected from the synths we love, each rebuilt in the OZ-mosys style.
 - Wavetable warp modes: Spectrum, Bend+, Bend-, Formant
 - Per-section amount for Randomize
 
-## v0.7 Layers
+## v0.7 Layers + deep sound design
 - Engines become layers A-D, each with 2 module slots (ladder LP/HP, comb, supercomb, freq shifter, ring mod, waveshaper, notch), volume, pan
 - 5th engine: FM with a 6-operator matrix and per-operator breakpoint envelopes
 - Quadzone-style layer blend (fader / keyboard position / velocity)
 - Dual filter (series / parallel, mix), modulation oscillator (ring / phase / position / filter FM), feedback path, coloured noise
 - Glide curves and velocity curves
+- Performer / Stepper mode for MSEGs (16 steps of drawn curves) - moved up from Performance
+- Wave editor: draw your own oscillator waveforms and edit their harmonics (Absynth 5 / FM8 spectrum style)
 
 ## v0.8 FX racks
 - Racks of up to 4 effects with reordering, FX A / FX B / Aux send
@@ -31,7 +36,6 @@ Ideas collected from the synths we love, each rebuilt in the OZ-mosys style.
 - 32-step arpeggiator (On / Tie / Accent / Note order / Octave / Transpose rows, Reset + Random per row, swing, humanity, MIDI groove drop)
 - Chords tool (key, one-finger chords, octave, humanize, strum) and Phrases tool (patterns that follow chords)
 - Orb (circular morph controller with Dice, Inertia, Attractor, record) and Easy/Morph XY pad between 4 sounds
-- Performer / Stepper mode for MSEGs (16 steps of drawn curves)
 
 ## Later
 - Multi mode: up to 8 sounds, mixer, Stack (splits / layers) and Live mode
