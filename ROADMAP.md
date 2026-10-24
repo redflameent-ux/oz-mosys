@@ -8,19 +8,19 @@ customisation come before performance extras.
 ## Done
 - v0.6: Absynth-style browser + sound map, mutator, fine tuning, subpresets, ENV page (4 MSEGs),
   macro bar with Controls/Keys, live mod strip, Expansions page with installable `.ozpack` collections.
+- v0.10: Performer mode for the breakpoint envelopes (16-32 curve steps, brush palette), wave editor (draw / harmonics, spectral morph start > end), Performer presets.
 - v0.9: PATCH page - 2 module slots per engine, mod oscillator, coloured noise, feedback, dual filter, glide/velocity curves, Patch Lab bank, lighter memory use.
 - v0.8: FM engine (6 operators, FM matrix, per-operator envelopes, 10 starting routings), FM Classics bank.
 - v0.7: sound-type + mode chips, MIDI learn with links list, warp modes Formant / Steps / Fold, per-section mutation amount.
 
 
-## v0.10 Drawing tools
-- Performer / Stepper mode for MSEGs (16 steps of drawn curves)
-- Wave editor: draw your own oscillator waveforms and edit their harmonics (Absynth 5 / FM8 spectrum style)
-- Quadzone-style layer blend (fader / keyboard position / velocity) - later
+## Later ideas
+- Quadzone-style layer blend (fader / keyboard position / velocity)
 
-## v0.11 FX racks
-- Racks of up to 4 effects with reordering, FX A / FX B / Aux send
-- Aetherizer-style granular delay, 3-tap Multitap, tube saturator, ensemble chorus, half-speed tape, shimmer verb, analog echo
+## v0.11 FX rack (Guitar Rig / Omnisphere / Pigments)
+- Component browser by category, rack of reorderable units (on/off, remove), signal-flow view, Low/High split
+- Overdrives, fuzzes, amps + cabinets, cabinet IR loader (any impulse WAV), noise machine, maximizer, tape wobble,
+  octaver, ensemble chorus, granular delay (Aetherizer-style), 3-tap multitap, shimmer verb, half-speed tape
 
 ## Sampler
 - Leap-style loop slicer: 16 slice pads, tempo/key lock, slice grid + snap, Group/Single edit, Hold/Latch, Choke

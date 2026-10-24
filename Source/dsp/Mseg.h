@@ -3,6 +3,7 @@
 #include <juce_data_structures/juce_data_structures.h>
 #include <memory>
 #include <vector>
+#include <array>
 
 // =====================================================================================
 //  Breakpoint envelopes (MSEG 1 and MSEG 2), in the spirit of Absynth's envelopes:
@@ -27,7 +28,49 @@ struct MsegShape
     float shRate = 0.0f;             // sample & hold steps per second (per beat when synced), 0 = off
     juce::String name;               // shown in the envelope list
 
-    double length() const { return points.empty() ? 0.0 : points.back().time; }
+    // ---- Performer / stepper mode (Massive-style): a loop of steps, each a little drawn curve ----
+    static constexpr int maxSteps = 32;
+    static constexpr int numStepShapes = 10;
+    bool stepper = false;
+    int numSteps = 16;
+    float stepBeats = 0.25f;         // length of one step (beats when synced, else seconds)
+    std::array<int, maxSteps> stepShape = [] { std::array<int, maxSteps> a {}; for (int i = 0; i < maxSteps; ++i) a[(size_t) i] = i % 4 == 0 ? 5 : (i % 2 ? 8 : 4); return a; }();
+    std::array<float, maxSteps> stepLevel = [] { std::array<float, maxSteps> a {}; a.fill (1.0f); return a; }();
+
+    static const juce::StringArray& stepShapeNames()
+    {
+        static const juce::StringArray n { "Hold", "Ramp up", "Ramp down", "Triangle", "Decay", "Pluck", "Gate", "Bump", "Off", "S-curve" };
+        return n;
+    }
+    // one step's curve, u = 0..1 through the step
+    static float stepCurve (int shape, float u)
+    {
+        u = juce::jlimit (0.0f, 1.0f, u);
+        switch (shape)
+        {
+            case 0: return 1.0f;
+            case 1: return u;
+            case 2: return 1.0f - u;
+            case 3: return u < 0.5f ? u * 2.0f : 2.0f - u * 2.0f;
+            case 4: return std::pow (1.0f - u, 3.0f);
+            case 5: return u < 0.06f ? u / 0.06f : std::pow (1.0f - (u - 0.06f) / 0.94f, 4.0f);
+            case 6: return u < 0.5f ? 1.0f : 0.0f;
+            case 7: return std::sin (u * juce::MathConstants<float>::pi);
+            case 8: return 0.0f;
+            default: return u * u * (3.0f - 2.0f * u);
+        }
+    }
+    double stepLoopLength() const { return juce::jmax (1.0e-3, (double) numSteps * stepBeats); }
+    float stepValueAt (double t) const
+    {
+        const double len = stepLoopLength();
+        t = std::fmod (juce::jmax (0.0, t), len);
+        const int i = juce::jlimit (0, numSteps - 1, (int) (t / stepBeats));
+        const float u = (float) ((t - i * stepBeats) / stepBeats);
+        return stepCurve (stepShape[(size_t) i], u) * stepLevel[(size_t) i];
+    }
+
+    double length() const { return stepper ? stepLoopLength() : (points.empty() ? 0.0 : points.back().time); }
 
     static float shape (float t, float curve)
     {
@@ -39,6 +82,7 @@ struct MsegShape
 
     float valueAt (double t) const
     {
+        if (stepper) return stepValueAt (t);
         if (points.empty()) return 0.0f;
         if (t <= points.front().time) return points.front().level;
         for (size_t i = 0; i + 1 < points.size(); ++i)
@@ -69,6 +113,11 @@ struct MsegShape
         s << sustain << ' ' << loopStart << ' ' << (loop ? 1 : 0) << ' ' << (sync ? 1 : 0) << ' ' << juce::String (rate, 3)
           << ' ' << juce::String (lfoDepth, 3) << ' ' << juce::String (lfoRate, 3) << ' ' << juce::String (shRate, 3) << '|';
         for (auto& p : points) s << juce::String (p.time, 4) << ' ' << juce::String (p.level, 4) << ' ' << juce::String (p.curve, 3) << ';';
+        if (stepper || numSteps != 16)
+        {
+            s << '#' << (stepper ? 1 : 0) << ' ' << numSteps << ' ' << juce::String (stepBeats, 4) << ' ';
+            for (int i = 0; i < maxSteps; ++i) s << stepShape[(size_t) i] << ',' << juce::String (stepLevel[(size_t) i], 3) << ';';
+        }
         return s;
     }
 
@@ -88,7 +137,29 @@ struct MsegShape
             m.lfoRate = juce::jlimit (0.01f, 40.0f, head[6].getFloatValue());
             m.shRate = juce::jlimit (0.0f, 64.0f, head[7].getFloatValue());
         }
-        for (auto& tok : juce::StringArray::fromTokens (text.fromFirstOccurrenceOf ("|", false, false), ";", ""))
+        if (text.containsChar ('#'))
+        {
+            const auto st = text.fromFirstOccurrenceOf ("#", false, false);
+            auto h = juce::StringArray::fromTokens (st.upToFirstOccurrenceOf (";", false, false), " ", "");
+            if (h.size() >= 3)
+            {
+                m.stepper = h[0].getIntValue() != 0;
+                m.numSteps = juce::jlimit (2, maxSteps, h[1].getIntValue());
+                m.stepBeats = juce::jlimit (0.03125f, 4.0f, h[2].getFloatValue());
+                // first step pair sits after the three header numbers
+                auto rest = st.fromFirstOccurrenceOf (h[2], false, false).trim();
+                int i = 0;
+                for (auto& tok : juce::StringArray::fromTokens (rest, ";", ""))
+                {
+                    if (i >= maxSteps) break;
+                    if (tok.trim().isEmpty()) continue;
+                    m.stepShape[(size_t) i] = juce::jlimit (0, numStepShapes - 1, tok.upToFirstOccurrenceOf (",", false, false).trim().getIntValue());
+                    m.stepLevel[(size_t) i] = juce::jlimit (0.0f, 1.0f, tok.fromFirstOccurrenceOf (",", false, false).getFloatValue());
+                    ++i;
+                }
+            }
+        }
+        for (auto& tok : juce::StringArray::fromTokens (text.fromFirstOccurrenceOf ("|", false, false).upToFirstOccurrenceOf ("#", false, false), ";", ""))
         {
             auto p = juce::StringArray::fromTokens (tok, " ", "");
             if (p.size() >= 2) m.points.push_back ({ p[0].getDoubleValue(), juce::jlimit (0.0f, 1.0f, p[1].getFloatValue()), p.size() > 2 ? p[2].getFloatValue() : 0.0f });
@@ -128,8 +199,19 @@ struct MsegPlayer
     void start() { t = 0.0; released = false; lfoPhase = 0.0; shClock = 1.0e9; }
     void release() { released = true; }
 
+    float smoothed = 0.0f;
+
     float advance (const MsegShape& m, double seconds, double bpm)
     {
+        if (m.stepper)
+        {
+            t += seconds * m.rate * (m.sync ? bpm / 60.0 : 1.0);
+            t = std::fmod (t, m.stepLoopLength());
+            const float target = m.stepValueAt (t);
+            const float k = (float) juce::jmin (1.0, seconds / 0.003);   // ~3 ms slew so steps never click
+            smoothed += (target - smoothed) * k;
+            return smoothed;
+        }
         const double end = m.length();
         const double step = seconds * m.rate * (m.sync ? bpm / 60.0 : 1.0);
         t += step;

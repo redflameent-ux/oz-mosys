@@ -19,6 +19,7 @@ public:
     MsegShape shape;
     bool selected = false, compact = false;
     double gridStep = 0.0;               // snap step (seconds or beats), 0 = free
+    int brush = 5;                       // stepper: shape painted by clicking a step
     std::function<void()> onChange, onSelect;
 
     void paint (juce::Graphics&) override;
@@ -38,6 +39,10 @@ private:
     int pointAt (juce::Point<float>) const;
     int segmentAt (juce::Point<float>) const;
     double viewLength() const;
+    void paintSteps (juce::Graphics&);
+    void stepMouse (const juce::MouseEvent&, bool isDown);
+    int stepAt (float x) const;
+    int lastStep = -1;
 
     FourfoldProcessor& proc;
     const int index;
@@ -75,6 +80,11 @@ private:
     int current = 0;
     juce::ListBox list { "Envelopes", this };
     juce::OwnedArray<MsegEditor> editors;
+    juce::TextButton stepBtn { "Performer" };
+    juce::ComboBox stepsBox, stepLenBox;
+    juce::Label stepsL, stepLenL, brushL;
+    juce::OwnedArray<juce::Component> brushes;
+    int brush = 5;
     juce::TextButton stackBtn { "Stacked" }, syncBtn { "Sync" }, lfoBtn { "LFO" }, shBtn { "S&H" }, shapesBtn { "Shapes" },
                      assignBtn { "Assign" };
     juce::ComboBox modeBox, gridBox, targetBox;

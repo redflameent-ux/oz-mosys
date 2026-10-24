@@ -14,7 +14,7 @@ A five-engine synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
 World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
-187 factory presets in 20 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
+190 factory presets in 20 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
 
 ## PATCH page (Absynth / Massive-style signal flow)
@@ -37,6 +37,14 @@ Eight macros sit under every page. Double-click a name to rename it; drag the na
 Four drawable envelopes, stacked or one at a time. Double-click to add or remove points, Alt-drag a line to curve it,
 right-click a point for sustain / loop start. Modes: one shot, sustain, loop while held, loop forever. Tempo sync,
 grid snap, an LFO on top and sample & hold. Pick a **Target** and press **Assign** to send an envelope anywhere.
+**Performer** (Massive-style) turns an envelope into a loop of 4-32 steps, each a little curve: pick a shape from the
+brush row and click steps to paint it, drag up/down for level, right-click a step to cycle its shape.
+
+## Wave editor
+Press **Draw** on the wavetable engine. Draw a **start** and an **end** wave with the mouse, or switch to **Harmonics**
+and set 32 harmonic bars. Sine / Saw / Square / Triangle / Noise / Smooth / Normalize help, and **Grab current** copies
+the frame you're hearing. **Play it** builds a wavetable that morphs start > end (spectral morph or crossfade) - sweep
+**Position** to move through it. Your waves are saved in `Documents\OZ-mosys\Wavetables`.
 
 ## BROWSE page (Absynth-style)
 - **List or Explorer:** every preset in a list (star favourites, search, filter by bank) or on a **sound map** where

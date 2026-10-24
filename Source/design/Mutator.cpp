@@ -152,6 +152,12 @@ void Mutator::randomise (Snapshot& s, float amountIn)
                 if (i > 0) pt.time *= std::exp (gauss() * a * 0.35f);
             }
             if (rng.nextFloat() < a * 0.15f) m.loop = ! m.loop;
+            if (m.stepper)
+                for (int i = 0; i < m.numSteps; ++i)
+                {
+                    m.stepLevel[(size_t) i] = juce::jlimit (0.0f, 1.0f, m.stepLevel[(size_t) i] + gauss() * a * 0.4f);
+                    if (rng.nextFloat() < a * 0.3f) m.stepShape[(size_t) i] = rng.nextInt (MsegShape::numStepShapes);
+                }
             m.sanitise();
             str = m.toString();
         }

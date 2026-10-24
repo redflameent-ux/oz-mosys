@@ -47,8 +47,77 @@ int MsegEditor::segmentAt (Point<float> p) const
     return -1;
 }
 
+int MsegEditor::stepAt (float x) const
+{
+    auto r = plot();
+    return juce::jlimit (0, shape.numSteps - 1, (int) ((x - r.getX()) / r.getWidth() * shape.numSteps));
+}
+
+void MsegEditor::paintSteps (Graphics& g)
+{
+    auto b = getLocalBounds().toFloat();
+    g.setColour (col::bg);
+    g.fillRoundedRectangle (b, 6.0f);
+    g.setColour (selected ? msegCol.withAlpha (0.8f) : col::border);
+    g.drawRoundedRectangle (b.reduced (0.5f), 6.0f, selected ? 1.5f : 1.0f);
+    auto r = plot();
+    const int n = shape.numSteps;
+    const float w = r.getWidth() / (float) n;
+    for (int i = 0; i < n; ++i)
+    {
+        auto cell = Rectangle<float> (r.getX() + i * w, r.getY(), w, r.getHeight());
+        g.setColour ((i / 4) % 2 ? Colour (0xff12151c) : Colour (0xff0f1117));
+        g.fillRect (cell.reduced (1.0f, 0.0f));
+        const float lvl = shape.stepLevel[(size_t) i];
+        Path p;
+        for (int k = 0; k <= 24; ++k)
+        {
+            const float u = (float) k / 24.0f;
+            const float y = cell.getBottom() - MsegShape::stepCurve (shape.stepShape[(size_t) i], u) * lvl * cell.getHeight();
+            if (k == 0) p.startNewSubPath (cell.getX() + 1.0f, y); else p.lineTo (cell.getX() + 1.0f + u * (w - 2.0f), y);
+        }
+        Path fill (p);
+        fill.lineTo (cell.getRight() - 1.0f, cell.getBottom()); fill.lineTo (cell.getX() + 1.0f, cell.getBottom()); fill.closeSubPath();
+        g.setColour (msegCol.withAlpha (0.15f));
+        g.fillPath (fill);
+        g.setColour (msegCol);
+        g.strokePath (p, PathStrokeType (1.6f));
+        // level handle
+        g.setColour (col::text.withAlpha (0.5f));
+        g.drawHorizontalLine ((int) (cell.getBottom() - lvl * cell.getHeight()), cell.getX() + 3.0f, cell.getRight() - 3.0f);
+        g.setColour (col::dim);
+        g.setFont (font (9.0f));
+        g.drawText (String (i + 1), Rectangle<float> (cell.getX(), r.getBottom() + 1.0f, w, 11.0f).toNearestInt(), Justification::centred);
+    }
+    g.setColour (selected ? msegCol : col::dim);
+    g.setFont (font (11.0f, true));
+    g.drawText ((shape.name.isNotEmpty() ? shape.name : "MSEG " + String (index + 1)) + "  -  PERFORMER", getLocalBounds().reduced (10, 3), Justification::topLeft);
+    g.setColour (col::dim);
+    g.setFont (font (10.0f));
+    g.drawText ("click: paint shape + level   drag: draw   Shift-drag: level only   right-click: next shape", getLocalBounds().reduced (10, 3), Justification::topRight);
+}
+
+void MsegEditor::stepMouse (const MouseEvent& e, bool isDown)
+{
+    auto r = plot();
+    const int i = stepAt (e.position.x);
+    const float lvl = juce::jlimit (0.0f, 1.0f, (r.getBottom() - e.position.y) / r.getHeight());
+    if (isDown && e.mods.isPopupMenu())
+    {
+        shape.stepShape[(size_t) i] = (shape.stepShape[(size_t) i] + 1) % MsegShape::numStepShapes;
+        commit();
+        return;
+    }
+    if (! isDown && i == lastStep && ! e.mods.isShiftDown()) { shape.stepLevel[(size_t) i] = lvl; commit(); return; }
+    lastStep = i;
+    shape.stepLevel[(size_t) i] = lvl;
+    if (! e.mods.isShiftDown()) shape.stepShape[(size_t) i] = brush;
+    commit();
+}
+
 void MsegEditor::paint (Graphics& g)
 {
+    if (shape.stepper) { paintSteps (g); return; }
     auto b = getLocalBounds().toFloat();
     g.setColour (col::bg);
     g.fillRoundedRectangle (b, 6.0f);
@@ -139,6 +208,7 @@ void MsegEditor::paint (Graphics& g)
 
 void MsegEditor::mouseMove (const MouseEvent& e)
 {
+    if (shape.stepper) return;
     const int h = pointAt (e.position);
     if (h != hoverPoint) { hoverPoint = h; repaint(); }
 }
@@ -146,6 +216,7 @@ void MsegEditor::mouseMove (const MouseEvent& e)
 void MsegEditor::mouseDown (const MouseEvent& e)
 {
     if (onSelect) onSelect();
+    if (shape.stepper) { lastStep = -1; stepMouse (e, true); return; }
     downPos = e.position;
     dragPoint = pointAt (e.position);
     dragSegment = -1;
@@ -185,6 +256,7 @@ void MsegEditor::mouseDown (const MouseEvent& e)
 
 void MsegEditor::mouseDrag (const MouseEvent& e)
 {
+    if (shape.stepper) { if (! e.mods.isPopupMenu()) stepMouse (e, false); return; }
     if (dragPoint >= 0)
     {
         auto& pts = shape.points;
@@ -218,6 +290,7 @@ void MsegEditor::mouseUp (const MouseEvent&)
 
 void MsegEditor::mouseDoubleClick (const MouseEvent& e)
 {
+    if (shape.stepper) return;
     const int pt = pointAt (e.position);
     if (pt > 0 && shape.points.size() > 2)
     {
@@ -237,6 +310,38 @@ void MsegEditor::mouseDoubleClick (const MouseEvent& e)
     commit();
 }
 
+
+// one shape in the Performer brush palette
+struct BrushIcon : public Component, public SettableTooltipClient
+{
+    BrushIcon (int s, std::function<void (int)> pick, std::function<int()> current) : shape (s), onPick (std::move (pick)), cur (std::move (current))
+    {
+        setTooltip (MsegShape::stepShapeNames()[s] + " - click, then click steps to paint it");
+        setMouseCursor (MouseCursor::PointingHandCursor);
+    }
+    void paint (Graphics& g) override
+    {
+        auto r = getLocalBounds().toFloat().reduced (1.0f);
+        const bool on = cur() == shape;
+        g.setColour (on ? msegCol.withAlpha (0.25f) : col::panelHi);
+        g.fillRoundedRectangle (r, 3.0f);
+        if (on) { g.setColour (msegCol); g.drawRoundedRectangle (r, 3.0f, 1.0f); }
+        auto p = r.reduced (4.0f, 4.0f);
+        Path path;
+        for (int k = 0; k <= 16; ++k)
+        {
+            const float u = (float) k / 16.0f;
+            const float y = p.getBottom() - MsegShape::stepCurve (shape, u) * p.getHeight();
+            if (k == 0) path.startNewSubPath (p.getX(), y); else path.lineTo (p.getX() + u * p.getWidth(), y);
+        }
+        g.setColour (on ? msegCol : col::text.withAlpha (0.7f));
+        g.strokePath (path, PathStrokeType (1.3f));
+    }
+    void mouseDown (const MouseEvent&) override { onPick (shape); }
+    int shape;
+    std::function<void (int)> onPick;
+    std::function<int()> cur;
+};
 
 // ============================================================================ page
 static const char* gridNames[] = { "Off", "1/4", "1/8", "1/16", "1/32", "0.1 s", "0.05 s" };
@@ -261,6 +366,40 @@ EnvelopePage::EnvelopePage (FourfoldProcessor& p) : proc (p)
         addAndMakeVisible (b);
     }
     stackBtn.onClick = [this] { stacked = ! stacked; resized(); refreshControls(); };
+    stepBtn.setTooltip ("Performer: turn this envelope into a loop of steps, each a little curve you pick (Massive-style)");
+    stepBtn.setColour (TextButton::buttonOnColourId, col::mod.withAlpha (0.3f));
+    addAndMakeVisible (stepBtn);
+    stepBtn.onClick = [this] { applyToSelected ([] (MsegShape& m) { m.stepper = ! m.stepper; if (m.stepper) m.sync = true; }); resized(); };
+    stepsBox.addItemList ({ "4", "8", "12", "16", "24", "32" }, 1);
+    stepsBox.onChange = [this]
+    {
+        if (updating) return;
+        const int v = stepsBox.getText().getIntValue();
+        applyToSelected ([v] (MsegShape& m) { m.numSteps = v; });
+    };
+    stepLenBox.addItemList ({ "1/32", "1/16", "1/8", "1/4", "1/2", "1 bar" }, 1);
+    stepLenBox.onChange = [this]
+    {
+        if (updating) return;
+        static const float beats[] = { 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f };
+        const float b = beats[juce::jmax (0, stepLenBox.getSelectedItemIndex())];
+        applyToSelected ([b] (MsegShape& m) { m.stepBeats = b; m.sync = true; });
+    };
+    for (auto* c : { &stepsBox, &stepLenBox }) addAndMakeVisible (c);
+    for (auto [l, t] : { std::pair<Label*, const char*> { &stepsL, "Steps" }, { &stepLenL, "Step" }, { &brushL, "Brush" } })
+    {
+        l->setText (t, dontSendNotification);
+        l->setFont (font (11.0f));
+        l->setColour (Label::textColourId, col::dim);
+        addAndMakeVisible (l);
+    }
+    for (int s = 0; s < MsegShape::numStepShapes; ++s)
+        addAndMakeVisible (brushes.add (new BrushIcon (s, [this] (int b)
+        {
+            brush = b;
+            for (auto* e : editors) e->brush = b;
+            for (auto* br : brushes) br->repaint();
+        }, [this] { return brush; })));
     syncBtn.onClick = [this] { applyToSelected ([] (MsegShape& m) { m.sync = ! m.sync; }); };
     lfoBtn.onClick = [this] { applyToSelected ([] (MsegShape& m) { m.lfoDepth = m.lfoDepth > 0 ? 0.0f : 0.3f; }); };
     shBtn.onClick = [this] { applyToSelected ([] (MsegShape& m) { m.shRate = m.shRate > 0 ? 0.0f : 8.0f; }); };
@@ -385,6 +524,18 @@ void EnvelopePage::refreshControls()
     lfoBtn.setToggleState (m.lfoDepth > 0, dontSendNotification);
     shBtn.setToggleState (m.shRate > 0, dontSendNotification);
     stackBtn.setToggleState (stacked, dontSendNotification);
+    stepBtn.setToggleState (m.stepper, dontSendNotification);
+    {
+        const int idx = StringArray { "4", "8", "12", "16", "24", "32" }.indexOf (String (m.numSteps));
+        stepsBox.setSelectedItemIndex (juce::jmax (0, idx), dontSendNotification);
+        static const float beats[] = { 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f };
+        int li = 1;
+        for (int i = 0; i < 6; ++i) if (std::abs (beats[i] - m.stepBeats) < 1.0e-3f) li = i;
+        stepLenBox.setSelectedItemIndex (li, dontSendNotification);
+    }
+    for (auto* c : std::initializer_list<Component*> { &stepsBox, &stepLenBox, &stepsL, &stepLenL, &brushL }) c->setVisible (m.stepper);
+    for (auto* b : brushes) b->setVisible (m.stepper);
+    modeBox.setEnabled (! m.stepper);
     rateSlider.setValue (m.rate, dontSendNotification);
     lfoRate.setValue (m.lfoRate, dontSendNotification);
     lfoDepth.setValue (m.lfoDepth, dontSendNotification);
@@ -545,7 +696,7 @@ void EnvelopePage::resized()
     assignBtn.setBounds (bottom.removeFromTop (26));
 
     auto m = mainArea.reduced (8, 8);
-    headerArea = m.removeFromTop (60);
+    headerArea = m.removeFromTop (92);
     auto h1 = headerArea.removeFromTop (28);
     auto place = [] (Rectangle<int>& row, Component& c, int w, int gap = 4) { c.setBounds (row.removeFromLeft (w)); row.removeFromLeft (gap); };
     place (h1, stackBtn, 76, 12);
@@ -557,6 +708,13 @@ void EnvelopePage::resized()
     auto h2 = headerArea.removeFromTop (24);
     place (h2, lfoBtn, 50); place (h2, lfoRateL, 34); place (h2, lfoRate, 150, 8); place (h2, lfoDepthL, 40); place (h2, lfoDepth, 150, 16);
     place (h2, shBtn, 50); place (h2, shRateL, 50); place (h2, shRate, 150);
+    headerArea.removeFromTop (6);
+    auto h3 = headerArea.removeFromTop (26);
+    place (h3, stepBtn, 90, 12);
+    place (h3, stepsL, 40); place (h3, stepsBox, 64, 12);
+    place (h3, stepLenL, 34); place (h3, stepLenBox, 76, 16);
+    place (h3, brushL, 42);
+    for (auto* b : brushes) place (h3, *b, 30, 3);
 
     help.setBounds (m.removeFromBottom (18));
     m.removeFromBottom (4);

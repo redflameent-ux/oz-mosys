@@ -41,6 +41,12 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     addAndMakeVisible (wtLoad);
     wtLoad.setTooltip ("Import your own wavetable (.wav, 2048-sample frames like Serum tables, or a single cycle)");
     wtLoad.onClick = [this] { loadWavetable(); };
+    addAndMakeVisible (wtDraw);
+    wtDraw.setTooltip ("Wave editor: draw your own waves (or set harmonics) and play them as a wavetable");
+    waveDraw = std::make_unique<ff::gui::WaveDrawPage> (proc);
+    addChildComponent (*waveDraw);
+    waveDraw->onClose = [this] { waveDraw->setVisible (false); };
+    wtDraw.onClick = [this] { waveDraw->setVisible (true); waveDraw->toFront (true); };
     addAndMakeVisible (wtDisplay);
     makeKnob (wtKnobs, "wt_pos", "Position", col::wavetable, dstWtPos);
     makeKnob (wtKnobs, "wt_warpamt", "Warp", col::wavetable, dstWtWarp);
@@ -293,7 +299,7 @@ void FourfoldEditor::paint (juce::Graphics& g)
     for (int i = 0; i < 6; ++i)
     {
         g.setColour (dots[i]);
-        g.fillEllipse ((float) logoArea.getX() + logoW + 7.0f + i * 8.5f, (float) logoArea.getCentreY() - 3.0f, 6.0f, 6.0f);
+        g.fillEllipse ((float) logoArea.getX() + logoW + 6.0f + i * 7.0f, (float) logoArea.getCentreY() - 2.5f, 5.0f, 5.0f);
     }
 
     for (auto& pnl : panels)
@@ -381,7 +387,9 @@ void FourfoldEditor::resized()
         auto head = r.removeFromTop (24);
         wtOn.setBounds (head.removeFromLeft (92));
         head.removeFromLeft (6);
-        wtLoad.setBounds (head.removeFromRight (58));
+        wtLoad.setBounds (head.removeFromRight (54));
+        head.removeFromRight (3);
+        wtDraw.setBounds (head.removeFromRight (46));
         head.removeFromRight (4);
         wtTable.setBounds (head);
         r.removeFromTop (6);
@@ -511,6 +519,7 @@ void FourfoldEditor::resized()
     envPage->setBounds (samplerPage->getBounds());
     fmPage->setBounds (samplerPage->getBounds());
     patchPage->setBounds (samplerPage->getBounds());
+    waveDraw->setBounds (samplerPage->getBounds());
     browsePage->setBounds (samplerPage->getBounds());
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) keyboard.getWidth() / 50.0f));
 }
@@ -730,6 +739,7 @@ void FourfoldEditor::loadGrainFile (const juce::File& f)
 
 void FourfoldEditor::showPage (int page)
 {
+    waveDraw->setVisible (false);
     juce::Component* pages[] = { nullptr, patchPage.get(), fmPage.get(), envPage.get(), browsePage.get(), samplerPage.get(), rollPage.get() };
     juce::TextButton* tabs[] = { &synthTab, &patchTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab };
     for (int i = 0; i < 7; ++i)

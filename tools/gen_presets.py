@@ -582,10 +582,29 @@ p(C, "Vinyl Keys", d(OFF, res_on=1, res_type=18, res_decay=3, res_bright=0.45, r
 p(C, "Glide Gliss Lead", d(wt_table=0, wt_pos=0.66, an_on=1, an_shape=2, an_level=0.4, voice_mode=1, glide=0.35, glide_curve=2,
     flt_cutoff=0.65, amp_a=0.01, amp_s=1, amp_r=0.3, dly_mix=0.25, rev_mix=0.25))
 
+# ============================== PERFORMER (stepped MSEG curves) ==============================
+def perf(shapes, levels, beats=0.25):
+    """A Performer-mode MSEG string: one curve shape + level per step (16 steps)."""
+    steps = ";".join("%d,%.3f" % (shapes[i % len(shapes)], levels[i % len(levels)]) for i in range(32))
+    return "-1 -1 1 1 1.000 0.000 4.000 0.000|0.0000 0.0000 0.000;1.0000 0.0000 0.000;#1 16 %.4f %s;" % (beats, steps)
+C = "Patch Lab"
+p(C, "Performer Gate Pad", d(wt_table=1, wt_pos=0.35, wt_unison=5, wt_detune=0.22, flt_type=1, flt_cutoff=0.6,
+    amp_a=0.3, amp_s=1, amp_r=1.5, cho_mix=0.4, rev_mix=0.45, _mseg1=perf([6, 6, 5, 8, 6, 4, 6, 8], [1, 0.7, 1, 0, 0.9, 0.6, 1, 0])),
+  [("Mseg1", "Amp", -0.8)])
+p(C, "Performer Wobble", d(OFF, an_on=1, an_shape=1, an_oct=-1, an_sub=0.6, an_level=0.85, flt_cutoff=0.25, flt_res=0.5,
+    flt_drive=0.4, amp_a=0.002, amp_s=1, amp_r=0.15, voice_mode=1, fx_drive=0.25, rev_mix=0,
+    _mseg1=perf([7, 1, 2, 3, 9, 7, 4, 3], [1, 0.8, 1, 0.6, 1, 0.9, 1, 0.5], 0.5)),
+  [("Mseg1", "Cutoff", 0.5)])
+p(C, "Performer Pluck Seq", d(wt_table=3, wt_pos=0.5, flt_cutoff=0.55, flt_res=0.35, amp_a=0.001, amp_s=1, amp_r=0.3,
+    dly_mix=0.3, dly_time=375, dly_fb=0.45, rev_mix=0.3,
+    _mseg1=perf([5, 8, 5, 5, 8, 5, 8, 5], [1, 0, 0.7, 0.9, 0, 0.6, 0, 1])),
+  [("Mseg1", "Amp", -0.9), ("Mseg1", "WtPos", 0.3)])
+
 # ----------------------------------------------------------------------------
 SRC = dict(Env2="srcEnv2", Env3="srcEnv3", Lfo1="srcLfo1", Lfo2="srcLfo2", Velocity="srcVelocity",
            ModWheel="srcModWheel", Aftertouch="srcAftertouch", KeyTrack="srcKeyTrack", Random="srcRandom",
-           Macro1="srcMacro1", Macro2="srcMacro2", Macro3="srcMacro3", Macro4="srcMacro4")
+           Macro1="srcMacro1", Macro2="srcMacro2", Macro3="srcMacro3", Macro4="srcMacro4",
+           Mseg1="srcMseg1", Mseg2="srcMseg2", Slide="srcSlide")
 DST = dict(WtPos="dstWtPos", WtWarp="dstWtWarp", WtPitch="dstWtPitch", WtDetune="dstWtDetune", WtLevel="dstWtLevel",
            AnShape="dstAnShape", AnPw="dstAnPw", AnPitch="dstAnPitch", AnLevel="dstAnLevel",
            GrPos="dstGrPos", GrSize="dstGrSize", GrDensity="dstGrDensity", GrSpray="dstGrSpray", GrPitch="dstGrPitch",
@@ -636,10 +655,12 @@ def main():
     for cat, name, values, routes in P:
         values = dict(values)
         if name in levels: values["master"] = levels[name]
+        m1 = values.pop("_mseg1", None)
         routes = add_macros(values, [r for r in routes if r[2] != 0])
         vals = ", ".join('{ "%s", %s }' % (k, fmt(v)) for k, v in values.items())
         rts = ", ".join("{ %s, %s, %s }" % (SRC[s], DST[d], fmt(a)) for s, d, a in routes)
-        out.append('        { "%s", "%s",\n          { %s },\n          { %s } },' % (name, cat, vals, rts))
+        extra = (',\n          "%s"' % m1) if m1 else ''
+        out.append('        { "%s", "%s",\n          { %s },\n          { %s }%s },' % (name, cat, vals, rts, extra))
     # sound-map positions measured by the render tool (tools/features.json)
     feats = {}
     fp = os.path.join(HERE, "features.json")

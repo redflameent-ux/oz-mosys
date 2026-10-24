@@ -10,6 +10,7 @@
 #include "gui/MidiMenu.h"
 #include "gui/FmPage.h"
 #include "gui/PatchPage.h"
+#include "gui/WaveDrawPage.h"
 
 class FourfoldEditor : public juce::AudioProcessorEditor,
                        public juce::DragAndDropContainer,
@@ -64,7 +65,8 @@ private:
     // wavetable
     juce::ToggleButton wtOn;
     juce::ComboBox wtTable, wtWarp;
-    juce::TextButton wtLoad { "Import" };
+    juce::TextButton wtLoad { "Import" }, wtDraw { "Draw" };
+    std::unique_ptr<ff::gui::WaveDrawPage> waveDraw;
     ff::gui::WavetableDisplay wtDisplay;
     std::vector<std::unique_ptr<Knob>> wtKnobs;
 
