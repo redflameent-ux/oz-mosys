@@ -71,7 +71,7 @@ SamplerPage::SamplerPage (FourfoldProcessor& p, AudioProcessorValueTreeState& st
     sliceButton.onClick = [this]
     {
         slicer = std::make_unique<SlicerPanel> (owner);
-        slicer->onClose = [this] { MessageManager::callAsync ([sp = SafePointer<SamplerPage> (this)] { if (sp) sp->slicer.reset(); }); };
+        slicer->onClose = [sp = SafePointer<SamplerPage> (this)] { MessageManager::callAsync ([sp] { if (sp) sp->slicer.reset(); }); };
         slicer->onMade = [this] (const File& folder)
         {
             proc.rescanLibrary();
