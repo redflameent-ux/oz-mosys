@@ -36,6 +36,16 @@ void SamplerVoice::startNote (int note, float velocity, juce::SynthesiserSound*,
     env.noteOn();
 }
 
+void SamplerVoice::choke()
+{
+    if (zone == nullptr) return;
+    released = false;
+    auto p = env.getParameters();
+    p.release = 0.008f;
+    env.setParameters (p);
+    env.noteOff();
+}
+
 void SamplerVoice::stopNote (float, bool allowTailOff)
 {
     if (! allowTailOff || zone == nullptr)

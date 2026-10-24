@@ -3,6 +3,7 @@
 #include "gui/Widgets.h"
 #include "gui/Displays.h"
 #include "gui/SamplerPage.h"
+#include "gui/ZoneKeyboard.h"
 #include "gui/RollPage.h"
 #include "gui/EnvelopePage.h"
 #include "gui/BrowsePage.h"
@@ -118,7 +119,7 @@ private:
     std::vector<std::unique_ptr<Knob>> fxKnobs;
     juce::ComboBox driveType;
 
-    juce::MidiKeyboardComponent keyboard;
+    ff::gui::ZoneKeyboard keyboard;
 
     // pages
     juce::TextButton synthTab { "SYNTH" }, patchTab { "PATCH" }, fmTab { "FM" }, fxTab { "FX" }, envTab { "ENV" }, browseTab { "BROWSE" }, samplerTab { "SAMPLER" }, rollTab { "ROLL" }, playTab { "PLAY" };

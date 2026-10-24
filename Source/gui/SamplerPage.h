@@ -4,6 +4,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "../sampler/SamplerEngine.h"
 #include "Widgets.h"
+#include "SlicerPanel.h"
 
 namespace ui
 {
@@ -138,7 +139,9 @@ private:
     juce::OwnedArray<juce::TextButton> artButtons;
 
     juce::ComboBox playMode;
-    juce::ToggleButton throughFx { "THROUGH FX" }, letRing { "LET RING" };
+    juce::ToggleButton throughFx { "THROUGH FX" }, letRing { "LET RING" }, choke { "CHOKE" };
+    juce::TextButton sliceButton { "Slice a loop..." };
+    std::unique_ptr<ff::gui::SlicerPanel> slicer;
     std::vector<std::unique_ptr<ff::gui::Knob>> knobs;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>> comboAtts;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> buttonAtts;

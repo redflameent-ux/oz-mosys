@@ -12,7 +12,7 @@ SamplerEngine::SamplerEngine (juce::AudioProcessorValueTreeState& state, juce::M
     auto g = [this] (const char* id) { auto* p = apvts.getRawParameterValue (id); jassert (p != nullptr); return p; };
     P.play = g ("smp_play"); P.level = g ("smp_level"); P.tune = g ("smp_tune"); P.fine = g ("smp_fine");
     P.pan = g ("smp_pan"); P.attack = g ("smp_attack"); P.decay = g ("smp_decay"); P.sustain = g ("smp_sustain");
-    P.release = g ("smp_release"); P.letRing = g ("smp_letring"); P.vel = g ("smp_vel");
+    P.release = g ("smp_release"); P.letRing = g ("smp_letring"); P.vel = g ("smp_vel"); P.choke = g ("smp_choke");
 
     for (int i = 0; i < samplerVoices; ++i)
         synth.addVoice (new sol::SamplerVoice (settings));
@@ -68,7 +68,22 @@ void SamplerEngine::render (juce::AudioBuffer<float>& out, const juce::MidiBuffe
 
     if (buffer.getNumSamples() < n) buffer.setSize (2, n, false, false, true);
     buffer.clear (0, n);
-    synth.renderNextBlock (buffer, midi, 0, n);
+    if (P.choke->load() > 0.5f)
+    {
+        // choke: every new note fades out whatever is still playing, at the exact sample
+        int cursor = 0;
+        for (const auto meta : midi)
+        {
+            if (! meta.getMessage().isNoteOn()) continue;
+            const int p = juce::jlimit (0, n, meta.samplePosition);
+            if (p > cursor) { synth.renderNextBlock (buffer, midi, cursor, p - cursor); cursor = p; }
+            for (int v = 0; v < synth.getNumVoices(); ++v)
+                if (auto* sv = dynamic_cast<sol::SamplerVoice*> (synth.getVoice (v))) if (sv->isVoiceActive()) sv->choke();
+        }
+        if (cursor < n) synth.renderNextBlock (buffer, midi, cursor, n - cursor);
+    }
+    else
+        synth.renderNextBlock (buffer, midi, 0, n);
 
     const float g = juce::Decibels::decibelsToGain (P.level->load());
     const float pan = juce::jlimit (-1.0f, 1.0f, P.pan->load());

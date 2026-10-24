@@ -47,6 +47,7 @@ FourfoldProcessor::FourfoldProcessor()
     rack.bind (apvts);
     rackTimer.owner = this;
     rackTimer.startTimerHz (15);
+    morph = std::make_unique<ff::perf::MorphEngine> (*this, apvts);
 }
 
 bool FourfoldProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -325,6 +326,7 @@ void FourfoldProcessor::setCurrentProgram (int index)
     presetInfo = { "OZ-mosys", fp.category, fp.category.toLowerCase().replace (" & ", ", "), {}, fp.mapX, fp.mapY, fp.movement, true };
     for (auto& f : rack.irFiles) f = juce::File();
     rack.sync();
+    if (morph != nullptr) morph->clearCorners();
 }
 
 // ---------------------------------------------------------------------------
@@ -340,6 +342,7 @@ void FourfoldProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.removeChild (state.getChildWithName ("Roll"), nullptr);
     state.appendChild (roll.getPattern()->toTree(), nullptr);
     state.setProperty ("arpPattern", arpPattern->toString(), nullptr);
+    if (morph != nullptr) morph->saveTo (state);
     state.removeChild (state.getChildWithName ("RackFiles"), nullptr);
     {
         juce::ValueTree rf ("RackFiles");
@@ -375,6 +378,7 @@ void FourfoldProcessor::applyStateTree (const juce::ValueTree& tree)
             if (path.isNotEmpty() && juce::File (path).existsAsFile()) rack.setIrFile (i, juce::File (path));
         }
     rack.sync();
+    if (morph != nullptr) morph->restoreFrom (tree);
 }
 
 void FourfoldProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -402,6 +406,7 @@ bool FourfoldProcessor::savePresetToFile (const juce::File& file)
     state.removeChild (state.getChildWithName ("Msegs"), nullptr);
     state.appendChild (msegsToTree(), nullptr);
     state.setProperty ("arpPattern", arpPattern->toString(), nullptr);
+    if (morph != nullptr) morph->saveTo (state);
     {
         juce::ValueTree rf ("RackFiles");
         for (int r = 0; r < ff::numRackSlots; ++r) rf.setProperty ("ir" + juce::String (r + 1), rack.irFiles[(size_t) r].getFullPathName(), nullptr);

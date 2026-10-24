@@ -77,7 +77,7 @@ private:
 
     struct
     {
-        std::atomic<float> *play, *level, *tune, *fine, *pan, *attack, *decay, *sustain, *release, *letRing, *vel;
+        std::atomic<float> *play, *level, *tune, *fine, *pan, *attack, *decay, *sustain, *release, *letRing, *vel, *choke;
     } P {};
 };
 } // namespace ff

@@ -8,6 +8,7 @@
 #include <deque>
 #include "sampler/SamplerEngine.h"
 #include "design/MidiLearn.h"
+#include "perform/Morph.h"
 #include "roll/RollEngine.h"
 #include "design/Mutator.h"
 
@@ -45,6 +46,7 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     juce::MidiKeyboardState keyboardState;
     std::unique_ptr<ff::SamplerEngine> sampler;
+    std::unique_ptr<ff::perf::MorphEngine> morph;
     ff::roll::RollEngine roll;
     std::unique_ptr<ff::design::Mutator> mutator;
     std::unique_ptr<ff::design::MidiLearn> midiLearn;

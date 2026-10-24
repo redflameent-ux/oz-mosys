@@ -33,6 +33,13 @@ octaves, gate, swing, latch and 1-32 steps. The FM8-style pattern grid has rows 
 note, or All), Octave, Transpose and Velocity, each with reset and random. Drop a **MIDI file** on the grid to copy its groove.
 It follows your DAW's tempo and position (or its own clock).
 
+## MORPH + ORB (on the PLAY page)
+- A square with a sound in each corner (A B C D). Drag the puck to blend them: smooth settings glide, switches jump to the nearest corner.
+- **Make B C D from this sound**: corner A becomes what you hear now, the other three become variations of it ("How different" slider).
+- Each corner has **Set** (use the sound you hear now) and **Dice** (a new variation).
+- **Orb** moves the puck for you: Dice (random jumps), Inertia (throw it and it keeps bouncing), Attractor (circles the middle), Recorded path (press Record motion and drag). Speed and Depth set how fast and how far.
+- Morph X / Y can be MIDI-learned or automated. Saving a preset keeps the corners.
+
 ## FX page (Guitar Rig-style rack)
 Pick a unit from **Components** (double-click, or drag it onto a slot) and stack up to 8. Each unit has its own knobs,
 a Mix knob, bypass, move up/down and remove. **Split Low / High** sends the lows through slots 1-4 and the highs
@@ -104,6 +111,14 @@ Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or t
 - The **mapper** on the right sets each recording's root note, key range and velocity range; changes save automatically.
 - Put note names in file names (`C3.wav`, `Kick F#2 rr2.wav`) and it maps itself. C3 = middle C.
 - Samples live in `Documents\OZ-mosys\Samples` (or point **Library...** at any folder, including your Sol Intent library).
+
+### Loop slicer
+- On the SAMPLER page press **Slice a loop...**, then drop a loop (WAV / AIFF / FLAC / MP3) on it.
+- Cut it **at the hits** (with a Sensitivity slider) or into 4 / 8 / 16 / 32 even slices. Drag a marker to move it, double-click to add one, right-click to remove one.
+- **Make pads** saves each slice as its own key, starting at the pad page's lowest note, as a new instrument in your library, and turns on **CHOKE** (each new hit cuts the last one, like an MPC).
+
+### Coloured keyboard
+- Keys with sampler recordings get a gold strip. When Chords is on "In key", the notes of the key get a purple dot (bigger on the root).
 
 ## Installing
 **Mac:** download **OZ-mosys-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.

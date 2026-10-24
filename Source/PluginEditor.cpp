@@ -9,7 +9,7 @@ static constexpr int editorW = 1300, editorH = 830;
 FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     : AudioProcessorEditor (p), proc (p),
       wtDisplay (p), anDisplay (p), grDisplay (p), resDisplay (p),
-      keyboard (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
+      keyboard (p, p.keyboardState)
 {
     setLookAndFeel (&lnf);
 

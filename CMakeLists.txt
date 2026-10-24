@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(OZmosys VERSION 0.12.0)
+project(OZmosys VERSION 0.13.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,6 +28,7 @@ set(FOURFOLD_SOURCES
     Source/sampler/SamplerVoice.cpp
     Source/sampler/SamplerEngine.cpp
     Source/gui/SamplerPage.cpp
+    Source/gui/SlicerPanel.cpp
     Source/gui/MapView.cpp
     Source/gui/PadGrid.cpp
     Source/gui/RollPage.cpp
@@ -40,6 +41,8 @@ set(FOURFOLD_SOURCES
     Source/gui/FxPage.cpp
     Source/perform/Perform.cpp
     Source/gui/PlayPage.cpp
+    Source/gui/MorphPage.cpp
+    Source/perform/Morph.cpp
     Source/gui/ExpansionsPage.cpp
     Source/design/Packs.cpp
     Source/roll/RollEngine.cpp

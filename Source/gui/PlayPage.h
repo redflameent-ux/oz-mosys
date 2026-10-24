@@ -3,6 +3,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "Widgets.h"
 #include "../perform/Perform.h"
+#include "MorphPage.h"
 
 class FourfoldProcessor;
 
@@ -65,6 +66,8 @@ private:
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>> buttonAtt;
     ArpGrid grid;
     juce::ComboBox patternBox;
+    juce::TextButton morphBtn { "MORPH + ORB  >" };
+    std::unique_ptr<MorphPage> morphPage;
     juce::OwnedArray<juce::TextButton> rowReset, rowRandom;
     juce::Rectangle<int> chordArea, arpArea, circlesArea, gridArea;
     std::array<juce::Rectangle<float>, 7> circles;

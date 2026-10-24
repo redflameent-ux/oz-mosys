@@ -222,6 +222,16 @@ PlayPage::PlayPage (FourfoldProcessor& p, std::function<void (Knob&)> reg) : pro
         d->onClick = [this, r] { grid.randomRow (r); };
         addAndMakeVisible (d);
     }
+    morphBtn.setColour (TextButton::buttonColourId, Colour (0xff7ee0c3).withAlpha (0.3f));
+    morphBtn.setTooltip ("FM8-style morph square and Omnisphere-style Orb: blend four versions of this sound");
+    morphBtn.onClick = [this]
+    {
+        morphPage = std::make_unique<MorphPage> (proc, registerKnob);
+        morphPage->onClose = [this] { MessageManager::callAsync ([sp = SafePointer<PlayPage> (this)] { if (sp) sp->morphPage.reset(); }); };
+        addAndMakeVisible (*morphPage);
+        morphPage->setBounds (getLocalBounds());
+    };
+    addAndMakeVisible (morphBtn);
     startTimerHz (25);
 }
 
@@ -341,6 +351,7 @@ void PlayPage::importGroove (const File& file)
 void PlayPage::resized()
 {
     auto r = getLocalBounds();
+    if (morphPage != nullptr) morphPage->setBounds (r);
     auto top = r.removeFromTop (250);
     r.removeFromTop (8);
     gridArea = r;
@@ -353,6 +364,7 @@ void PlayPage::resized()
         auto a = chordArea.reduced (12, 10);
         auto row = a.removeFromTop (26);
         toggles[0]->setBounds (row.removeFromLeft (110));
+        morphBtn.setBounds (row.removeFromRight (150));
         a.removeFromTop (8);
         auto labelsRow = a.removeFromTop (14);
         auto combosRow = a.removeFromTop (24);

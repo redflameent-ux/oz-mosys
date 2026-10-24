@@ -55,7 +55,7 @@ SamplerPage::SamplerPage (FourfoldProcessor& p, AudioProcessorValueTreeState& st
     playMode.setTooltip ("Off: only the synth plays. Layered: synth and samples together. Sampler only: just the samples.");
     addAndMakeVisible (playMode);
     comboAtts.push_back (std::make_unique<AudioProcessorValueTreeState::ComboBoxAttachment> (apvts, "smp_play", playMode));
-    for (auto* t : { &throughFx, &letRing })
+    for (auto* t : { &throughFx, &letRing, &choke })
     {
         t->setColour (ToggleButton::tickColourId, col::sampler);
         addAndMakeVisible (t);
@@ -64,6 +64,28 @@ SamplerPage::SamplerPage (FourfoldProcessor& p, AudioProcessorValueTreeState& st
     letRing.setTooltip ("On: recordings ring out after you let go. Off: Release decides.");
     buttonAtts.push_back (std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (apvts, "smp_fx", throughFx));
     buttonAtts.push_back (std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (apvts, "smp_letring", letRing));
+    choke.setTooltip ("On: each new note cuts off the one before (like an MPC). Great for sliced loops.");
+    buttonAtts.push_back (std::make_unique<AudioProcessorValueTreeState::ButtonAttachment> (apvts, "smp_choke", choke));
+    addAndMakeVisible (sliceButton);
+    sliceButton.setTooltip ("Chop a drum loop (or any loop) into slices, one per pad");
+    sliceButton.onClick = [this]
+    {
+        slicer = std::make_unique<SlicerPanel> (owner);
+        slicer->onClose = [this] { MessageManager::callAsync ([sp = SafePointer<SamplerPage> (this)] { if (sp) sp->slicer.reset(); }); };
+        slicer->onMade = [this] (const File& folder)
+        {
+            proc.rescanLibrary();
+            refreshList();
+            const int idx = proc.findInList (folder);
+            if (idx >= 0) proc.selectInstrument (0, idx); else proc.loadFolderIntoLayer (0, folder);
+            if (auto* p = apvts.getParameter ("smp_choke")) p->setValueNotifyingHost (1.0f);
+            makeSureItPlays();
+            mapView.setTarget (proc.getLayerInfo (0), 0);
+            pads.repaint();
+        };
+        addAndMakeVisible (*slicer);
+        slicer->setBounds (getLocalBounds());
+    };
 
     const std::pair<const char*, const char*> defs[] = {
         { "smp_level", "Level" }, { "smp_tune", "Tune" }, { "smp_fine", "Fine" }, { "smp_pan", "Pan" }, { "smp_vel", "Touch" },
@@ -96,6 +118,7 @@ void SamplerPage::visibilityChanged()
 void SamplerPage::resized()
 {
     auto r = getLocalBounds();
+    if (slicer != nullptr) slicer->setBounds (r);
     const int gap = 8;
     leftArea = r.removeFromLeft (250);
     r.removeFromLeft (gap);
@@ -111,6 +134,8 @@ void SamplerPage::resized()
         libraryButton.setBounds (row.removeFromLeft (bw)); row.removeFromLeft (4);
         rescanButton.setBounds (row.removeFromLeft (bw)); row.removeFromLeft (4);
         newButton.setBounds (row);
+        a.removeFromTop (4);
+        sliceButton.setBounds (a.removeFromTop (26));
         a.removeFromTop (6);
         statusLabel.setBounds (a.removeFromBottom (18));
         a.removeFromBottom (70);   // drop zone (painted)
@@ -148,8 +173,10 @@ void SamplerPage::resized()
         auto c = controls.reduced (10, 8);
         c.removeFromTop (18);   // heading
         auto toggles = c.removeFromRight (110);
-        letRing.setBounds (toggles.removeFromTop (toggles.getHeight() / 2).reduced (4, 10));
-        throughFx.setBounds (toggles.reduced (4, 10));
+        const int th = toggles.getHeight() / 3;
+        letRing.setBounds (toggles.removeFromTop (th).reduced (4, 3));
+        choke.setBounds (toggles.removeFromTop (th).reduced (4, 3));
+        throughFx.setBounds (toggles.reduced (4, 3));
         const int kw = c.getWidth() / (int) knobs.size();
         for (auto& k : knobs) k->setBounds (c.removeFromLeft (kw));
     }

@@ -451,6 +451,15 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addF ("smp_release", "Sampler Release", timeRange (0.02f, 20.0f), 1.0f, "s");
     addB ("smp_letring", "Sampler Let Ring", true);
     addF ("smp_vel", "Sampler Touch", { 0.0f, 1.0f }, 0.7f);
+    addB ("smp_choke", "Sampler Choke", false);
+
+    // ---- Morph pad + Orb (the MORPH page) ----
+    addB ("morph_on", "Morph On", false);
+    addF ("morph_x", "Morph X", { 0.0f, 1.0f }, 0.0f);
+    addF ("morph_y", "Morph Y", { 0.0f, 1.0f }, 1.0f);
+    addC ("orb_mode", "Orb Motion", StringArray { "Still", "Dice", "Inertia", "Attractor", "Recorded path" }, 0);
+    addF ("orb_speed", "Orb Speed", { 0.0f, 1.0f }, 0.35f);
+    addF ("orb_depth", "Orb Depth", { 0.0f, 1.0f }, 0.8f);
 
     return layout;
 }

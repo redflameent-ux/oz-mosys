@@ -290,6 +290,14 @@ void Mutator::randomOnly (float amountIn)
     push (next);
 }
 
+std::map<juce::String, float> Mutator::variationValues (float amountIn)
+{
+    auto next = capture();
+    randomise (next, amountIn);
+    keepPlayable (next);
+    return next.values;
+}
+
 void Mutator::goTo (int i)
 {
     if (! juce::isPositiveAndBelow (i, (int) history.size())) return;

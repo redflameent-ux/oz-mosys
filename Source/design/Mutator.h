@@ -28,6 +28,7 @@ public:
     void mutate();                    // a new variation of the current sound
     void retry();                     // throw the last variation away and try again from the same start
     void randomOnly (float amount);   // used by Randomize on a single section
+    std::map<juce::String, float> variationValues (float amount);   // a variation of the current sound, not applied (Morph corners)
 
     bool canGoBack() const { return index > 0; }
     bool canGoForward() const { return index + 1 < (int) history.size(); }

@@ -41,6 +41,7 @@ public:
     using juce::SynthesiserVoice::renderNextBlock;
 
     float getLevel() const noexcept { return level; }
+    void choke();   // fast fade-out (one slice at a time, like a Leap / MPC choke group)
 
 private:
     static float bendFromWheel (int v) { return juce::jlimit (-1.0f, 1.0f, (v - 8192) / 8191.0f); }

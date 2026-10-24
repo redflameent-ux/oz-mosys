@@ -2,6 +2,7 @@
 // and (optionally) saves a screenshot of the plugin window.
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
+#include "../Source/gui/SlicerPanel.h"
 #include "../Source/Presets.h"
 #include "../Source/design/SoundFeatures.h"
 
@@ -30,6 +31,26 @@ int main (int argc, char** argv)
     const double sr = 48000.0;
     const int block = 512;
     int failures = 0;
+
+    // ---- morph self-test ----
+    if (juce::SystemStats::getEnvironmentVariable ("OZ_MORPHTEST", {}) == "1")
+    {
+        FourfoldProcessor proc;
+        auto& m = *proc.morph;
+        auto a = m.captureNow(), b = a, c = a, d = a;
+        b["flt_cutoff"] = 1.0f; c["flt_cutoff"] = 0.0f; d["flt_cutoff"] = 1.0f; a["flt_cutoff"] = 0.0f;
+        m.setCorner (0, a); m.setCorner (1, b); m.setCorner (2, c); m.setCorner (3, d);
+        proc.apvts.getParameter ("morph_on")->setValueNotifyingHost (1.0f);
+        proc.apvts.getParameter ("morph_x")->setValueNotifyingHost (0.25f);
+        for (int i = 0; i < 10; ++i) { juce::Thread::sleep (30); m.tick(); }
+        std::printf ("morph x=0.25 -> cutoff %.3f (want 0.250)\n", proc.apvts.getParameter ("flt_cutoff")->getValue());
+        proc.apvts.getParameter ("orb_mode")->setValueNotifyingHost (proc.apvts.getParameter ("orb_mode")->convertTo0to1 (3.0f));
+        for (int i = 0; i < 25; ++i) { juce::Thread::sleep (30); m.tick(); }
+        std::printf ("attractor moved puck to %.3f,%.3f\n", m.puck().x, m.puck().y);
+        juce::ValueTree t ("S"); m.saveTo (t); m.clearCorners(); m.restoreFrom (t);
+        std::printf ("corners after save/restore: %d\n", (int) m.hasCorner (3));
+        return 0;
+    }
 
     // ---- measure every factory preset for the BROWSE map ----
     if (juce::SystemStats::getEnvironmentVariable ("OZ_FEATURES", {}) == "1")
@@ -236,6 +257,25 @@ int main (int argc, char** argv)
             for (auto& t : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("OZ_CLICK", {}), ",", ""))
                 if (auto* b = find (ed.get(), t)) { if (b->onClick) b->onClick(); }
                 else std::printf ("no button '%s'\n", t.toRawUTF8());
+        }
+        // OZ_SLICE=/path/loop.wav (after clicking "Slice a loop..."): load it; OZ_SLICE_MAKE=1 also makes pads
+        if (auto sf = juce::SystemStats::getEnvironmentVariable ("OZ_SLICE", {}); sf.isNotEmpty())
+        {
+            std::function<ff::gui::SlicerPanel* (juce::Component*)> findS = [&] (juce::Component* c) -> ff::gui::SlicerPanel*
+            {
+                for (auto* ch : c->getChildren())
+                {
+                    if (auto* s = dynamic_cast<ff::gui::SlicerPanel*> (ch)) return s;
+                    if (auto* r = findS (ch)) return r;
+                }
+                return nullptr;
+            };
+            if (auto* s = findS (ed.get()))
+            {
+                s->loadFile (juce::File (sf));
+                if (juce::SystemStats::getEnvironmentVariable ("OZ_SLICE_MAKE", {}) == "1") s->makePads();
+            }
+            else std::printf ("no slicer\n");
         }
         auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);
         juce::PNGImageFormat png;

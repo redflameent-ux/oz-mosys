@@ -6,6 +6,7 @@ each rebuilt in the OZ-mosys style. Priority goes to **making your own presets**
 customisation come before performance extras.
 
 ## Done
+- v0.13: Morph pad (4 corner sounds, "Make B C D from this sound", per-corner Set / Dice) and Orb (Dice, Inertia, Attractor, Recorded path), loop slicer on the SAMPLER page (cut at the hits or 4/8/16/32 even slices, slices go on their own keys), Choke, coloured keyboard zones.
 - v0.6: Absynth-style browser + sound map, mutator, fine tuning, subpresets, ENV page (4 MSEGs),
   macro bar with Controls/Keys, live mod strip, Expansions page with installable `.ozpack` collections.
 - v0.12: PLAY page - chords tool (key/scale/type/voicing, strum, humanize, chord circles) and 32-step arpeggiator with FM8-style rows, MIDI groove import, Arps & Chords bank.
@@ -20,13 +21,10 @@ customisation come before performance extras.
 - Quadzone-style layer blend (fader / keyboard position / velocity)
 
 
-## Sampler
-- Leap-style loop slicer: 16 slice pads, tempo/key lock, slice grid + snap, Group/Single edit, Hold/Latch, Choke
-- Coloured keyboard zones
-
-## v0.13 Performance
+## Next
 - Phrases tool (patterns that follow chords)
-- Orb (circular morph controller with Dice, Inertia, Attractor, record) and Easy/Morph XY pad between 4 sounds
+- Slicer extras: tempo/key lock, snap to grid, Hold/Latch
+- Legacy Rebuilds collection (from screenshots of old presets)
 
 ## Later
 - Multi mode: up to 8 sounds, mixer, Stack (splits / layers) and Live mode
