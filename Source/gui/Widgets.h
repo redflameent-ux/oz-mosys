@@ -274,6 +274,8 @@ public:
         if (onModDropped) onModDropped (d.description.toString().fromFirstOccurrenceOf (":", false, false).getIntValue(), dest);
     }
 
+    void setLabelText (const juce::String& t) { if (label.getText() != t) label.setText (t, juce::dontSendNotification); }
+
     // MIDI learn feedback
     void setMidiState (int cc, bool isLearning)
     {

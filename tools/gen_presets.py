@@ -554,6 +554,34 @@ p(C, "Space Bell Pad", d(FM, op(1, 1, 1, a=1.2, d=6, s_=0.5, r=5), op(2, 3.5, 0,
     cho_mix=0.4, dly_mix=0.25, dly_time=480, dly_fb=0.5, rev_mix=0.6, rev_size=0.95),
   [("Lfo1", "FmIndex", 0.15)])
 
+# ============================== PATCH LAB (module slots, mod osc, feedback, dual filter) ==============================
+C = "Patch Lab"
+p(C, "Comb Harp", d(wt_table=0, wt_pos=0.66, wt_s1_type=6, wt_s1_a=0.5, wt_s1_b=0.92, flt_cutoff=0.8,
+    amp_a=0.001, amp_d=1.5, amp_s=0, amp_r=1.2, rev_mix=0.35))
+p(C, "Shifted Heaven", d(wt_table=1, wt_pos=0.3, wt_unison=4, wt_detune=0.2, wt_s1_type=7, wt_s1_a=0.56, wt_s1_b=1.0,
+    wt_s1_mix=0.5, flt_type=1, flt_cutoff=0.7, amp_a=1.5, amp_s=1, amp_r=3, cho_mix=0.3, rev_mix=0.6, rev_size=0.9))
+p(C, "Ring Bell Machine", d(OFF, an_on=1, an_shape=0, an_level=0.8, an_s1_type=8, an_s1_a=0.79, an_s1_b=0.0,
+    flt_cutoff=0.9, amp_a=0.001, amp_d=2.5, amp_s=0, amp_r=2, dly_mix=0.25, rev_mix=0.35))
+p(C, "Crushed Lead", d(wt_table=4, wt_pos=0.4, wt_s1_type=10, wt_s1_a=0.45, wt_s1_b=0.65, wt_s2_type=1, wt_s2_a=0.6, wt_s2_b=0.4,
+    amp_a=0.005, amp_s=1, amp_r=0.2, voice_mode=1, glide=0.06, glide_curve=1, rev_mix=0.15))
+p(C, "Feedback Growl", d(OFF, an_on=1, an_shape=1, an_oct=-1, an_level=0.8, fb_amt=0.65, flt_cutoff=0.4, flt_res=0.45,
+    flt_drive=0.4, flt_env=0.3, e2_d=0.4, e2_s=0.2, amp_a=0.002, amp_s=1, amp_r=0.2, voice_mode=1, rev_mix=0),
+  [("Lfo1", "Feedback", 0.25)])
+p(C, "Twin Filter Sweep", d(wt_table=0, wt_pos=0.66, wt_unison=5, wt_detune=0.25, flt_type=1, flt_cutoff=0.4, flt_res=0.5,
+    flt2_on=1, flt2_type=2, flt2_cutoff=0.6, flt2_res=0.55, flt_route=1, flt_balance=0.5, lfo1_rate=0.2, lfo2_rate=0.13,
+    amp_a=0.4, amp_s=1, amp_r=1.5, rev_mix=0.4),
+  [("Lfo1", "Cutoff", 0.3), ("Lfo2", "Cutoff2", -0.3)])
+p(C, "Mod Osc Metal", d(wt_table=0, wt_pos=0.0, mo_pitch=7.02, mo_phase=0.55, mo_ffm=0.3, flt_cutoff=0.7, flt_res=0.3,
+    amp_a=0.001, amp_d=1.2, amp_s=0.2, amp_r=0.8, rev_mix=0.3),
+  [("Env2", "MoPitch", 0.1)])
+p(C, "Pink Breath Pad", d(wt_table=2, wt_pos=0.5, wt_level=0.5, noise_level=0.35, noise_color=1, flt_type=2, flt_cutoff=0.55,
+    flt_res=0.4, amp_a=2, amp_s=1, amp_r=3, lfo1_rate=0.1, cho_mix=0.4, rev_mix=0.6),
+  [("Lfo1", "Cutoff", 0.15)])
+p(C, "Vinyl Keys", d(OFF, res_on=1, res_type=18, res_decay=3, res_bright=0.45, res_s1_type=10, res_s1_a=0.3, res_s1_b=0.45,
+    noise_level=0.4, noise_color=4, flt_cutoff=0.6, amp_a=0.002, amp_s=1, amp_r=0.6, tape_wow=0.3, rev_mix=0.25))
+p(C, "Glide Gliss Lead", d(wt_table=0, wt_pos=0.66, an_on=1, an_shape=2, an_level=0.4, voice_mode=1, glide=0.35, glide_curve=2,
+    flt_cutoff=0.65, amp_a=0.01, amp_s=1, amp_r=0.3, dly_mix=0.25, rev_mix=0.25))
+
 # ----------------------------------------------------------------------------
 SRC = dict(Env2="srcEnv2", Env3="srcEnv3", Lfo1="srcLfo1", Lfo2="srcLfo2", Velocity="srcVelocity",
            ModWheel="srcModWheel", Aftertouch="srcAftertouch", KeyTrack="srcKeyTrack", Random="srcRandom",
@@ -564,7 +592,8 @@ DST = dict(WtPos="dstWtPos", WtWarp="dstWtWarp", WtPitch="dstWtPitch", WtDetune=
            GrLevel="dstGrLevel", Cutoff="dstCutoff", Resonance="dstResonance", FltDrive="dstFltDrive",
            Amp="dstAmp", Pan="dstPan", PitchAll="dstPitchAll", Lfo1Rate="dstLfo1Rate", Lfo2Rate="dstLfo2Rate",
            ResPitch="dstResPitch", ResBright="dstResBright", ResDecay="dstResDecay", ResBow="dstResBow",
-           ResLevel="dstResLevel", ResBuzz="dstResBuzz", FmPitch="dstFmPitch", FmIndex="dstFmIndex", FmLevel="dstFmLevel")
+           ResLevel="dstResLevel", ResBuzz="dstResBuzz", FmPitch="dstFmPitch", FmIndex="dstFmIndex", FmLevel="dstFmLevel",
+           Cutoff2="dstCutoff2", Res2="dstRes2", Feedback="dstFeedback", MoPitch="dstMoPitch", NoiseLevel="dstNoiseLevel")
 
 def add_macros(values, routes):
     """Every new preset gets two useful macros: 1 = brightness, 2 = character."""

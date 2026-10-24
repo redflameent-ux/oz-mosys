@@ -172,26 +172,24 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     for (auto& [id, label] : fxDefs) makeKnob (fxKnobs, id, label, col::fx);
 
     // ---------------- pages ----------------
-    for (auto* t : { &synthTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab })
+    for (auto* t : { &synthTab, &patchTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab })
     {
         t->setClickingTogglesState (false);
         t->setColour (juce::TextButton::buttonOnColourId, col::sampler.withAlpha (0.25f));
         addAndMakeVisible (t);
     }
     synthTab.onClick = [this] { showPage (0); };
-    fmTab.onClick = [this] { showPage (1); };
-    envTab.onClick = [this] { showPage (2); };
-    browseTab.onClick = [this] { showPage (3); };
-    samplerTab.onClick = [this] { showPage (4); };
-    rollTab.onClick = [this] { showPage (5); };
+    patchTab.onClick = [this] { showPage (1); };
+    fmTab.onClick = [this] { showPage (2); };
+    envTab.onClick = [this] { showPage (3); };
+    browseTab.onClick = [this] { showPage (4); };
+    samplerTab.onClick = [this] { showPage (5); };
+    rollTab.onClick = [this] { showPage (6); };
+    patchTab.setTooltip ("Signal flow: module slots on every engine, mod oscillator, noise, feedback and the dual filter");
+    patchPage = std::make_unique<ff::gui::PatchPage> (proc, [this] (Knob& k) { registerPageKnob (k); });
+    addChildComponent (*patchPage);
     fmTab.setTooltip ("FM engine: six operators and the FM matrix (FM8-style)");
-    fmPage = std::make_unique<ff::gui::FmPage> (proc, [this] (Knob& k)
-    {
-        if (k.dest > 0) k.onModDropped = [this] (int s, int d) { assignModulation (s, d); };
-        auto* raw = &k;
-        k.slider.onRightClick = [this, raw] { showModMenuFor (*raw); };
-        allKnobs.push_back (raw);
-    });
+    fmPage = std::make_unique<ff::gui::FmPage> (proc, [this] (Knob& k) { registerPageKnob (k); });
     addChildComponent (*fmPage);
     envTab.setTooltip ("Breakpoint envelopes (MSEG 1-4): draw shapes, loop them, sync them, send them anywhere");
     browseTab.setTooltip ("Preset browser, sound map, expansions and the mutator");
@@ -339,28 +337,29 @@ void FourfoldEditor::resized()
 
     // ---- top bar ----
     auto top = area.removeFromTop (46);
-    logoArea = top.removeFromLeft (156);
+    logoArea = top.removeFromLeft (150);
     prevBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
-    presetBox.setBounds (top.removeFromLeft (120).reduced (4, 9));
+    presetBox.setBounds (top.removeFromLeft (112).reduced (4, 9));
     nextBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
     top.removeFromLeft (6);
-    saveBtn.setBounds (top.removeFromLeft (52).reduced (0, 9));
+    saveBtn.setBounds (top.removeFromLeft (46).reduced (0, 9));
     top.removeFromLeft (8);
     synthTab.setBounds (top.removeFromLeft (54).reduced (0, 9));
-    fmTab.setBounds (top.removeFromLeft (40).reduced (2, 9));
+    patchTab.setBounds (top.removeFromLeft (54).reduced (2, 9));
+    fmTab.setBounds (top.removeFromLeft (38).reduced (0, 9));
     envTab.setBounds (top.removeFromLeft (46).reduced (2, 9));
     browseTab.setBounds (top.removeFromLeft (64).reduced (0, 9));
-    samplerTab.setBounds (top.removeFromLeft (72).reduced (2, 9));
-    rollTab.setBounds (top.removeFromLeft (48).reduced (0, 9));
+    samplerTab.setBounds (top.removeFromLeft (70).reduced (2, 9));
+    rollTab.setBounds (top.removeFromLeft (46).reduced (0, 9));
     meterArea = top.removeFromRight (80).reduced (0, 19);
     top.removeFromRight (8);
-    for (int i = 2; i >= 0; --i) topKnobs[(size_t) i]->setBounds (top.removeFromRight (56));
-    top.removeFromRight (10);
-    tuneKnobs[0]->setBounds (top.removeFromRight (56));
+    for (int i = 2; i >= 0; --i) topKnobs[(size_t) i]->setBounds (top.removeFromRight (52));
+    top.removeFromRight (6);
+    tuneKnobs[0]->setBounds (top.removeFromRight (52));
     top.removeFromRight (4);
-    rootBox.setBounds (top.removeFromRight (54).reduced (0, 11));
+    rootBox.setBounds (top.removeFromRight (48).reduced (0, 11));
     top.removeFromRight (4);
-    scaleBox.setBounds (top.removeFromRight (104).reduced (0, 11));
+    scaleBox.setBounds (top.removeFromRight (96).reduced (0, 11));
     top.removeFromRight (8);
     monoToggle.setBounds (top.removeFromRight (58).reduced (0, 11));
     area.removeFromTop (4);
@@ -511,6 +510,7 @@ void FourfoldEditor::resized()
     rollPage->setBounds (samplerPage->getBounds());
     envPage->setBounds (samplerPage->getBounds());
     fmPage->setBounds (samplerPage->getBounds());
+    patchPage->setBounds (samplerPage->getBounds());
     browsePage->setBounds (samplerPage->getBounds());
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) keyboard.getWidth() / 50.0f));
 }
@@ -594,6 +594,14 @@ void FourfoldEditor::assignModulation (int source, int dest)
     setParam (slotSrc (freeSlot), (float) source);
     setParam (slotDst (freeSlot), (float) dest);
     setParam (slotAmt (freeSlot), 0.5f);
+}
+
+void FourfoldEditor::registerPageKnob (Knob& k)
+{
+    if (k.dest > 0) k.onModDropped = [this] (int s, int d) { assignModulation (s, d); };
+    auto* raw = &k;
+    k.slider.onRightClick = [this, raw] { showModMenuFor (*raw); };
+    allKnobs.push_back (raw);
 }
 
 void FourfoldEditor::showModMenuFor (Knob& k)
@@ -722,9 +730,9 @@ void FourfoldEditor::loadGrainFile (const juce::File& f)
 
 void FourfoldEditor::showPage (int page)
 {
-    juce::Component* pages[] = { nullptr, fmPage.get(), envPage.get(), browsePage.get(), samplerPage.get(), rollPage.get() };
-    juce::TextButton* tabs[] = { &synthTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab };
-    for (int i = 0; i < 6; ++i)
+    juce::Component* pages[] = { nullptr, patchPage.get(), fmPage.get(), envPage.get(), browsePage.get(), samplerPage.get(), rollPage.get() };
+    juce::TextButton* tabs[] = { &synthTab, &patchTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab };
+    for (int i = 0; i < 7; ++i)
     {
         if (pages[i] != nullptr) { pages[i]->setVisible (i == page); if (i == page) pages[i]->toFront (true); }
         tabs[i]->setToggleState (i == page, juce::dontSendNotification);

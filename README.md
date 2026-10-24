@@ -14,8 +14,15 @@ A five-engine synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
 World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
-177 factory presets in 19 banks (including FM Classics), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
+187 factory presets in 20 banks (including FM Classics and Patch Lab), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
+
+## PATCH page (Absynth / Massive-style signal flow)
+Every engine is a channel with **level, pan and two module slots**: Ladder LP, LP 12, HP 12, Band Pass, Notch, Comb
+(tuned to the note), Frequency Shifter, Ring Mod, Waveshaper and Decimator. The knob names change with the module.
+Below: the **mod oscillator** (ring mod on any engine, wavetable phase/position modulation, filter FM),
+**coloured noise** (white, pink, brown, digital, crackle), **feedback** around the filters, the **dual filter**
+(series or parallel with a balance knob) and **glide / velocity curves** (smooth, linear, glissando; soft, hard, fixed).
 
 ## FM page
 Press **FM**. The grid is the FM matrix: each row's operator modulates each column's operator; **OUT** sets how loud each

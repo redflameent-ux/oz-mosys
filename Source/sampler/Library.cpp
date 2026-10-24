@@ -458,13 +458,13 @@ InstrumentPtr Library::buildDemoBowl()
     inst->category = "Built-in";
 
     const double sr = 44100.0;
-    const int len = (int) (sr * 9.0);
+    const int len = (int) (sr * 6.0);   // kept short: it lives in memory in every copy of the plugin
     juce::Random rng (1234);
     ArticulationSpec layout { "Strike", {} };
     Articulation art;
     art.name = "Strike";
 
-    for (int root = 48; root <= 84; root += 4)
+    for (int root = 48; root <= 84; root += 6)
     {
         Zone z;
         z.fileName = "demo " + noteName (root);
@@ -507,6 +507,8 @@ InstrumentPtr Library::buildDemoBowl()
             L[i] += n; R[i] += n;
         }
         z.audio.applyGain (0.25f);
+        const int fade = (int) (sr * 1.5);   // gentle fade so the shortened tail never clicks
+        z.audio.applyGainRamp (len - fade, fade, 1.0f, 0.0f);
         layout.zones.push_back ({ {}, root });
         art.zones.push_back (std::move (z));
     }
