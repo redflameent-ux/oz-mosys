@@ -294,7 +294,7 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     std::set<String> used;
     String engA, engB;
     StringArray tags, srcNames;
-    for (int layer = 0; layer < (int) jmin<size_t> (2, voices.size()); ++layer)
+    for (int layer = 0; layer < (int) std::min<size_t> (2, voices.size()); ++layer)
     {
         if ((layer == 0 && layerAOff) || (layer == 1 && layerBOff)) continue;
         auto* osc = child (voices[(size_t) layer], "OSC");
@@ -372,7 +372,7 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     // ---- LFOs (first two) ----
     std::vector<const XmlElement*> lfos;
     if (auto* ls = synth->getChildByName ("LFO_SET")) for (auto* l : ls->getChildWithTagNameIterator ("LFO")) lfos.push_back (l);
-    for (int i = 0; i < (int) jmin<size_t> (2, lfos.size()); ++i)
+    for (int i = 0; i < (int) std::min<size_t> (2, lfos.size()); ++i)
     {
         const String pre = "lfo" + String (i + 1);
         const float r = val01 (lfos[(size_t) i], "rate", 0.2f);
