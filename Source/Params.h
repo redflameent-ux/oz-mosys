@@ -37,6 +37,7 @@ enum ModDest
     dstAmp, dstPan, dstPitchAll, dstLfo1Rate, dstLfo2Rate,
     dstResPitch, dstResBright, dstResDecay, dstResBow, dstResLevel, dstResBuzz,
     dstFmPitch, dstFmIndex, dstFmLevel,
+    dstCutoff2, dstRes2, dstFeedback, dstMoPitch, dstNoiseLevel,
     numModDests
 };
 
@@ -49,7 +50,8 @@ inline const juce::StringArray& modDestNames()
         "Filter Cutoff", "Filter Resonance", "Filter Drive",
         "Volume", "Pan", "Pitch (All)", "LFO 1 Rate", "LFO 2 Rate",
         "Res Pitch", "Res Brightness", "Res Decay", "Res Bow", "Res Level", "Res Buzz",
-        "FM Pitch", "FM Depth", "FM Level" };
+        "FM Pitch", "FM Depth", "FM Level",
+        "Filter 2 Cutoff", "Filter 2 Resonance", "Feedback", "Mod Osc Pitch", "Noise Level" };
     return names;
 }
 
@@ -74,6 +76,17 @@ inline const juce::StringArray& filterTypeNames()
     static const juce::StringArray names { "Ladder LP 24", "LP 12", "Band Pass", "High Pass", "Notch" };
     return names;
 }
+
+// Absynth-style module slots (2 per engine)
+inline const juce::StringArray& slotTypeNames()
+{
+    static const juce::StringArray n { "Off", "Ladder LP", "LP 12", "HP 12", "Band Pass", "Notch", "Comb", "Freq Shift",
+                                       "Ring Mod", "Waveshaper", "Decimator" };
+    return n;
+}
+inline const char* const* enginePrefixes() { static const char* p[] = { "wt", "an", "gr", "res", "fm" }; return p; }
+constexpr int numEngines = 5;
+constexpr int slotsPerEngine = 2;
 
 inline const juce::StringArray& lfoShapeNames()
 {
@@ -172,6 +185,8 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addI ("bend", "Pitch Bend Range", 0, 24, 2);
     addF ("amp_vel", "Velocity Sensitivity", { 0.0f, 1.0f }, 0.5f);
     addC ("voice_mode", "Voice Mode", StringArray { "Poly", "Mono" }, 0);
+    addC ("glide_curve", "Glide Curve", StringArray { "Smooth", "Linear", "Glissando" }, 0);
+    addC ("vel_curve", "Velocity Curve", StringArray { "Linear", "Soft touch", "Hard touch", "Fixed" }, 0);
     addF ("tune_a4", "Tuning (A4)", { 400.0f, 480.0f, 0.01f }, 440.0f, "Hz");
     addC ("scale", "Scale Tuning", scaleNames(), 0);
     addC ("scale_root", "Scale Root", noteNames(), 0);
@@ -273,6 +288,29 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
                       (from == 1 && to == 0) ? 0.35f : 0.0f);
     }
 
+    // ---- Module slots: 2 per engine (Absynth patch page) ----
+    for (int e = 0; e < numEngines; ++e)
+        for (int sl = 1; sl <= slotsPerEngine; ++sl)
+        {
+            const String pre = String (enginePrefixes()[e]) + "_s" + String (sl);
+            const String nm = String (enginePrefixes()[e]).toUpperCase() + " Slot " + String (sl);
+            addC (pre + "_type", nm + " Type", slotTypeNames(), 0);
+            addF (pre + "_a", nm + " A", { 0.0f, 1.0f }, 0.5f);
+            addF (pre + "_b", nm + " B", { 0.0f, 1.0f }, 0.3f);
+            addF (pre + "_mix", nm + " Mix", { 0.0f, 1.0f }, 1.0f);
+        }
+
+    // ---- Modulation oscillator, noise, feedback (Massive) ----
+    addF ("mo_pitch", "Mod Osc Pitch", { -24.0f, 24.0f, 0.01f }, 0.0f, "st");
+    addF ("mo_ring", "Mod Osc Ring Mod", { 0.0f, 1.0f }, 0.0f);
+    addC ("mo_ringdst", "Mod Osc Ring Target", StringArray { "All engines", "Wavetable", "Analog", "Granular", "Resonator", "FM" }, 0);
+    addF ("mo_phase", "Mod Osc Phase Mod", { 0.0f, 1.0f }, 0.0f);
+    addF ("mo_pos", "Mod Osc Position Mod", { 0.0f, 1.0f }, 0.0f);
+    addF ("mo_ffm", "Mod Osc Filter FM", { 0.0f, 1.0f }, 0.0f);
+    addF ("noise_level", "Noise Level", { 0.0f, 1.0f }, 0.0f);
+    addC ("noise_color", "Noise Colour", StringArray { "White", "Pink", "Brown", "Digital", "Crackle" }, 0);
+    addF ("fb_amt", "Feedback", { 0.0f, 1.0f }, 0.0f);
+
     // ---- Filter ----
     addB ("flt_on", "Filter On", true);
     addC ("flt_type", "Filter Type", filterTypeNames(), 0);
@@ -281,6 +319,14 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addF ("flt_drive", "Filter Drive", { 0.0f, 1.0f }, 0.0f);
     addF ("flt_env", "Filter Env Amount", { -1.0f, 1.0f }, 0.0f);
     addF ("flt_key", "Filter Key Track", { 0.0f, 1.0f }, 0.0f);
+    addB ("flt2_on", "Filter 2 On", false);
+    addC ("flt2_type", "Filter 2 Type", filterTypeNames(), 3);
+    addF ("flt2_cutoff", "Filter 2 Cutoff", { 0.0f, 1.0f }, 0.3f);
+    addF ("flt2_res", "Filter 2 Resonance", { 0.0f, 1.0f }, 0.2f);
+    addF ("flt2_drive", "Filter 2 Drive", { 0.0f, 1.0f }, 0.0f);
+    addF ("flt2_env", "Filter 2 Env Amount", { -1.0f, 1.0f }, 0.0f);
+    addC ("flt_route", "Filter Routing", StringArray { "Series", "Parallel" }, 0);
+    addF ("flt_balance", "Filter Balance", { 0.0f, 1.0f }, 0.5f);
 
     // ---- Envelopes ----
     auto addEnv = [&] (const String& pre, const String& name, float a, float d, float s, float r)

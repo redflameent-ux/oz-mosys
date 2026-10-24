@@ -14,6 +14,8 @@ void SynthVoice::setCurrentSampleRate (double sr)
     filter.setSampleRate (sr);
     cloud.prepare (sr);
     fm.prepare (sr);
+    filter2.setSampleRate (sr);
+    for (auto& e : slots) for (auto& s : e) s.prepare (sr);
     resonator.prepare (sr);
 }
 
@@ -22,6 +24,13 @@ void SynthVoice::noteStarted()
     auto& p = shared.p;
     const int midiNote = currentlyPlayingNote.initialNote;
     velocity = currentlyPlayingNote.noteOnVelocity.asUnsignedFloat();
+    switch ((int) rd (p.velCurve))
+    {
+        case 1: velocity = std::sqrt (velocity); break;   // soft touch: loud comes easily
+        case 2: velocity = velocity * velocity; break;    // hard touch
+        case 3: velocity = 1.0f; break;                   // fixed
+        default: break;
+    }
     bendReset = true;
     // tuning: A4 reference + per-scale-degree offsets (ragas, maqamat, just)
     const int root = (int) rd (p.scaleRoot);
@@ -31,6 +40,7 @@ void SynthVoice::noteStarted()
     noteTime = 0.0f;
     const bool glideOn = rd (p.glide) > 0.001f && shared.lastNote >= 0.0f;
     note = glideOn ? shared.lastNote : targetNote;
+    glideRate = std::abs (targetNote - note) / juce::jmax (0.001f, rd (p.glide));
     shared.lastNote = targetNote;
 
     randomValue = rng.nextFloat() * 2.0f - 1.0f;
@@ -41,6 +51,10 @@ void SynthVoice::noteStarted()
     for (auto& ph : wtPhase) ph = rng.nextFloat();
     analog.reset (rng.nextFloat());
     filter.reset();
+    filter2.reset();
+    fbState[0] = fbState[1] = 0.0f;
+    moPhaseAcc = 0.0;
+    for (auto& e : slots) for (auto& s : e) s.reset();
     cloud.reset (rng);
     resonator.noteOn (rng);
     fm.noteOn (fmSettings(), velocity, rng);
@@ -198,12 +212,22 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
 
     // ---- pitch ----
     const float glideT = rd (p.glide);
+    const int glideCurve = (int) rd (p.glideCurve);
     if (glideT > 0.001f)
     {
-        const float coef = std::exp (-secs / (glideT * 0.35f));
-        note = targetNote + (note - targetNote) * coef;
+        if (glideCurve == 0)
+        {
+            const float coef = std::exp (-secs / (glideT * 0.35f));
+            note = targetNote + (note - targetNote) * coef;
+        }
+        else
+        {
+            const float step = glideRate * secs;
+            note = std::abs (targetNote - note) <= step ? targetNote : note + (targetNote > note ? step : -step);
+        }
     }
     else note = targetNote;
+    const float playNote = (glideCurve == 2 && glideT > 0.001f) ? targetNote + std::round (note - targetNote) : note;
 
     // slow random drift for the analog engine
     driftValue += (driftTarget - driftValue) * juce::jmin (1.0f, secs * 1.5f);
@@ -214,15 +238,51 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
     if (bendReset) { bendNow = bendTarget; bendReset = false; }
     bendNow += (bendTarget - bendNow) * 0.6f;
     const float bendSemis = bendNow;
-    const float basePitch = note + bendSemis + mod[dstPitchAll] * 24.0f;
+    const float basePitch = playNote + bendSemis + mod[dstPitchAll] * 24.0f;
     const float sr = (float) sampleRate;
     auto hzFor = [] (float midi) { return 440.0f * std::exp2 ((midi - 69.0f) / 12.0f); };
 
     float L[32] {}, R[32] {};
 
+    // ---- modulation oscillator (Massive-style), one sine per voice ----
+    float moBuf[32] {};
+    const float moRing = rd (p.moRing), moPhaseAmt = rd (p.moPhase), moPosAmt = rd (p.moPos), moFfm = rd (p.moFfm);
+    const bool moActive = moRing > 0.0001f || moPhaseAmt > 0.0001f || moPosAmt > 0.0001f || moFfm > 0.0001f;
+    if (moActive)
+    {
+        const double inc = hzFor (basePitch + rd (p.moPitch) + mod[dstMoPitch] * 24.0f) / sampleRate;
+        for (int i = 0; i < n; ++i)
+        {
+            moBuf[i] = (float) std::sin (moPhaseAcc * juce::MathConstants<double>::twoPi);
+            moPhaseAcc += inc; moPhaseAcc -= std::floor (moPhaseAcc);
+        }
+    }
+    const int moRingDst = (int) rd (p.moRingDst);
+
+    // ---- each engine is a channel: render alone, run its 2 module slots, then mix in ----
+    float keepL[32], keepR[32];
+    auto beginChannel = [&]
+    {
+        std::copy (L, L + n, keepL); std::copy (R, R + n, keepR);
+        std::fill (L, L + n, 0.0f); std::fill (R, R + n, 0.0f);
+    };
+    auto endChannel = [&] (int e, float channelPitch)
+    {
+        const float noteHz = hzFor (channelPitch);
+        for (int sl = 0; sl < slotsPerEngine; ++sl)
+        {
+            const int type = (int) rd (p.slotType[e][sl]);
+            if (type != 0) slots[e][sl].process (type, rd (p.slotA[e][sl]), rd (p.slotB[e][sl]), rd (p.slotMix[e][sl]), noteHz, L, R, n);
+        }
+        if (moRing > 0.0001f && (moRingDst == 0 || moRingDst == e + 1))
+            for (int i = 0; i < n; ++i) { const float m = 1.0f - moRing + moRing * moBuf[i]; L[i] *= m; R[i] *= m; }
+        for (int i = 0; i < n; ++i) { L[i] += keepL[i]; R[i] += keepR[i]; }
+    };
+
     // ===================== WAVETABLE ENGINE =====================
     if (rd (p.wtOn) > 0.5f && shared.table != nullptr)
     {
+        beginChannel();
         const auto& table = *shared.table;
         const float pitch = basePitch + rd (p.wtOct) * 12.0f + rd (p.wtSemi) + rd (p.wtFine) * 0.01f + mod[dstWtPitch] * 24.0f;
         const float baseInc = hzFor (pitch) / sr;
@@ -270,6 +330,17 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
                     ph += inc; if (ph >= 1.0f) ph -= 1.0f;
                 }
             }
+            else if (moPhaseAmt > 0.0001f || moPosAmt > 0.0001f)   // audio-rate phase / position from the mod osc
+            {
+                for (int i = 0; i < n; ++i)
+                {
+                    float pp2 = ph + moBuf[i] * moPhaseAmt * 0.5f;
+                    pp2 -= std::floor (pp2);
+                    const float s = table.read (juce::jlimit (0.0f, 1.0f, pos + moBuf[i] * moPosAmt * 0.5f), warpPhase (pp2, warpMode, warpAmt), level0);
+                    L[i] += s * gL; R[i] += s * gR;
+                    ph += inc; if (ph >= 1.0f) ph -= 1.0f;
+                }
+            }
             else
             {
                 for (int i = 0; i < n; ++i)
@@ -281,12 +352,14 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
             }
             wtPhase[u] = ph;
         }
+        endChannel (0, pitch);
     }
     else displayWtPos = -1.0f;
 
     // ===================== ANALOG ENGINE =====================
     if (rd (p.anOn) > 0.5f)
     {
+        beginChannel();
         const float pitch = basePitch + rd (p.anOct) * 12.0f + rd (p.anSemi) + rd (p.anFine) * 0.01f
                           + mod[dstAnPitch] * 24.0f + driftValue * rd (p.anDrift) * 0.12f;
         const float inc = hzFor (pitch) / sr;
@@ -306,12 +379,14 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
             s = s * tone + subS * sub + (rng.nextFloat() * 2.0f - 1.0f) * noise * 0.7f;
             L[i] += s * gL; R[i] += s * gR;
         }
+        endChannel (1, pitch);
     }
 
     // ===================== GRANULAR ENGINE =====================
     if (rd (p.grOn) > 0.5f && shared.grains != nullptr)
     {
         const auto& gs = *shared.grains;
+        beginChannel();
         scanOffset += rd (p.grScan) * secs * 0.1f;
         scanOffset -= std::floor (scanOffset);
         GrainCloud::Settings s;
@@ -331,12 +406,14 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         cloud.render (gs, s, gL, gR, n, rng);
         const float level = juce::jlimit (0.0f, 1.0f, rd (p.grLevel) + mod[dstGrLevel]);
         for (int i = 0; i < n; ++i) { L[i] += gL[i] * level; R[i] += gR[i] * level; }
+        endChannel (2, basePitch + rd (p.grOct) * 12.0f + rd (p.grSemi));
     }
     else displayGrPos = -1.0f;
 
     // ===================== RESONATOR ENGINE =====================
     if (rd (p.resOn) > 0.5f)
     {
+        beginChannel();
         Resonator::Settings rs;
         rs.type = (int) rd (p.resType);
         rs.decay = juce::jlimit (0.02f, 30.0f, rd (p.resDecay) * std::exp2 (mod[dstResDecay] * 3.0f));
@@ -354,11 +431,13 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         const float gL = std::cos ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
         const float gR = std::sin ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
         for (int i = 0; i < n; ++i) { L[i] += tmp[i] * gL; R[i] += tmp[i] * gR; }
+        endChannel (3, pitch);
     }
 
     // ===================== FM ENGINE =====================
     if (rd (p.fmOn) > 0.5f)
     {
+        beginChannel();
         auto fs = fmSettings();
         fs.index = juce::jlimit (0.0f, 3.0f, fs.index * std::exp2 (mod[dstFmIndex] * 2.0f));
         const float pitch = basePitch + rd (p.fmOct) * 12.0f + rd (p.fmSemi) + mod[dstFmPitch] * 24.0f;
@@ -369,21 +448,58 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         const float gL = std::cos ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
         const float gR = std::sin ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
         for (int i = 0; i < n; ++i) { L[i] += tmp[i] * gL; R[i] += tmp[i] * gR; }
+        endChannel (4, pitch);
     }
 
-    // ===================== FILTER =====================
-    const float e2Start = env2.getValue();
-    if (rd (p.fltOn) > 0.5f)
+    // ===================== NOISE =====================
+    const float noiseLvl = juce::jlimit (0.0f, 1.0f, rd (p.noiseLevel) + mod[dstNoiseLevel]);
+    if (noiseLvl > 0.0001f)
     {
-        float cut = rd (p.fltCutoff) + rd (p.fltEnv) * e2Start + mod[dstCutoff]
-                  + rd (p.fltKey) * (targetNote - 60.0f) / 12.0f * 0.1003f;
-        const float res = juce::jlimit (0.0f, 1.0f, rd (p.fltRes) + mod[dstResonance]);
-        const float drv = juce::jlimit (0.0f, 1.0f, rd (p.fltDrive) + mod[dstFltDrive]);
-        filter.setParams ((int) rd (p.fltType), cutoffToHz (cut), res, drv);
+        const int colour = (int) rd (p.noiseColor);
+        for (int i = 0; i < n; ++i) { const float s = noise.next (colour, rng) * noiseLvl * 0.5f; L[i] += s; R[i] += s; }
+    }
+
+    // ===================== FILTERS (dual, series / parallel, with feedback) =====================
+    const float e2Start = env2.getValue();
+    const bool f1 = rd (p.fltOn) > 0.5f, f2 = rd (p.flt2On) > 0.5f;
+    const float fb = juce::jlimit (0.0f, 1.0f, rd (p.fbAmt) + mod[dstFeedback]);
+    if (f1 || f2 || fb > 0.0001f)
+    {
+        const float cut1 = rd (p.fltCutoff) + rd (p.fltEnv) * e2Start + mod[dstCutoff] + rd (p.fltKey) * (targetNote - 60.0f) / 12.0f * 0.1003f;
+        const float res1 = juce::jlimit (0.0f, 1.0f, rd (p.fltRes) + mod[dstResonance]);
+        const float drv1 = juce::jlimit (0.0f, 1.0f, rd (p.fltDrive) + mod[dstFltDrive]);
+        const int type1 = (int) rd (p.fltType);
+        const float cut2 = rd (p.flt2Cutoff) + rd (p.flt2Env) * e2Start + mod[dstCutoff2];
+        const float res2 = juce::jlimit (0.0f, 1.0f, rd (p.flt2Res) + mod[dstRes2]);
+        const int type2 = (int) rd (p.flt2Type);
+        const bool parallel = rd (p.fltRoute) > 0.5f;
+        const float bal = rd (p.fltBalance);
+        const bool ffm = moFfm > 0.0001f;
+        if (f1 && ! ffm) filter.setParams (type1, cutoffToHz (cut1), res1, drv1);
+        if (f2) filter2.setParams (type2, cutoffToHz (cut2), res2, rd (p.flt2Drive));
+        const float fbGain = fb * 1.4f;
         for (int i = 0; i < n; ++i)
         {
-            L[i] = filter.process (L[i], 0);
-            R[i] = filter.process (R[i], 1);
+            if (f1 && ffm) filter.setParams (type1, cutoffToHz (cut1 + moBuf[i] * moFfm * 0.35f), res1, drv1);
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                float* io = ch == 0 ? L : R;
+                const float x = io[i] + std::tanh (fbState[ch] * fbGain) * 0.7f;
+                float y;
+                if (parallel)
+                {
+                    const float a = f1 ? filter.process (x, ch) : x;
+                    const float b = f2 ? filter2.process (x, ch) : x;
+                    y = (f1 && f2) ? a * (1.0f - bal) + b * bal : (f1 ? a : b);
+                }
+                else
+                {
+                    y = f1 ? filter.process (x, ch) : x;
+                    if (f2) y = filter2.process (y, ch);
+                }
+                fbState[ch] = y;
+                io[i] = y;
+            }
         }
     }
 

@@ -8,6 +8,7 @@
 #include "dsp/Resonator.h"
 #include "dsp/Mseg.h"
 #include "dsp/FmEngine.h"
+#include "dsp/Modules.h"
 
 namespace ff
 {
@@ -23,6 +24,9 @@ struct ParamRefs
     std::atomic<float> *grOn, *grPos, *grScan, *grSize, *grDensity, *grSpray, *grPitchRand, *grStereo, *grReverse, *grOct, *grSemi, *grLevel;
     std::atomic<float> *fmOn, *fmLevel, *fmPan, *fmOct, *fmSemi, *fmIndex;
     std::atomic<float> *fmRatio[6], *fmFine[6], *fmOpLevel[6], *fmWave[6], *fmEnv[6][4], *fmVel[6], *fmMatrix[6][6];
+    std::atomic<float> *slotType[numEngines][slotsPerEngine], *slotA[numEngines][slotsPerEngine], *slotB[numEngines][slotsPerEngine], *slotMix[numEngines][slotsPerEngine];
+    std::atomic<float> *moPitch, *moRing, *moRingDst, *moPhase, *moPos, *moFfm, *noiseLevel, *noiseColor, *fbAmt;
+    std::atomic<float> *flt2On, *flt2Type, *flt2Cutoff, *flt2Res, *flt2Drive, *flt2Env, *fltRoute, *fltBalance, *glideCurve, *velCurve;
     std::atomic<float> *fltOn, *fltType, *fltCutoff, *fltRes, *fltDrive, *fltEnv, *fltKey;
     std::atomic<float> *env[3][4];
     std::atomic<float> *lfoShape[2], *lfoRate[2], *lfoRetrig[2];
@@ -54,6 +58,16 @@ struct ParamRefs
             fmVel[i] = g (pre + "_vel");
             for (int j = 0; j < 6; ++j) fmMatrix[i][j] = g ("fm_m" + juce::String (i + 1) + juce::String (j + 1));
         }
+        for (int e = 0; e < numEngines; ++e)
+            for (int sl = 0; sl < slotsPerEngine; ++sl)
+            {
+                const juce::String pre = juce::String (enginePrefixes()[e]) + "_s" + juce::String (sl + 1);
+                slotType[e][sl] = g (pre + "_type"); slotA[e][sl] = g (pre + "_a"); slotB[e][sl] = g (pre + "_b"); slotMix[e][sl] = g (pre + "_mix");
+            }
+        moPitch = g ("mo_pitch"); moRing = g ("mo_ring"); moRingDst = g ("mo_ringdst"); moPhase = g ("mo_phase"); moPos = g ("mo_pos");
+        moFfm = g ("mo_ffm"); noiseLevel = g ("noise_level"); noiseColor = g ("noise_color"); fbAmt = g ("fb_amt");
+        flt2On = g ("flt2_on"); flt2Type = g ("flt2_type"); flt2Cutoff = g ("flt2_cutoff"); flt2Res = g ("flt2_res"); flt2Drive = g ("flt2_drive");
+        flt2Env = g ("flt2_env"); fltRoute = g ("flt_route"); fltBalance = g ("flt_balance"); glideCurve = g ("glide_curve"); velCurve = g ("vel_curve");
         fltOn = g ("flt_on"); fltType = g ("flt_type"); fltCutoff = g ("flt_cutoff"); fltRes = g ("flt_res"); fltDrive = g ("flt_drive");
         fltEnv = g ("flt_env"); fltKey = g ("flt_key");
         const char* envPre[3] = { "amp", "e2", "e3" };
@@ -121,6 +135,12 @@ private:
     GrainCloud cloud;
     Resonator resonator;
     FmVoice fm;
+    ModuleSlot slots[numEngines][slotsPerEngine];
+    NoiseGen noise;
+    VoiceFilter filter2;
+    double moPhaseAcc = 0.0;
+    float fbState[2] {};
+    float glideRate = 0.0f;
     FmVoice::Settings fmSettings() const;
     MsegPlayer msegPlayer[4];
     float noteTime = 0.0f;
