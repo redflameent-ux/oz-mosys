@@ -8,12 +8,12 @@ customisation come before performance extras.
 ## Done
 - v0.6: Absynth-style browser + sound map, mutator, fine tuning, subpresets, ENV page (4 MSEGs),
   macro bar with Controls/Keys, live mod strip, Expansions page with installable `.ozpack` collections.
+- v0.8: FM engine (6 operators, FM matrix, per-operator envelopes, 10 starting routings), FM Classics bank.
 - v0.7: sound-type + mode chips, MIDI learn with links list, warp modes Formant / Steps / Fold, per-section mutation amount.
 
 
 ## v0.7 Layers + deep sound design
 - Engines become layers A-D, each with 2 module slots (ladder LP/HP, comb, supercomb, freq shifter, ring mod, waveshaper, notch), volume, pan
-- 5th engine: FM with a 6-operator matrix and per-operator breakpoint envelopes
 - Quadzone-style layer blend (fader / keyboard position / velocity)
 - Dual filter (series / parallel, mix), modulation oscillator (ring / phase / position / filter FM), feedback path, coloured noise
 - Glide curves and velocity curves

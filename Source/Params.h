@@ -36,6 +36,7 @@ enum ModDest
     dstCutoff, dstResonance, dstFltDrive,
     dstAmp, dstPan, dstPitchAll, dstLfo1Rate, dstLfo2Rate,
     dstResPitch, dstResBright, dstResDecay, dstResBow, dstResLevel, dstResBuzz,
+    dstFmPitch, dstFmIndex, dstFmLevel,
     numModDests
 };
 
@@ -47,7 +48,8 @@ inline const juce::StringArray& modDestNames()
         "Grain Position", "Grain Size", "Grain Density", "Grain Spray", "Grain Pitch", "Grain Level",
         "Filter Cutoff", "Filter Resonance", "Filter Drive",
         "Volume", "Pan", "Pitch (All)", "LFO 1 Rate", "LFO 2 Rate",
-        "Res Pitch", "Res Brightness", "Res Decay", "Res Bow", "Res Level", "Res Buzz" };
+        "Res Pitch", "Res Brightness", "Res Decay", "Res Bow", "Res Level", "Res Buzz",
+        "FM Pitch", "FM Depth", "FM Level" };
     return names;
 }
 
@@ -239,6 +241,37 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     addI ("res_semi", "Res Semitone", -12, 12, 0);
     addF ("res_level", "Res Level", { 0.0f, 1.0f }, 0.75f);
     addF ("res_pan", "Res Pan", { -1.0f, 1.0f }, 0.0f);
+
+    // ---- FM engine (6 operators + matrix) ----
+    addB ("fm_on", "FM On", false);
+    addF ("fm_level", "FM Level", { 0.0f, 1.0f }, 0.7f);
+    addF ("fm_pan", "FM Pan", { -1.0f, 1.0f }, 0.0f);
+    addI ("fm_oct", "FM Octave", -3, 3, 0);
+    addI ("fm_semi", "FM Semitone", -12, 12, 0);
+    addF ("fm_index", "FM Depth", { 0.0f, 2.0f }, 1.0f);
+    {
+        const float defRatio[6] = { 1.0f, 1.0f, 2.0f, 3.0f, 4.0f, 7.0f };
+        const char* L = "ABCDEF";
+        for (int i = 0; i < 6; ++i)
+        {
+            const String pre = "fm" + String (i + 1), nm = String ("FM Op ") + L[i];
+            NormalisableRange<float> rr (0.125f, 32.0f, 0.001f);
+            rr.setSkewForCentre (2.0f);
+            addF (pre + "_ratio", nm + " Ratio", rr, defRatio[i]);
+            addF (pre + "_fine", nm + " Fine", { -100.0f, 100.0f }, 0.0f, "ct");
+            addF (pre + "_level", nm + " Output", { 0.0f, 1.0f }, i == 0 ? 1.0f : 0.0f);
+            addC (pre + "_wave", nm + " Wave", StringArray { "Sine", "Half Sine", "Abs Sine", "Triangle", "Saw", "Square", "Pulse 25", "Sine x2" }, 0);
+            addF (pre + "_a", nm + " Attack", timeRange (0.0f, 10.0f), 0.002f, "s");
+            addF (pre + "_d", nm + " Decay", timeRange (0.001f, 10.0f), i == 0 ? 1.5f : 0.8f, "s");
+            addF (pre + "_s", nm + " Sustain", { 0.0f, 1.0f }, i == 0 ? 0.7f : 0.4f);
+            addF (pre + "_r", nm + " Release", timeRange (0.001f, 15.0f), 0.4f, "s");
+            addF (pre + "_vel", nm + " Velocity", { 0.0f, 1.0f }, 0.5f);
+        }
+        for (int from = 0; from < 6; ++from)
+            for (int to = 0; to < 6; ++to)
+                addF ("fm_m" + String (from + 1) + String (to + 1), String ("FM ") + L[from] + " > " + L[to], { 0.0f, 1.0f },
+                      (from == 1 && to == 0) ? 0.35f : 0.0f);
+    }
 
     // ---- Filter ----
     addB ("flt_on", "Filter On", true);

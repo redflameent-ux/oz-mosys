@@ -13,6 +13,7 @@ void SynthVoice::setCurrentSampleRate (double sr)
     ampEnv.setSampleRate (sr); env2.setSampleRate (sr); env3.setSampleRate (sr);
     filter.setSampleRate (sr);
     cloud.prepare (sr);
+    fm.prepare (sr);
     resonator.prepare (sr);
 }
 
@@ -42,6 +43,7 @@ void SynthVoice::noteStarted()
     filter.reset();
     cloud.reset (rng);
     resonator.noteOn (rng);
+    fm.noteOn (fmSettings(), velocity, rng);
     for (auto& m : msegPlayer) m.start();
 
     for (int i = 0; i < 2; ++i)
@@ -65,6 +67,7 @@ void SynthVoice::noteStopped (bool allowTailOff)
     {
         for (auto& m : msegPlayer) m.release();
         ampEnv.noteOff(); env2.noteOff(); env3.noteOff();
+        fm.noteOff();
     }
     else
     {
@@ -74,6 +77,22 @@ void SynthVoice::noteStopped (bool allowTailOff)
     }
 }
 
+
+FmVoice::Settings SynthVoice::fmSettings() const
+{
+    auto& p = shared.p;
+    FmVoice::Settings s;
+    for (int i = 0; i < numFmOps; ++i)
+    {
+        auto& o = s.op[(size_t) i];
+        o.ratio = rd (p.fmRatio[i]); o.fineCents = rd (p.fmFine[i]); o.level = rd (p.fmOpLevel[i]);
+        o.wave = (int) rd (p.fmWave[i]); o.velSens = rd (p.fmVel[i]);
+        o.a = rd (p.fmEnv[i][0]); o.d = rd (p.fmEnv[i][1]); o.s = rd (p.fmEnv[i][2]); o.r = rd (p.fmEnv[i][3]);
+        for (int j = 0; j < numFmOps; ++j) s.matrix[i][j] = rd (p.fmMatrix[i][j]);
+    }
+    s.index = rd (p.fmIndex);
+    return s;
+}
 
 float SynthVoice::warpPhase (float p, int mode, float amt) const noexcept
 {
@@ -332,6 +351,21 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         resonator.process (rs, hzFor (pitch), tmp, n, rng);
         const float level = juce::jlimit (0.0f, 1.0f, rd (p.resLevel) + mod[dstResLevel]);
         const float pan = rd (p.resPan);
+        const float gL = std::cos ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
+        const float gR = std::sin ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
+        for (int i = 0; i < n; ++i) { L[i] += tmp[i] * gL; R[i] += tmp[i] * gR; }
+    }
+
+    // ===================== FM ENGINE =====================
+    if (rd (p.fmOn) > 0.5f)
+    {
+        auto fs = fmSettings();
+        fs.index = juce::jlimit (0.0f, 3.0f, fs.index * std::exp2 (mod[dstFmIndex] * 2.0f));
+        const float pitch = basePitch + rd (p.fmOct) * 12.0f + rd (p.fmSemi) + mod[dstFmPitch] * 24.0f;
+        float tmp[32] {};
+        fm.process (fs, hzFor (pitch), tmp, n);
+        const float level = juce::jlimit (0.0f, 1.0f, rd (p.fmLevel) + mod[dstFmLevel]) * 0.6f;
+        const float pan = rd (p.fmPan);
         const float gL = std::cos ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
         const float gR = std::sin ((pan + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * level;
         for (int i = 0; i < n; ++i) { L[i] += tmp[i] * gL; R[i] += tmp[i] * gR; }

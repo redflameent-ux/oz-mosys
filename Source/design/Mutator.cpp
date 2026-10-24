@@ -201,10 +201,10 @@ void Mutator::keepPlayable (Snapshot& s)
     auto setReal = [this, &s] (const char* id, float v) { auto* p = proc.apvts.getParameter (id); s.values[id] = p->convertTo0to1 (v); };
 
     // at least one engine on, and audible
-    const char* engines[] = { "wt_on", "an_on", "gr_on", "res_on" };
-    const char* levels[] = { "wt_level", "an_level", "gr_level", "res_level" };
+    const char* engines[] = { "wt_on", "an_on", "gr_on", "res_on", "fm_on" };
+    const char* levels[] = { "wt_level", "an_level", "gr_level", "res_level", "fm_level" };
     bool any = false;
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 5; ++i)
         if (real (engines[i]) > 0.5f) { any = true; if (real (levels[i]) < 0.3f) setReal (levels[i], 0.3f + rng.nextFloat() * 0.3f); }
     if (! any) { setReal ("wt_on", 1.0f); setReal ("wt_level", 0.7f); }
 

@@ -7,7 +7,7 @@ const juce::StringArray& sectionNames()
 {
     static const juce::StringArray names { "Wavetable", "Analog", "Granular", "Resonator", "Filter", "Amp Envelope",
                                            "Envelope 2", "Envelope 3", "LFOs", "MSEGs", "Mod Matrix", "Macros",
-                                           "Effects", "Voice & Tuning" };
+                                           "Effects", "Voice & Tuning", "FM" };
     return names;
 }
 
@@ -32,6 +32,7 @@ bool paramInSection (const juce::String& id, int section)
                                   || starts ("ring_") || starts ("cho_") || starts ("dly_") || starts ("rev_") || starts ("eq_");
         case secVoice:     return id == "glide" || id == "bend" || id == "voice_mode" || id == "tune_a4"
                                   || id == "scale" || id == "scale_root" || id == "master";
+        case secFm:        return id.startsWith ("fm");
         default:           return false;
     }
 }

@@ -503,6 +503,57 @@ p(C, "Brushed Snare", d(OFF, NOISE, an_level=0.5, flt_type=2, flt_cutoff=0.68, a
 p(C, "Rain-Slick Pad", d(wt_table=1, wt_pos=0.2, wt_unison=3, wt_detune=0.12, gr_on=1, gr_source=3, gr_level=0.3,
     gr_spray=0.8, flt_type=1, flt_cutoff=0.5, amp_a=1.5, amp_s=1, amp_r=3, tape_hiss=0.3, tape_age=0.3, rev_mix=0.55))
 
+# ============================== FM CLASSICS (FM8 / DX spirit) ==============================
+C = "FM Classics"
+FM = dict(wt_on=0, fm_on=1, fm_m21=0)          # FM engine only; routings set per preset
+def op(i, ratio=1, level=0, a=0.002, d=0.8, s_=0.4, r=0.4, vel=0.5, fine=0, wave=0):
+    k = "fm%d_" % i
+    return {k+"ratio": ratio, k+"level": level, k+"a": a, k+"d": d, k+"s": s_, k+"r": r, k+"vel": vel, k+"fine": fine, k+"wave": wave}
+p(C, "Tine E-Piano", d(FM, op(1, 1, 1, d=3.5, s_=0, r=0.7), op(2, 1, 0, d=1.4, s_=0.08, vel=0.85),
+    op(3, 1, 0.45, d=2.2, s_=0, r=0.5), op(4, 14, 0, d=0.22, s_=0, vel=0.9),
+    fm_m21=0.42, fm_m43=0.33, flt_cutoff=0.9, amp_a=0.001, amp_s=1, amp_r=0.7, cho_mix=0.35, cho_rate=0.4, rev_mix=0.2),
+  [("Velocity", "FmIndex", 0.3)])
+p(C, "Tubular Bell", d(FM, op(1, 1, 1, d=7, s_=0, r=4), op(2, 3.5, 0, d=5, s_=0), op(3, 1, 0.5, d=5, s_=0, r=3, fine=4),
+    op(4, 5.19, 0, d=3, s_=0), fm_m21=0.5, fm_m43=0.4, flt_on=0, amp_a=0.001, amp_s=1, amp_r=4, rev_mix=0.4, rev_size=0.85))
+p(C, "DX Bass Pluck", d(FM, op(1, 1, 1, d=1.2, s_=0.6, r=0.15), op(2, 1, 0, d=0.35, s_=0.1, vel=0.8),
+    fm_m21=0.55, fm_m22=0.45, fm_oct=-1, flt_cutoff=0.75, amp_a=0.001, amp_s=1, amp_r=0.15, voice_mode=1, glide=0.02, rev_mix=0))
+p(C, "Growl Bass", d(FM, op(1, 1, 1, d=3, s_=1, r=0.2), op(2, 2, 0, d=3, s_=1), op(3, 0.5, 0.5, d=3, s_=1),
+    fm_m21=0.5, fm_m22=0.35, fm_oct=-1, lfo1_shape=0, lfo1_rate=3, flt_cutoff=0.55, flt_res=0.3, fx_drive=0.35,
+    amp_a=0.002, amp_s=1, amp_r=0.2, voice_mode=1, glide=0.04, rev_mix=0),
+  [("Lfo1", "FmIndex", 0.35)])
+p(C, "Glass Pad", d(FM, op(1, 1, 0.8, a=1.5, d=3, s_=1, r=3, fine=-7), op(2, 3, 0, a=2, d=4, s_=0.6, r=3),
+    op(3, 2, 0.6, a=1.8, d=3, s_=1, r=3, fine=7), op(4, 7, 0, a=2.5, d=5, s_=0.3, r=3),
+    fm_m21=0.25, fm_m43=0.2, flt_type=1, flt_cutoff=0.7, amp_a=1.2, amp_s=1, amp_r=3, lfo1_rate=0.15, cho_mix=0.5,
+    rev_mix=0.55, rev_size=0.9),
+  [("Lfo1", "FmIndex", 0.2)])
+p(C, "Brass Stab", d(FM, op(1, 1, 1, a=0.03, d=0.6, s_=0.8, r=0.25), op(2, 1, 0, a=0.09, d=0.6, s_=0.7, r=0.25),
+    op(3, 1, 0, a=0.07, d=0.5, s_=0.5, fine=5), op(4, 2, 0, a=0.1, d=0.4, s_=0.4),
+    fm_m21=0.42, fm_m31=0.3, fm_m41=0.25, flt_cutoff=0.8, amp_a=0.02, amp_s=1, amp_r=0.25, cho_mix=0.25, rev_mix=0.2),
+  [("Velocity", "FmIndex", 0.35)])
+p(C, "Digital Clav", d(FM, op(1, 1, 1, d=0.9, s_=0, r=0.12), op(2, 3, 0, d=0.3, s_=0, vel=0.9),
+    op(3, 1, 0.5, d=0.7, s_=0, r=0.1), op(4, 7, 0, d=0.12, s_=0),
+    fm_m21=0.5, fm_m43=0.45, flt_cutoff=0.85, amp_a=0.001, amp_s=1, amp_r=0.12, rev_mix=0.12))
+p(C, "FM Marimba", d(FM, op(1, 1, 1, d=0.9, s_=0, r=0.4), op(2, 3.5, 0, d=0.07, s_=0, vel=0.9),
+    op(3, 4, 0.25, d=0.25, s_=0, r=0.2), fm_m21=0.55, flt_on=0, amp_a=0.001, amp_s=1, amp_r=0.5, rev_mix=0.25))
+p(C, "Six-Bar Organ", d(FM, op(1, 0.5, 0.8, a=0.005, d=1, s_=1, r=0.08), op(2, 1, 0.7, a=0.005, d=1, s_=1, r=0.08),
+    op(3, 2, 0.5, a=0.005, d=1, s_=1, r=0.08), op(4, 3, 0.4, a=0.005, d=1, s_=1, r=0.08),
+    op(5, 4, 0.3, a=0.005, d=1, s_=1, r=0.08), op(6, 6, 0.25, a=0.005, d=1, s_=1, r=0.08),
+    flt_cutoff=0.8, amp_a=0.004, amp_s=1, amp_r=0.08, lfo2_rate=6.5, cho_mix=0.45, cho_rate=1.2, rev_mix=0.2),
+  [("Lfo2", "Amp", 0.08)])
+p(C, "Metal Sweep", d(FM, op(1, 1, 1, a=0.01, d=4, s_=0.6, r=2), op(2, 1.41, 0, d=4, s_=0.7), op(3, 2.7, 0, d=4, s_=0.7),
+    op(4, 3.3, 0, d=4, s_=0.7), op(5, 5.1, 0, d=4, s_=0.7), op(6, 7.9, 0, d=4, s_=0.7),
+    fm_m65=0.35, fm_m54=0.35, fm_m43=0.35, fm_m32=0.35, fm_m21=0.4, fm_index=0.4,
+    e3_a=4, e3_d=1, e3_s=1, e3_r=2, flt_cutoff=0.7, amp_a=0.3, amp_s=1, amp_r=2, rev_mix=0.45, dly_mix=0.25),
+  [("Env3", "FmIndex", 0.7)])
+p(C, "FM Sitar", d(FM, op(1, 1, 1, d=3, s_=0.1, r=0.6), op(2, 1, 0, d=2.5, s_=0.3), op(3, 3, 0, d=0.5, s_=0, vel=0.8),
+    fm_m21=0.45, fm_m22=0.55, fm_m31=0.3, flt_cutoff=0.8, amp_a=0.001, amp_s=1, amp_r=0.6, rev_mix=0.3,
+    scale=2), [])
+p(C, "Space Bell Pad", d(FM, op(1, 1, 1, a=1.2, d=6, s_=0.5, r=5), op(2, 3.5, 0, a=1.5, d=5, s_=0.3), op(3, 2, 0.6, a=1.4, d=6, s_=0.5, r=5, fine=5),
+    op(4, 5.19, 0, a=2, d=5, s_=0.2), op(5, 1.5, 0, a=2.5, d=8, s_=0.4), op(6, 0.5, 0.5, a=2, d=6, s_=1, r=5),
+    fm_m21=0.4, fm_m43=0.35, fm_m54=0.2, flt_type=1, flt_cutoff=0.75, amp_a=1.5, amp_s=1, amp_r=5,
+    cho_mix=0.4, dly_mix=0.25, dly_time=480, dly_fb=0.5, rev_mix=0.6, rev_size=0.95),
+  [("Lfo1", "FmIndex", 0.15)])
+
 # ----------------------------------------------------------------------------
 SRC = dict(Env2="srcEnv2", Env3="srcEnv3", Lfo1="srcLfo1", Lfo2="srcLfo2", Velocity="srcVelocity",
            ModWheel="srcModWheel", Aftertouch="srcAftertouch", KeyTrack="srcKeyTrack", Random="srcRandom",
@@ -513,7 +564,7 @@ DST = dict(WtPos="dstWtPos", WtWarp="dstWtWarp", WtPitch="dstWtPitch", WtDetune=
            GrLevel="dstGrLevel", Cutoff="dstCutoff", Resonance="dstResonance", FltDrive="dstFltDrive",
            Amp="dstAmp", Pan="dstPan", PitchAll="dstPitchAll", Lfo1Rate="dstLfo1Rate", Lfo2Rate="dstLfo2Rate",
            ResPitch="dstResPitch", ResBright="dstResBright", ResDecay="dstResDecay", ResBow="dstResBow",
-           ResLevel="dstResLevel", ResBuzz="dstResBuzz")
+           ResLevel="dstResLevel", ResBuzz="dstResBuzz", FmPitch="dstFmPitch", FmIndex="dstFmIndex", FmLevel="dstFmLevel")
 
 def add_macros(values, routes):
     """Every new preset gets two useful macros: 1 = brightness, 2 = character."""
@@ -526,7 +577,9 @@ def add_macros(values, routes):
         gr = values.get("gr_on", 0) != 0
         an = values.get("an_on", 0) != 0
         rs = values.get("res_on", 0) != 0
-        if rs:   routes.append(("Macro2", "ResBright", 0.4))
+        fm = values.get("fm_on", 0) != 0
+        if fm:   routes.append(("Macro2", "FmIndex", 0.4))
+        elif rs:   routes.append(("Macro2", "ResBright", 0.4))
         elif wt: routes.append(("Macro2", "WtPos", 0.4))
         elif gr: routes.append(("Macro2", "GrSpray", 0.5))
         elif an: routes.append(("Macro2", "AnShape", 0.4))

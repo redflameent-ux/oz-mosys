@@ -1,6 +1,6 @@
 # OZ-mosys
 
-A four-in-one synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alone on Mac.
+A five-engine synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alone on Mac.
 
 | Engine | Inspired by | What it does |
 |---|---|---|
@@ -8,13 +8,19 @@ A four-in-one synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 | **Analog** | Analog Lab | Band-limited triangle / saw / pulse morph, sub, noise, analog drift |
 | **Granular** | Omnisphere | Turns any audio file into pads and textures: position, scan, size, density, spray, pitch randomness, reverse, stereo width |
 | **Resonator** | physical modelling | Plucked strings and sitar (with jawari buzz and sympathetic strings), Tibetan and crystal bowls, gong, handpan, tongue drum, tingsha, music box, tabla, hand drum, clay pot, 808 cowbell, scrap metal, anvil, pipe, vibraphone, marimba, e-piano. Strike or bow/rub, auto re-pluck |
+| **FM** | FM8 | Six operators on an FM matrix: any operator can modulate any other (and itself, for feedback). Each has its own ratio, fine tune, waveform (8), velocity and envelope. Starting routings for e-pianos, bells, brass, basses and organs |
 | **Mod system** | Pigments | 3 envelopes, 4 breakpoint envelopes (MSEG), 2 LFOs, 8 macros, velocity, mod wheel, aftertouch, key track, slide, random. Drag a source from the live mod strip (or a macro name) onto any knob to route it; right-click a knob to remove |
 
 Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
 World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
-165 factory presets in 18 banks, from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
+177 factory presets in 19 banks (including FM Classics), from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
+
+## FM page
+Press **FM**. The grid is the FM matrix: each row's operator modulates each column's operator; **OUT** sets how loud each
+operator is heard. Drag a cell up/down (Shift = fine), double-click to clear, or pick a starting routing from the menu.
+**Depth** scales all modulation at once (great on a macro or the mod wheel).
 
 ## Macro bar
 Eight macros sit under every page. Double-click a name to rename it; drag the name onto any knob to make that macro move it.

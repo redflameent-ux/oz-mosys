@@ -13,7 +13,7 @@ namespace ff::design
 enum Section
 {
     secWavetable, secAnalog, secGranular, secResonator, secFilter, secAmpEnv, secEnv2, secEnv3,
-    secLfos, secMsegs, secMatrix, secMacros, secEffects, secVoice,
+    secLfos, secMsegs, secMatrix, secMacros, secEffects, secVoice, secFm,
     numSections
 };
 

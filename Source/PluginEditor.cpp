@@ -172,17 +172,27 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     for (auto& [id, label] : fxDefs) makeKnob (fxKnobs, id, label, col::fx);
 
     // ---------------- pages ----------------
-    for (auto* t : { &synthTab, &envTab, &browseTab, &samplerTab, &rollTab })
+    for (auto* t : { &synthTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab })
     {
         t->setClickingTogglesState (false);
         t->setColour (juce::TextButton::buttonOnColourId, col::sampler.withAlpha (0.25f));
         addAndMakeVisible (t);
     }
     synthTab.onClick = [this] { showPage (0); };
-    envTab.onClick = [this] { showPage (1); };
-    browseTab.onClick = [this] { showPage (2); };
-    samplerTab.onClick = [this] { showPage (3); };
-    rollTab.onClick = [this] { showPage (4); };
+    fmTab.onClick = [this] { showPage (1); };
+    envTab.onClick = [this] { showPage (2); };
+    browseTab.onClick = [this] { showPage (3); };
+    samplerTab.onClick = [this] { showPage (4); };
+    rollTab.onClick = [this] { showPage (5); };
+    fmTab.setTooltip ("FM engine: six operators and the FM matrix (FM8-style)");
+    fmPage = std::make_unique<ff::gui::FmPage> (proc, [this] (Knob& k)
+    {
+        if (k.dest > 0) k.onModDropped = [this] (int s, int d) { assignModulation (s, d); };
+        auto* raw = &k;
+        k.slider.onRightClick = [this, raw] { showModMenuFor (*raw); };
+        allKnobs.push_back (raw);
+    });
+    addChildComponent (*fmPage);
     envTab.setTooltip ("Breakpoint envelopes (MSEG 1-4): draw shapes, loop them, sync them, send them anywhere");
     browseTab.setTooltip ("Preset browser, sound map, expansions and the mutator");
     envPage = std::make_unique<ff::gui::EnvelopePage> (proc);
@@ -281,11 +291,11 @@ void FourfoldEditor::paint (juce::Graphics& g)
     const juce::String logo ("OZ-mosys");
     g.drawText (logo, logoArea, juce::Justification::centredLeft);
     const float logoW = juce::GlyphArrangement::getStringWidth (font (22.0f, true), logo);
-    const juce::Colour dots[5] = { col::wavetable, col::analog, col::granular, col::resonator, col::mod };
-    for (int i = 0; i < 5; ++i)
+    const juce::Colour dots[6] = { col::wavetable, col::analog, col::granular, col::resonator, ff::gui::fmCol, col::mod };
+    for (int i = 0; i < 6; ++i)
     {
         g.setColour (dots[i]);
-        g.fillEllipse ((float) logoArea.getX() + logoW + 10.0f + i * 11.0f, (float) logoArea.getCentreY() - 3.5f, 7.0f, 7.0f);
+        g.fillEllipse ((float) logoArea.getX() + logoW + 7.0f + i * 8.5f, (float) logoArea.getCentreY() - 3.0f, 6.0f, 6.0f);
     }
 
     for (auto& pnl : panels)
@@ -329,18 +339,19 @@ void FourfoldEditor::resized()
 
     // ---- top bar ----
     auto top = area.removeFromTop (46);
-    logoArea = top.removeFromLeft (158);
+    logoArea = top.removeFromLeft (156);
     prevBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
-    presetBox.setBounds (top.removeFromLeft (150).reduced (4, 9));
+    presetBox.setBounds (top.removeFromLeft (120).reduced (4, 9));
     nextBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
     top.removeFromLeft (6);
     saveBtn.setBounds (top.removeFromLeft (52).reduced (0, 9));
     top.removeFromLeft (8);
-    synthTab.setBounds (top.removeFromLeft (60).reduced (0, 9));
-    envTab.setBounds (top.removeFromLeft (48).reduced (2, 9));
-    browseTab.setBounds (top.removeFromLeft (70).reduced (0, 9));
-    samplerTab.setBounds (top.removeFromLeft (78).reduced (2, 9));
-    rollTab.setBounds (top.removeFromLeft (52).reduced (0, 9));
+    synthTab.setBounds (top.removeFromLeft (54).reduced (0, 9));
+    fmTab.setBounds (top.removeFromLeft (40).reduced (2, 9));
+    envTab.setBounds (top.removeFromLeft (46).reduced (2, 9));
+    browseTab.setBounds (top.removeFromLeft (64).reduced (0, 9));
+    samplerTab.setBounds (top.removeFromLeft (72).reduced (2, 9));
+    rollTab.setBounds (top.removeFromLeft (48).reduced (0, 9));
     meterArea = top.removeFromRight (80).reduced (0, 19);
     top.removeFromRight (8);
     for (int i = 2; i >= 0; --i) topKnobs[(size_t) i]->setBounds (top.removeFromRight (56));
@@ -499,6 +510,7 @@ void FourfoldEditor::resized()
     samplerPage->setBounds (juce::Rectangle<int> (gap, 46 + gap + 4, editorW - 2 * gap, area.getY() - gap - (46 + gap + 4)));
     rollPage->setBounds (samplerPage->getBounds());
     envPage->setBounds (samplerPage->getBounds());
+    fmPage->setBounds (samplerPage->getBounds());
     browsePage->setBounds (samplerPage->getBounds());
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) keyboard.getWidth() / 50.0f));
 }
@@ -710,9 +722,9 @@ void FourfoldEditor::loadGrainFile (const juce::File& f)
 
 void FourfoldEditor::showPage (int page)
 {
-    juce::Component* pages[] = { nullptr, envPage.get(), browsePage.get(), samplerPage.get(), rollPage.get() };
-    juce::TextButton* tabs[] = { &synthTab, &envTab, &browseTab, &samplerTab, &rollTab };
-    for (int i = 0; i < 5; ++i)
+    juce::Component* pages[] = { nullptr, fmPage.get(), envPage.get(), browsePage.get(), samplerPage.get(), rollPage.get() };
+    juce::TextButton* tabs[] = { &synthTab, &fmTab, &envTab, &browseTab, &samplerTab, &rollTab };
+    for (int i = 0; i < 6; ++i)
     {
         if (pages[i] != nullptr) { pages[i]->setVisible (i == page); if (i == page) pages[i]->toFront (true); }
         tabs[i]->setToggleState (i == page, juce::dontSendNotification);

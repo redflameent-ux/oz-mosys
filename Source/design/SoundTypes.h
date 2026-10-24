@@ -16,7 +16,7 @@ inline const juce::StringArray& typeNames()
 inline const juce::StringArray& modeNames()
 {
     static const juce::StringArray m { "Percussive", "Slow Attack", "Long Release", "Evolving", "Mono",
-                                       "Wavetable", "Analog", "Granular", "Physical", "Sampled" };
+                                       "Wavetable", "Analog", "Granular", "Physical", "FM", "Sampled" };
     return m;
 }
 
@@ -74,6 +74,7 @@ inline juce::StringArray classifyModes (const std::function<float (const char*, 
     if (value ("an_on", 0.0f) > 0.5f) m.add ("Analog");
     if (value ("gr_on", 0.0f) > 0.5f) m.add ("Granular");
     if (value ("res_on", 0.0f) > 0.5f) m.add ("Physical");
+    if (value ("fm_on", 0.0f) > 0.5f) m.add ("FM");
     if (value ("smp_play", 0.0f) > 0.5f) m.add ("Sampled");
     return m;
 }

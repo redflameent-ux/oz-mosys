@@ -7,6 +7,7 @@
 #include "dsp/DspCore.h"
 #include "dsp/Resonator.h"
 #include "dsp/Mseg.h"
+#include "dsp/FmEngine.h"
 
 namespace ff
 {
@@ -20,6 +21,8 @@ struct ParamRefs
     std::atomic<float> *wtOn, *wtTable, *wtPos, *wtWarp, *wtWarpAmt, *wtOct, *wtSemi, *wtFine, *wtUnison, *wtDetune, *wtSpread, *wtLevel, *wtPan;
     std::atomic<float> *anOn, *anTone, *anShape, *anPw, *anOct, *anSemi, *anFine, *anSub, *anNoise, *anDrift, *anLevel, *anPan;
     std::atomic<float> *grOn, *grPos, *grScan, *grSize, *grDensity, *grSpray, *grPitchRand, *grStereo, *grReverse, *grOct, *grSemi, *grLevel;
+    std::atomic<float> *fmOn, *fmLevel, *fmPan, *fmOct, *fmSemi, *fmIndex;
+    std::atomic<float> *fmRatio[6], *fmFine[6], *fmOpLevel[6], *fmWave[6], *fmEnv[6][4], *fmVel[6], *fmMatrix[6][6];
     std::atomic<float> *fltOn, *fltType, *fltCutoff, *fltRes, *fltDrive, *fltEnv, *fltKey;
     std::atomic<float> *env[3][4];
     std::atomic<float> *lfoShape[2], *lfoRate[2], *lfoRetrig[2];
@@ -42,6 +45,15 @@ struct ParamRefs
         grOn = g ("gr_on"); grPos = g ("gr_pos"); grScan = g ("gr_scan"); grSize = g ("gr_size"); grDensity = g ("gr_density");
         grSpray = g ("gr_spray"); grPitchRand = g ("gr_pitchrand"); grStereo = g ("gr_stereo"); grReverse = g ("gr_reverse");
         grOct = g ("gr_oct"); grSemi = g ("gr_semi"); grLevel = g ("gr_level");
+        fmOn = g ("fm_on"); fmLevel = g ("fm_level"); fmPan = g ("fm_pan"); fmOct = g ("fm_oct"); fmSemi = g ("fm_semi"); fmIndex = g ("fm_index");
+        for (int i = 0; i < 6; ++i)
+        {
+            const juce::String pre = "fm" + juce::String (i + 1);
+            fmRatio[i] = g (pre + "_ratio"); fmFine[i] = g (pre + "_fine"); fmOpLevel[i] = g (pre + "_level"); fmWave[i] = g (pre + "_wave");
+            fmEnv[i][0] = g (pre + "_a"); fmEnv[i][1] = g (pre + "_d"); fmEnv[i][2] = g (pre + "_s"); fmEnv[i][3] = g (pre + "_r");
+            fmVel[i] = g (pre + "_vel");
+            for (int j = 0; j < 6; ++j) fmMatrix[i][j] = g ("fm_m" + juce::String (i + 1) + juce::String (j + 1));
+        }
         fltOn = g ("flt_on"); fltType = g ("flt_type"); fltCutoff = g ("flt_cutoff"); fltRes = g ("flt_res"); fltDrive = g ("flt_drive");
         fltEnv = g ("flt_env"); fltKey = g ("flt_key");
         const char* envPre[3] = { "amp", "e2", "e3" };
@@ -108,6 +120,8 @@ private:
     AnalogOsc analog;
     GrainCloud cloud;
     Resonator resonator;
+    FmVoice fm;
+    FmVoice::Settings fmSettings() const;
     MsegPlayer msegPlayer[4];
     float noteTime = 0.0f;
     float tuneOffset = 0.0f;   // A4 tuning + scale tuning, in semitones
