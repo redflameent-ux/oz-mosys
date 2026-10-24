@@ -12,13 +12,19 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Configure
-        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+        shell: pwsh
+        run: |
+          cmake -S . -B build -A x64 2>&1 | Tee-Object -FilePath configure.log
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Build plugin and standalone app
-        run: cmake --build build --config Release --target OZmosys_VST3 OZmosys_Standalone --parallel
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target OZmosys_VST3 OZmosys_Standalone --parallel 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Make the installer
         shell: pwsh
@@ -56,3 +62,17 @@ jobs:
           files: |
             installer/Output/OZ-mosys-Setup.exe
             OZ-mosys-Windows.zip
+
+      - name: Show what went wrong
+        if: failure()
+        shell: pwsh
+        run: |
+          foreach ($f in @("configure.log", "build.log")) {
+            if (Test-Path $f) {
+              Get-Content $f | Select-String -Pattern "error|Error|fatal|not found|Could not" | Select-Object -Last 8 | ForEach-Object {
+                $line = $_.Line -replace "%", "%25" -replace "`r", "" -replace "`n", " "
+                Write-Output "::error title=$f::$line"
+              }
+              Get-Content $f | Select-Object -Last 3 | ForEach-Object { Write-Output "::warning title=$f tail::$($_ -replace '%','%25')" }
+            }
+          }
