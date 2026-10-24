@@ -1,0 +1,58 @@
+name: Build Fourfold for Windows
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build plugin and standalone app
+        run: cmake --build build --config Release --target Fourfold_VST3 Fourfold_Standalone --parallel
+
+      - name: Make the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\Fourfold.iss
+
+      - name: Zip the plain files too
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item -Recurse "build\Fourfold_artefacts\Release\VST3\Fourfold.vst3" dist\
+          Copy-Item "build\Fourfold_artefacts\Release\Standalone\Fourfold.exe" dist\
+          Compress-Archive -Path dist\* -DestinationPath Fourfold-Windows.zip -Force
+
+      - name: Keep the files on this build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fourfold-Windows
+          path: |
+            installer/Output/Fourfold-Setup.exe
+            Fourfold-Windows.zip
+
+      - name: Publish to the Releases page
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Fourfold - latest build
+          body: |
+            Download **Fourfold-Setup.exe**, double-click it, then rescan plugins in FL Studio.
+            (Fourfold-Windows.zip has the same files if you'd rather copy them by hand.)
+          prerelease: false
+          make_latest: true
+          files: |
+            installer/Output/Fourfold-Setup.exe
+            Fourfold-Windows.zip
