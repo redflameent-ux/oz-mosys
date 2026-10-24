@@ -7,6 +7,7 @@
 #include "dsp/Mseg.h"
 #include <deque>
 #include "sampler/SamplerEngine.h"
+#include "design/MidiLearn.h"
 #include "roll/RollEngine.h"
 #include "design/Mutator.h"
 
@@ -46,6 +47,7 @@ public:
     std::unique_ptr<ff::SamplerEngine> sampler;
     ff::roll::RollEngine roll;
     std::unique_ptr<ff::design::Mutator> mutator;
+    std::unique_ptr<ff::design::MidiLearn> midiLearn;
 
     bool loadUserWavetable (const juce::File& file);
     bool loadGrainSample (const juce::File& file);

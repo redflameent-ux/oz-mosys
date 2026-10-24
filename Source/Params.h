@@ -63,7 +63,7 @@ constexpr int numBuiltInTables = 6;   // the last entry is the user-imported slo
 
 inline const juce::StringArray& warpNames()
 {
-    static const juce::StringArray names { "Off", "Sync", "Bend +", "Bend -", "Mirror", "Asym" };
+    static const juce::StringArray names { "Off", "Sync", "Bend +", "Bend -", "Mirror", "Asym", "Formant", "Steps", "Fold" };
     return names;
 }
 

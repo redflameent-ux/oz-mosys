@@ -202,6 +202,25 @@ BrowsePage::BrowsePage (FourfoldProcessor& p) : proc (p), fineTune (p.apvts)
     search.setFont (font (13.0f));
     search.onTextChange = [this] { refilter(); };
     addAndMakeVisible (search);
+    auto makeChips = [this] (juce::OwnedArray<TextButton>& arr, const StringArray& names, std::set<String>& filter, Colour c)
+    {
+        for (auto& n : names)
+        {
+            auto* b = arr.add (new TextButton (n));
+            b->setColour (TextButton::buttonOnColourId, c.withAlpha (0.3f));
+            b->setColour (TextButton::textColourOnId, c.brighter (0.4f));
+            b->setTooltip ("Show only these (pick several to widen).  Click again to clear.");
+            b->onClick = [this, b, n, &filter]
+            {
+                if (filter.count (n)) filter.erase (n); else filter.insert (n);
+                b->setToggleState (filter.count (n) > 0, dontSendNotification);
+                refilter();
+            };
+            addAndMakeVisible (b);
+        }
+    };
+    makeChips (typeChips, design::typeNames(), typeFilter, col::sampler);
+    makeChips (modeChips, design::modeNames(), modeFilter, col::mod);
     list.setRowHeight (22);
     list.setColour (ListBox::backgroundColourId, col::bg);
     addAndMakeVisible (list);
@@ -284,10 +303,9 @@ BrowsePage::BrowsePage (FourfoldProcessor& p) : proc (p), fineTune (p.apvts)
     // ---- mutation ----
     for (int s = 0; s < design::numSections; ++s)
     {
-        auto* b = lockButtons.add (new TextButton (design::sectionNames()[s]));
-        b->setColour (TextButton::buttonOnColourId, col::sampler.withAlpha (0.3f));
-        b->setTooltip ("Locked: this part never changes when you mutate");
-        b->onClick = [this, s] { proc.mutator->locked[(size_t) s] = ! proc.mutator->locked[(size_t) s]; refreshMutation(); };
+        auto* b = lockButtons.add (new LockCell (design::sectionNames()[s]));
+        b->onToggle = [this, s] { proc.mutator->locked[(size_t) s] = ! proc.mutator->locked[(size_t) s]; refreshMutation(); };
+        b->onAmount = [this, s] (float v) { proc.mutator->sectionAmount[(size_t) s] = v; };
         addAndMakeVisible (b);
     }
     auto amt = [this] (Slider& s, Label& l, const String& text, float init, std::function<void (float)> set)
@@ -394,10 +412,25 @@ bool BrowsePage::passes (const Entry& e) const
     if (e.x < brightRange.getMinValue() - 1e-3 || e.x > brightRange.getMaxValue() + 1e-3) return false;
     if (e.y < aggroRange.getMinValue() - 1e-3 || e.y > aggroRange.getMaxValue() + 1e-3) return false;
     if (e.movement < moveRange.getMinValue() - 1e-3 || e.movement > moveRange.getMaxValue() + 1e-3) return false;
+    if (! typeFilter.empty())
+    {
+        bool any = false;
+        for (auto& t : typeFilter) any = any || e.types.contains (t);
+        if (! any) return false;
+    }
+    for (auto& m : modeFilter) if (! e.modes.contains (m)) return false;
     const auto q = search.getText().trim();
     if (q.isNotEmpty() && ! e.name.containsIgnoreCase (q) && ! e.tags.containsIgnoreCase (q)
         && ! e.bank.containsIgnoreCase (q) && ! e.author.containsIgnoreCase (q)) return false;
     return true;
+}
+
+static void classifyFromXml (BrowsePage::Entry& e, const XmlElement& xml)
+{
+    std::map<String, float> vals;
+    for (auto* p : xml.getChildWithTagNameIterator ("PARAM")) vals[p->getStringAttribute ("id")] = (float) p->getDoubleAttribute ("value");
+    e.types = design::classifyTypes (e.name, e.bank, e.tags);
+    e.modes = design::classifyModes ([&vals] (const char* id, float def) { auto it = vals.find (id); return it == vals.end() ? def : it->second; }, e.movement);
 }
 
 void BrowsePage::rebuild()
@@ -413,6 +446,12 @@ void BrowsePage::rebuild()
         e.tags = f.category.toLowerCase().replace (" & ", ", ");
         e.x = f.mapX; e.y = f.mapY; e.movement = f.movement;
         e.factoryIndex = i;
+        e.types = design::classifyTypes (e.name, e.bank, {});
+        e.modes = design::classifyModes ([&f] (const char* id, float def)
+        {
+            for (auto& [k, v] : f.values) if (k == id) return v;
+            return def;
+        }, e.movement);
         entries.push_back (e);
         if (std::find (banks.begin(), banks.end(), f.category) == banks.end()) banks.push_back (f.category);
     }
@@ -433,6 +472,7 @@ void BrowsePage::rebuild()
         e.x = (float) xml->getDoubleAttribute ("mapX", (h & 0xffff) / 65535.0);
         e.y = (float) xml->getDoubleAttribute ("mapY", (h >> 16) / 65535.0);
         e.movement = (float) xml->getDoubleAttribute ("movement", 0.5);
+        classifyFromXml (e, *xml);
         entries.push_back (e);
         if (std::find (banks.begin(), banks.end(), e.bank) == banks.end()) banks.push_back (e.bank);
     }
@@ -456,6 +496,7 @@ void BrowsePage::rebuild()
             e.x = (float) xml->getDoubleAttribute ("mapX", (h & 0xffff) / 65535.0);
             e.y = (float) xml->getDoubleAttribute ("mapY", (h >> 16) / 65535.0);
             e.movement = (float) xml->getDoubleAttribute ("movement", 0.5);
+            classifyFromXml (e, *xml);
             entries.push_back (e);
         }
         if (std::find (banks.begin(), banks.end(), pk.name) == banks.end()) banks.push_back (pk.name);
@@ -525,6 +566,7 @@ void BrowsePage::paintListBoxItem (int row, Graphics& g, int w, int h, bool)
     g.drawText (e.bank, c2 + 10, 0, c3 - c2 - 14, h, Justification::centredLeft, true);
     // character from the measurements
     StringArray ch;
+    ch.add (e.types.joinIntoString (", "));
     ch.add (e.x < 0.33f ? "Dark" : e.x > 0.66f ? "Bright" : "Warm");
     ch.add (e.y < 0.33f ? "Soft" : e.y > 0.66f ? "Aggressive" : "Punchy");
     if (e.movement > 0.66f) ch.add ("Evolving");
@@ -656,8 +698,9 @@ void BrowsePage::refreshMutation()
     auto& m = *proc.mutator;
     for (int s = 0; s < lockButtons.size(); ++s)
     {
-        lockButtons[s]->setToggleState (m.locked[(size_t) s], dontSendNotification);
-        lockButtons[s]->setButtonText ((m.locked[(size_t) s] ? String::charToString (0x25A0) + " " : String()) + design::sectionNames()[s]);
+        lockButtons[s]->locked = m.locked[(size_t) s];
+        lockButtons[s]->amount = m.sectionAmount[(size_t) s];
+        lockButtons[s]->repaint();
     }
     history.updateContent();
     history.repaint();
@@ -725,6 +768,23 @@ void BrowsePage::resized()
         favOnlyBtn.setBounds (top.removeFromRight (90)); top.removeFromRight (6);
         countL.setBounds (top.removeFromRight (80));
         search.setBounds (top);
+        a.removeFromTop (4);
+        auto chipRow = [] (juce::OwnedArray<TextButton>& arr, Rectangle<int> row)
+        {
+            int total = 0;
+            for (auto* b : arr) total += (int) GlyphArrangement::getStringWidth (font (11.0f), b->getButtonText()) + 16;
+            const float scale = juce::jmin (1.0f, (float) row.getWidth() / (float) juce::jmax (1, total + 3 * arr.size()));
+            for (auto* b : arr)
+            {
+                const int w = (int) ((GlyphArrangement::getStringWidth (font (11.0f), b->getButtonText()) + 16) * scale);
+                b->setBounds (row.removeFromLeft (w));
+                row.removeFromLeft (3);
+            }
+        };
+        chipRow (typeChips, a.removeFromTop (21));
+        a.removeFromTop (3);
+        chipRow (modeChips, a.removeFromTop (21));
+        a.removeFromTop (chipsH - 4 - 45);
         a.removeFromTop (22);   // column headings
         list.setBounds (a);
         map.setBounds (a);
@@ -852,18 +912,18 @@ void BrowsePage::paint (Graphics& g)
     // list column headings
     if (! explorer)
     {
-        auto h = centreArea.reduced (8, 8).withTrimmedTop (30).removeFromTop (18);
+        auto h = centreArea.reduced (8, 8).withTrimmedTop (30 + chipsH).removeFromTop (18);
         const int w = h.getWidth();
         g.setColour (col::dim);
         g.setFont (font (10.0f, true));
         g.drawText ("NAME", h.getX() + 26, h.getY(), 100, 18, Justification::centredLeft);
-        g.drawText ("TYPE", h.getX() + (int) (w * 0.36) + 10, h.getY(), 100, 18, Justification::centredLeft);
-        g.drawText ("CHARACTER", h.getX() + (int) (w * 0.58), h.getY(), 100, 18, Justification::centredLeft);
+        g.drawText ("COLLECTION", h.getX() + (int) (w * 0.36) + 10, h.getY(), 100, 18, Justification::centredLeft);
+        g.drawText ("TYPE / CHARACTER", h.getX() + (int) (w * 0.58), h.getY(), 100, 18, Justification::centredLeft);
         g.drawText ("AUTHOR", h.getX() + (int) (w * 0.78), h.getY(), 100, 18, Justification::centredLeft);
     }
     else
     {
-        auto h = centreArea.reduced (8, 8).withTrimmedTop (30).removeFromTop (18);
+        auto h = centreArea.reduced (8, 8).withTrimmedTop (30 + chipsH).removeFromTop (18);
         g.setColour (col::dim);
         g.setFont (font (10.0f, true));
         g.drawText ("EXPLORER - every sound placed by how it sounds. Click to hear, double-click to keep.", h, Justification::centredLeft);

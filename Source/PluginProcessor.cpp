@@ -43,6 +43,7 @@ FourfoldProcessor::FourfoldProcessor()
     sampler = std::make_unique<ff::SamplerEngine> (apvts, keyboardState);
     for (int i = 0; i < numMsegs; ++i) setMseg (i, defaultMseg (i));
     mutator = std::make_unique<ff::design::Mutator> (*this);
+    midiLearn = std::make_unique<ff::design::MidiLearn> (*this);
 }
 
 bool FourfoldProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -94,6 +95,7 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     buffer.clear();
 
     keyboardState.processNextMidiBuffer (midi, 0, n, true);
+    midiLearn->processMidi (midi);
 
     refreshSharedPointers();
     if (swapLock.tryEnter())

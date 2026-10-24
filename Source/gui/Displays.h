@@ -38,7 +38,7 @@ public:
         const float depthX = area.getWidth() * 0.18f, depthY = area.getHeight() * 0.35f;
         const float w = area.getWidth() - depthX, h = area.getHeight() - depthY;
 
-        auto drawFrame = [&] (float pos01, float offsetT, juce::Colour c, float thick)
+        auto drawFrame = [&] (float pos01, float offsetT, juce::Colour c, float thick, bool warped = false)
         {
             juce::Path p;
             const float ox = area.getX() + depthX * (1.0f - offsetT);
@@ -47,7 +47,7 @@ public:
             for (int i = 0; i <= pts; ++i)
             {
                 const float ph = (float) i / pts;
-                const float v = table->read (pos01, ph, 3);
+                const float v = warped ? juce::jlimit (-1.2f, 1.2f, warpedRead (*table, pos01, ph, warpMode, warpAmount, 3)) : table->read (pos01, ph, 3);
                 const float x = ox + ph * w;
                 const float y = oy + h * 0.5f - v * h * 0.45f;
                 if (i == 0) p.startNewSubPath (x, y); else p.lineTo (x, y);
@@ -61,7 +61,7 @@ public:
             const float t = shown > 1 ? (float) i / (shown - 1) : 0.0f;
             drawFrame (t, t, col::wavetable.withAlpha (0.12f), 1.0f);
         }
-        drawFrame (position, position, col::wavetable, 2.0f);
+        drawFrame (position, position, col::wavetable, 2.0f, true);
 
         g.setColour (col::dim);
         g.setFont (font (10.0f));

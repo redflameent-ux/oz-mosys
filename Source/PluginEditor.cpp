@@ -229,12 +229,9 @@ FourfoldEditor::Knob* FourfoldEditor::makeKnob (std::vector<std::unique_ptr<Knob
                                                 const juce::String& label, juce::Colour accent, int modDest)
 {
     auto k = std::make_unique<Knob> (proc.apvts, id, label, accent, modDest);
-    if (modDest > 0)
-    {
-        k->onModDropped = [this] (int s, int d) { assignModulation (s, d); };
-        auto* raw = k.get();
-        k->slider.onRightClick = [this, raw] { showModMenuFor (*raw); };
-    }
+    if (modDest > 0) k->onModDropped = [this] (int s, int d) { assignModulation (s, d); };
+    auto* raw = k.get();
+    k->slider.onRightClick = [this, raw] { showModMenuFor (*raw); };
     addAndMakeVisible (*k);
     allKnobs.push_back (k.get());
     group.push_back (std::move (k));
@@ -522,6 +519,20 @@ void FourfoldEditor::timerCallback()
         const int d = (int) proc.apvts.getRawParameterValue (slotDst (i))->load();
         if (s > 0 && d > 0 && d < numModDests) sums[d] += proc.apvts.getRawParameterValue (slotAmt (i))->load();
     }
+    if (++midiTick % 6 == 0)   // MIDI learn badges, a few times a second
+    {
+        const auto links = proc.midiLearn->assignments();
+        const auto learning = proc.midiLearn->learningParamId();
+        auto upd = [&] (Knob* k)
+        {
+            int cc = -1;
+            for (auto& a : links) if (a.paramId == k->paramId) { cc = a.cc; break; }
+            k->setMidiState (cc, learning.isNotEmpty() && learning == k->paramId);
+        };
+        for (auto* k : allKnobs) upd (k);
+        for (auto* k : macroBar->knobs) upd (k);
+        macroBar->setLinks (links);
+    }
     for (auto* k : allKnobs)
         if (k->dest > 0)
         {
@@ -576,23 +587,30 @@ void FourfoldEditor::assignModulation (int source, int dest)
 void FourfoldEditor::showModMenuFor (Knob& k)
 {
     juce::PopupMenu menu;
-    menu.addSectionHeader ("Modulating " + modDestNames()[k.dest]);
-    std::vector<int> slots;
-    for (int i = 0; i < numModSlots; ++i)
+    if (k.dest > 0)
     {
-        const int s = (int) proc.apvts.getRawParameterValue (slotSrc (i))->load();
-        const int d = (int) proc.apvts.getRawParameterValue (slotDst (i))->load();
-        if (s > 0 && d == k.dest)
+        menu.addSectionHeader ("Modulating " + modDestNames()[k.dest]);
+        std::vector<int> slots;
+        for (int i = 0; i < numModSlots; ++i)
         {
-            const float a = proc.apvts.getRawParameterValue (slotAmt (i))->load();
-            menu.addItem (i + 1, "Remove " + modSourceNames()[s] + "  (" + juce::String (juce::roundToInt (a * 100)) + "%)");
-            slots.push_back (i);
+            const int s = (int) proc.apvts.getRawParameterValue (slotSrc (i))->load();
+            const int d = (int) proc.apvts.getRawParameterValue (slotDst (i))->load();
+            if (s > 0 && d == k.dest)
+            {
+                const float a = proc.apvts.getRawParameterValue (slotAmt (i))->load();
+                menu.addItem (i + 1, "Remove " + modSourceNames()[s] + "  (" + juce::String (juce::roundToInt (a * 100)) + "%)");
+                slots.push_back (i);
+            }
         }
+        if (slots.empty()) menu.addItem (-1, "Nothing yet - drag a mod source onto this knob", false, false);
     }
-    if (slots.empty()) menu.addItem (-1, "Nothing yet - drag a green source chip onto this knob", false, false);
-    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&k), [this] (int r)
+    ff::gui::addMidiItems (menu, *proc.midiLearn, k.paramId);
+    juce::Component::SafePointer<Knob> safe (&k);
+    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&k), [this, safe] (int r)
     {
-        if (r > 0) { const int i = r - 1; setParam (slotSrc (i), 0); setParam (slotDst (i), 0); setParam (slotAmt (i), 0); }
+        if (safe == nullptr) return;
+        if (ff::gui::handleMidiItem (r, *proc.midiLearn, safe->paramId, safe.getComponent())) return;
+        if (r > 0 && r <= numModSlots) { const int i = r - 1; setParam (slotSrc (i), 0); setParam (slotDst (i), 0); setParam (slotAmt (i), 0); }
     });
 }
 

@@ -4,7 +4,7 @@ A four-in-one synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 
 | Engine | Inspired by | What it does |
 |---|---|---|
-| **Wavetable** | Serum | 6 built-in tables + import your own (.wav, 2048-sample frames), position morphing, 5 warp modes, up to 7-voice unison |
+| **Wavetable** | Serum | 6 built-in tables + import your own (.wav, 2048-sample frames), position morphing, 8 warp modes (incl. Formant, Steps, Fold), up to 7-voice unison |
 | **Analog** | Analog Lab | Band-limited triangle / saw / pulse morph, sub, noise, analog drift |
 | **Granular** | Omnisphere | Turns any audio file into pads and textures: position, scan, size, density, spray, pitch randomness, reverse, stereo width |
 | **Resonator** | physical modelling | Plucked strings and sitar (with jawari buzz and sympathetic strings), Tibetan and crystal bowls, gong, handpan, tongue drum, tingsha, music box, tabla, hand drum, clay pot, 808 cowbell, scrap metal, anvil, pipe, vibraphone, marimba, e-piano. Strike or bow/rub, auto re-pluck |
@@ -32,6 +32,15 @@ grid snap, an LFO on top and sample & hold. Pick a **Target** and press **Assign
 - **Subpresets:** save, load, copy, paste, init or randomise just one section (e.g. only the filter or only the effects).
 - **Mutation:** Mutate makes a variation (moves toward a similar preset + some randomness), Retry tries again,
   Module Lock keeps sections untouched, eight **Fine Tuning** knobs adjust the whole sound, and the History lets you jump back.
+
+**Sound-type chips** (Bass, Pad, Keys, Lead, Pluck...) and **mode chips** (Percussive, Slow Attack, Evolving, Mono,
+Wavetable, Analog, Granular...) narrow the list; pick several types to widen, several modes to narrow.
+In **Module Lock**, drag sideways on a section to set how much it may change when you mutate (0-100%).
+
+## MIDI Learn
+Right-click any knob (or macro) and choose **MIDI Learn**, then move a knob or fader on your controller.
+Linked knobs show their CC number. **Show all MIDI links...** lists every link with remove / clear all.
+Links belong to your setup, so they stay the same across presets and projects.
 
 ## Expansions
 Press **Expansions** in the browser: every collection as a cover-art tile. Click one to browse it.

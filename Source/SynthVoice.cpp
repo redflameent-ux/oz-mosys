@@ -84,8 +84,10 @@ float SynthVoice::warpPhase (float p, int mode, float amt) const noexcept
         case 2: return std::pow (p, 1.0f / (1.0f + amt * 3.0f));                                    // Bend +
         case 3: return std::pow (p, 1.0f + amt * 3.0f);                                             // Bend -
         case 4: { const float m = p < 0.5f ? 2.0f * p : 2.0f - 2.0f * p; return p + (m - p) * amt; } // Mirror
-        case 5: { const float w = 0.5f - 0.48f * amt;                                               // Asym
+        case 5: { const float w = 0.5f - 0.48f * amt;                                               // Asym (CZ-style)
                   return p < w ? 0.5f * p / w : 0.5f + 0.5f * (p - w) / (1.0f - w); }
+        case 6: { const float q = p * (1.0f + amt * 7.0f); return q - std::floor (q); }          // Formant (windowed below)
+        case 7: { const float steps = 64.0f - amt * 60.0f; return std::floor (p * steps) / steps; } // Steps (lo-fi)
         default: return p;
     }
 }
@@ -221,17 +223,42 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
             const float spreadPos = uni > 1 ? ((float) u / (float) (uni - 1)) * 2.0f - 1.0f : 0.0f;   // -1..1
             const float cents = spreadPos * detune * 50.0f;
             const float inc = baseInc * std::exp2 (cents / 1200.0f);
-            const float effInc = warpMode == 1 ? inc * (1.0f + warpAmt * 7.0f) : inc;
+            const float effInc = (warpMode == 1 || warpMode == 6) ? inc * (1.0f + warpAmt * 7.0f) : inc;
             const int level0 = WavetableBank::levelForIncrement (effInc);
             const float pp = juce::jlimit (-1.0f, 1.0f, pan + spreadPos * spread);
             const float gL = std::cos ((pp + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * uniGain;
             const float gR = std::sin ((pp + 1.0f) * juce::MathConstants<float>::pi * 0.25f) * 1.414f * uniGain;
             float ph = wtPhase[u];
-            for (int i = 0; i < n; ++i)
+            if (warpMode == 6 && warpAmt > 0.0001f)          // Formant: synced read under a smooth window
             {
-                const float s = table.read (pos, warpPhase (ph, warpMode, warpAmt), level0);
-                L[i] += s * gL; R[i] += s * gR;
-                ph += inc; if (ph >= 1.0f) ph -= 1.0f;
+                for (int i = 0; i < n; ++i)
+                {
+                    const float w = (1.0f - warpAmt) + warpAmt * 4.0f * ph * (1.0f - ph) * 1.5f;
+                    const float s = table.read (pos, warpPhase (ph, 6, warpAmt), level0) * w;
+                    L[i] += s * gL; R[i] += s * gR;
+                    ph += inc; if (ph >= 1.0f) ph -= 1.0f;
+                }
+            }
+            else if (warpMode == 8 && warpAmt > 0.0001f)     // Fold: triangle wavefolder
+            {
+                const float drive = 1.0f + warpAmt * 4.0f;
+                for (int i = 0; i < n; ++i)
+                {
+                    const float x = table.read (pos, ph, level0) * drive + 1.0f;
+                    const float m = x - 4.0f * std::floor (x * 0.25f);   // 0..4
+                    const float s = 1.0f - std::abs (m - 2.0f);
+                    L[i] += s * gL; R[i] += s * gR;
+                    ph += inc; if (ph >= 1.0f) ph -= 1.0f;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < n; ++i)
+                {
+                    const float s = table.read (pos, warpPhase (ph, warpMode, warpAmt), level0);
+                    L[i] += s * gL; R[i] += s * gR;
+                    ph += inc; if (ph >= 1.0f) ph -= 1.0f;
+                }
             }
             wtPhase[u] = ph;
         }

@@ -6,6 +6,7 @@
 #include "Widgets.h"
 #include "../design/FineTune.h"
 #include "ExpansionsPage.h"
+#include "../design/SoundTypes.h"
 #include <set>
 #include <map>
 
@@ -32,6 +33,69 @@ private:
     BrowsePage& page;
 };
 
+// Module Lock cell: click = lock / unlock, drag sideways = how much this section may change.
+class LockCell : public juce::Component, public juce::SettableTooltipClient
+{
+public:
+    explicit LockCell (const juce::String& n) : name (n)
+    {
+        setTooltip ("Click to lock (never changes). Drag left/right to set how much it may change. Double-click: 100%");
+        setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
+    }
+    bool locked = false;
+    float amount = 1.0f;
+    std::function<void()> onToggle;
+    std::function<void (float)> onAmount;
+
+    void paint (juce::Graphics& g) override
+    {
+        auto r = getLocalBounds().toFloat().reduced (1.0f);
+        g.setColour (locked ? col::sampler.withAlpha (0.28f) : col::panelHi);
+        g.fillRoundedRectangle (r, 4.0f);
+        if (! locked)
+        {
+            auto bar = r.reduced (4.0f).removeFromBottom (3.0f);
+            g.setColour (col::bg);
+            g.fillRoundedRectangle (bar, 1.5f);
+            g.setColour (col::mod.withAlpha (0.85f));
+            g.fillRoundedRectangle (bar.withWidth (bar.getWidth() * amount), 1.5f);
+        }
+        g.setColour (locked ? col::sampler : col::text);
+        g.setFont (font (11.5f, true));
+        auto t = getLocalBounds().withTrimmedBottom (5);
+        g.drawFittedText ((locked ? juce::String::charToString (0x25A0) + " " : juce::String()) + name, t.reduced (4, 0), juce::Justification::centred, 1);
+        if (! locked && amount < 0.995f)
+        {
+            g.setColour (col::dim);
+            g.setFont (font (9.5f));
+            g.drawText (juce::String (juce::roundToInt (amount * 100)) + "%", t.reduced (5, 2), juce::Justification::topRight);
+        }
+    }
+    void mouseDown (const juce::MouseEvent&) override { dragged = false; downAmount = amount; }
+    void mouseDrag (const juce::MouseEvent& e) override
+    {
+        if (locked || std::abs (e.getDistanceFromDragStartX()) < 3) return;
+        dragged = true;
+        amount = juce::jlimit (0.0f, 1.0f, downAmount + (float) e.getDistanceFromDragStartX() / (float) juce::jmax (40, getWidth()));
+        if (onAmount) onAmount (amount);
+        repaint();
+    }
+    void mouseUp (const juce::MouseEvent& e) override
+    {
+        if (! dragged && e.mouseWasClicked() && e.getNumberOfClicks() < 2 && onToggle) onToggle();
+    }
+    void mouseDoubleClick (const juce::MouseEvent&) override
+    {
+        amount = 1.0f;
+        if (onAmount) onAmount (amount);
+        repaint();
+    }
+private:
+    juce::String name;
+    bool dragged = false;
+    float downAmount = 1.0f;
+};
+
 class BrowsePage : public juce::Component, private juce::ListBoxModel, private juce::Timer
 {
 public:
@@ -44,6 +108,7 @@ public:
     struct Entry
     {
         juce::String name, bank, author, tags, notes;
+        juce::StringArray types, modes;
         float x = 0.5f, y = 0.5f, movement = 0.5f;
         int factoryIndex = -1;
         juce::File file;
@@ -92,6 +157,9 @@ private:
 
     // centre
     juce::TextButton expansionsBtn { "Expansions" };
+    juce::OwnedArray<juce::TextButton> typeChips, modeChips;
+    std::set<juce::String> typeFilter, modeFilter;
+    static constexpr int chipsH = 50;
     std::unique_ptr<ExpansionsPage> expansions;
     std::map<juce::String, juce::Image> bankCovers;
     juce::Rectangle<int> coverArea;
@@ -110,7 +178,7 @@ private:
     juce::TextButton secSave { "Save" }, secLoad { "Load" }, secCopy { "Copy" }, secPaste { "Paste" }, secInit { "Init" }, secRandom { "Rand" };
 
     // mutation
-    juce::OwnedArray<juce::TextButton> lockButtons;
+    juce::OwnedArray<LockCell> lockButtons;
     juce::Slider mutAmount, randAmount;
     juce::Label mutL, randL, targetL;
     juce::TextButton mutateBtn { "Mutate" }, retryBtn { "Retry" }, histBack { "<" }, histSave { "Save" };

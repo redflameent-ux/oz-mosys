@@ -77,7 +77,7 @@ static bool isToggle (juce::RangedAudioParameter* p)
 
 void Mutator::randomise (Snapshot& s, float amountIn)
 {
-    const float a = juce::jlimit (0.0f, 1.0f, amountIn);
+    const float aBase = juce::jlimit (0.0f, 1.0f, amountIn);
     auto gauss = [this] { return (float) (rng.nextDouble() + rng.nextDouble() + rng.nextDouble() - 1.5) * 1.15f; };
 
     for (auto& [id, v] : s.values)
@@ -86,6 +86,8 @@ void Mutator::randomise (Snapshot& s, float amountIn)
         if (sec < 0 || locked[(size_t) sec] || id == "master" || sec == secMatrix) continue;
         auto* p = proc.apvts.getParameter (id);
         if (p == nullptr) continue;
+        const float a = aBase * sectionAmount[(size_t) sec];
+        if (a <= 0.0001f) continue;
 
         if (isToggle (p))
         {
@@ -108,7 +110,8 @@ void Mutator::randomise (Snapshot& s, float amountIn)
     }
 
     // mod matrix: wiggle amounts, retarget some, add new routes
-    if (! locked[secMatrix])
+    float a = aBase * sectionAmount[secMatrix];
+    if (! locked[secMatrix] && a > 0.0001f)
     {
         static const int sources[] = { srcEnv2, srcEnv3, srcLfo1, srcLfo2, srcVelocity, srcRandom, srcMseg1, srcMseg2, srcKeyTrack };
         for (int i = 0; i < numModSlots; ++i)
@@ -136,7 +139,8 @@ void Mutator::randomise (Snapshot& s, float amountIn)
     }
 
     // breakpoint envelopes: nudge levels, timing and curves
-    if (! locked[secMsegs])
+    a = aBase * sectionAmount[secMsegs];
+    if (! locked[secMsegs] && a > 0.0001f)
         for (auto& str : s.msegs)
         {
             auto m = MsegShape::fromString (str);
@@ -155,11 +159,12 @@ void Mutator::randomise (Snapshot& s, float amountIn)
 
 void Mutator::morph (Snapshot& s, const Snapshot& target, float amountIn)
 {
-    const float a = juce::jlimit (0.0f, 1.0f, amountIn);
+    const float aBase = juce::jlimit (0.0f, 1.0f, amountIn);
     for (auto& [id, v] : s.values)
     {
         const int sec = sectionOfParam (id);
         if (sec < 0 || locked[(size_t) sec] || id == "master") continue;
+        const float a = aBase * sectionAmount[(size_t) sec];
         auto it = target.values.find (id);
         if (it == target.values.end()) continue;
         auto* p = proc.apvts.getParameter (id);
@@ -168,6 +173,7 @@ void Mutator::morph (Snapshot& s, const Snapshot& target, float amountIn)
         if (stepped) { if (a >= 0.5f) v = it->second; }
         else v = v + (it->second - v) * a;
     }
+    const float a = aBase * sectionAmount[secMsegs];
     if (! locked[secMsegs])
     {
         auto blend = [a] (const juce::String& from, const juce::String& to)

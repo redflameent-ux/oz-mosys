@@ -7,6 +7,7 @@
 #include "gui/EnvelopePage.h"
 #include "gui/BrowsePage.h"
 #include "gui/PerformBar.h"
+#include "gui/MidiMenu.h"
 
 class FourfoldEditor : public juce::AudioProcessorEditor,
                        public juce::DragAndDropContainer,
@@ -126,6 +127,7 @@ private:
     std::vector<std::unique_ptr<APVTS::ButtonAttachment>> buttonAttachments;
     std::vector<Knob*> allKnobs;
     std::unique_ptr<juce::FileChooser> chooser;
+    int midiTick = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FourfoldEditor)
 };

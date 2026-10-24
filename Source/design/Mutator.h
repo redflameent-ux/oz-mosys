@@ -23,6 +23,7 @@ public:
     float mutationAmount = 0.5f;      // 0..1
     float randomAmount = 0.3f;        // 0..1
     std::array<bool, numSections> locked {};
+    std::array<float, numSections> sectionAmount = [] { std::array<float, numSections> a {}; a.fill (1.0f); return a; }();   // per-section scale 0..1
 
     void mutate();                    // a new variation of the current sound
     void retry();                     // throw the last variation away and try again from the same start

@@ -221,7 +221,7 @@ class Knob : public juce::Component, public juce::DragAndDropTarget, public juce
 public:
     Knob (juce::AudioProcessorValueTreeState& state, const juce::String& paramId, const juce::String& labelText,
           juce::Colour accent, int modDest = 0)
-        : dest (modDest)
+        : dest (modDest), paramId (paramId)
     {
         slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
@@ -274,9 +274,36 @@ public:
         if (onModDropped) onModDropped (d.description.toString().fromFirstOccurrenceOf (":", false, false).getIntValue(), dest);
     }
 
+    // MIDI learn feedback
+    void setMidiState (int cc, bool isLearning)
+    {
+        if (cc != midiCC || isLearning != learning) { midiCC = cc; learning = isLearning; repaint(); }
+    }
+    void paintOverChildren (juce::Graphics& g) override
+    {
+        auto b = slider.getBounds().toFloat();
+        if (learning)
+        {
+            const float d = juce::jmin (b.getWidth(), b.getHeight()) - 2.0f;
+            g.setColour (col::sampler.withAlpha (0.9f));
+            g.drawEllipse (juce::Rectangle<float> (d, d).withCentre (b.getCentre()), 2.0f);
+            g.setFont (font (9.0f, true));
+            g.drawText ("MOVE A KNOB", getLocalBounds().removeFromTop (12), juce::Justification::centred);
+        }
+        else if (midiCC >= 0)
+        {
+            g.setColour (col::mod.withAlpha (0.8f));
+            g.setFont (font (8.5f, true));
+            g.drawText ("CC" + juce::String (midiCC), getLocalBounds().removeFromTop (11).withTrimmedRight (1), juce::Justification::topRight);
+        }
+    }
+
     std::function<void (int src, int dst)> onModDropped;
     ModSlider slider;
     const int dest;
+    const juce::String paramId;
+    int midiCC = -1;
+    bool learning = false;
 
 private:
     void setHover (bool h) { slider.getProperties().set ("dropHover", h); slider.repaint(); }

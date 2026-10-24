@@ -8,12 +8,8 @@ customisation come before performance extras.
 ## Done
 - v0.6: Absynth-style browser + sound map, mutator, fine tuning, subpresets, ENV page (4 MSEGs),
   macro bar with Controls/Keys, live mod strip, Expansions page with installable `.ozpack` collections.
+- v0.7: sound-type + mode chips, MIDI learn with links list, warp modes Formant / Steps / Fold, per-section mutation amount.
 
-## Soon (small)
-- Sound-type chips in the browser (Bass, Pad, Keys, Lead, Drums, Vocal...) and Type / Sub-type / Mode attributes
-- MIDI learn table (map hardware knobs to any control; macro names show their CC)
-- Wavetable warp modes: Spectrum, Bend+, Bend-, Formant
-- Per-section amount for Randomize
 
 ## v0.7 Layers + deep sound design
 - Engines become layers A-D, each with 2 module slots (ladder LP/HP, comb, supercomb, freq shifter, ring mod, waveshaper, notch), volume, pan

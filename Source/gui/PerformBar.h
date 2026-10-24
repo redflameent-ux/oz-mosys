@@ -5,6 +5,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "Widgets.h"
 #include "../PluginProcessor.h"
+#include "MidiMenu.h"
 
 namespace ff::gui
 {
@@ -41,7 +42,23 @@ public:
         {
             const int src = i < 4 ? srcMacro1 + i : srcMacro5 + i - 4;
             auto* k = knobs.add (new Knob (proc.apvts, "macro" + juce::String (i + 1), {}, col::mod));
+            k->slider.onRightClick = [this, k]
+            {
+                juce::PopupMenu m;
+                addMidiItems (m, *proc.midiLearn, k->paramId);
+                juce::Component::SafePointer<Knob> safe (k);
+                m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (k), [this, safe] (int r)
+                {
+                    if (safe != nullptr) handleMidiItem (r, *proc.midiLearn, safe->paramId, safe.getComponent());
+                });
+            };
             addAndMakeVisible (k);
+            auto* cl = ccLabels.add (new juce::Label());
+            cl->setFont (font (9.5f));
+            cl->setJustificationType (juce::Justification::centred);
+            cl->setColour (juce::Label::textColourId, col::dim);
+            cl->setInterceptsMouseClicks (false, false);
+            addAndMakeVisible (cl);
             auto* t = tags.add (new MacroTag (src));
             t->onTextChange = [this, i, t]
             {
@@ -71,6 +88,7 @@ public:
         keyboard.setVisible (k);
         for (auto* c : knobs) c->setVisible (! k);
         for (auto* c : tags) c->setVisible (! k);
+        for (auto* c : ccLabels) c->setVisible (! k);
         controlsBtn.setToggleState (! k, juce::dontSendNotification);
         keysBtn.setToggleState (k, juce::dontSendNotification);
         if (k) keyboard.toFront (false);
@@ -113,7 +131,18 @@ public:
             auto cell = juce::Rectangle<int> (r.getX() + i * cw, r.getY(), cw, r.getHeight()).reduced (8, 4);
             knobs[i]->setBounds (cell.removeFromLeft (cell.getHeight() + 4).withTrimmedBottom (-10));
             cell.removeFromLeft (4);
-            tags[i]->setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 22));
+            tags[i]->setBounds (cell.withSizeKeepingCentre (cell.getWidth(), 22).translated (0, -5));
+            ccLabels[i]->setBounds (tags[i]->getBounds().translated (0, 21).withHeight (14));
+        }
+    }
+
+    void setLinks (const std::vector<design::MidiLearn::Assignment>& links)
+    {
+        for (int i = 0; i < 8; ++i)
+        {
+            juce::String t;
+            for (auto& a : links) if (a.paramId == knobs[i]->paramId) t = design::MidiLearn::ccName (a.cc);
+            if (ccLabels[i]->getText() != t) ccLabels[i]->setText (t, juce::dontSendNotification);
         }
     }
 
@@ -126,6 +155,7 @@ private:
     FourfoldProcessor& proc;
     juce::Component& keyboard;
     juce::OwnedArray<MacroTag> tags;
+    juce::OwnedArray<juce::Label> ccLabels;
     juce::TextButton controlsBtn { "Controls" }, keysBtn { "Keys" };
     bool showKeys = false;
 };
