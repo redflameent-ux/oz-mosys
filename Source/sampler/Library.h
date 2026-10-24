@@ -103,6 +103,7 @@ namespace Library
     bool writeSpec (const juce::File& folder, const InstrumentSpec&);
     InstrumentPtr load (const InstrumentInfo&, juce::AudioFormatManager&, juce::String& errorOut);
     InstrumentPtr makeDemoBowl();
+    static InstrumentPtr buildDemoBowl();
 
     // maps files by their names; files with no note go on free keys from C3 up
     ArticulationSpec autoMapFiles (const juce::String& name, const juce::File& instFolder,

@@ -8,13 +8,35 @@ A four-in-one synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alo
 | **Analog** | Analog Lab | Band-limited triangle / saw / pulse morph, sub, noise, analog drift |
 | **Granular** | Omnisphere | Turns any audio file into pads and textures: position, scan, size, density, spray, pitch randomness, reverse, stereo width |
 | **Resonator** | physical modelling | Plucked strings and sitar (with jawari buzz and sympathetic strings), Tibetan and crystal bowls, gong, handpan, tongue drum, tingsha, music box, tabla, hand drum, clay pot, 808 cowbell, scrap metal, anvil, pipe, vibraphone, marimba, e-piano. Strike or bow/rub, auto re-pluck |
-| **Mod system** | Pigments | 3 envelopes, 2 LFOs, 4 macros, velocity, mod wheel, aftertouch, key track, random. Drag a green chip onto any knob to route it; right-click a knob to remove |
+| **Mod system** | Pigments | 3 envelopes, 4 breakpoint envelopes (MSEG), 2 LFOs, 8 macros, velocity, mod wheel, aftertouch, key track, slide, random. Drag a source from the live mod strip (or a macro name) onto any knob to route it; right-click a knob to remove |
 
 Plus a ladder / state-variable filter; Drive (Warm / Rat / Fuzz), Bit-crusher, Tape (wow & flutter, age, hiss), Ring mod, Chorus, Ping-pong Delay and Reverb.
 World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) with any root, A4 tuning (432 / 444 Hz), and mono mode for choked hats and sliding 808s.
 
 165 factory presets in 18 banks, from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
+
+## Macro bar
+Eight macros sit under every page. Double-click a name to rename it; drag the name onto any knob to make that macro move it.
+**Controls / Keys** swaps the macros for the on-screen keyboard.
+
+## ENV page (breakpoint envelopes)
+Four drawable envelopes, stacked or one at a time. Double-click to add or remove points, Alt-drag a line to curve it,
+right-click a point for sustain / loop start. Modes: one shot, sustain, loop while held, loop forever. Tempo sync,
+grid snap, an LFO on top and sample & hold. Pick a **Target** and press **Assign** to send an envelope anywhere.
+
+## BROWSE page (Absynth-style)
+- **List or Explorer:** every preset in a list (star favourites, search, filter by bank) or on a **sound map** where
+  each sound is placed by how dark/bright and soft/aggressive it is. Click to hear it, double-click to keep it, Revert to go back.
+- **Properties:** name, author, bank, types and comments for your presets; Save / Save As (your sounds land on the map too).
+- **Subpresets:** save, load, copy, paste, init or randomise just one section (e.g. only the filter or only the effects).
+- **Mutation:** Mutate makes a variation (moves toward a similar preset + some randomness), Retry tries again,
+  Module Lock keeps sections untouched, eight **Fine Tuning** knobs adjust the whole sound, and the History lets you jump back.
+
+## Expansions
+Press **Expansions** in the browser: every collection as a cover-art tile. Click one to browse it.
+**Install Pack...** (or drop an `.ozpack` file on the page) adds a collection; **Make a Pack...** bundles a bank of your
+own presets plus cover art into one `.ozpack` file you can share. Packs live in `Documents\OZ-mosys\Expansions`.
 
 ## ROLL page (bend every note)
 Press **ROLL**. Notes are lines you can bend: click empty space for a note, click a line to add a bend point,

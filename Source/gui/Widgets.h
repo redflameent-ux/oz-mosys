@@ -126,10 +126,21 @@ public:
         }
     }
 
-    void drawLinearSlider (juce::Graphics& g, int x, int y, int w, int h, float sliderPos, float, float,
+    void drawLinearSlider (juce::Graphics& g, int x, int y, int w, int h, float sliderPos, float minPos, float maxPos,
                            juce::Slider::SliderStyle style, juce::Slider& s) override
     {
         auto b = juce::Rectangle<int> (x, y, w, h).toFloat();
+        if (style == juce::Slider::TwoValueHorizontal)   // range filters
+        {
+            const float cy0 = b.getCentreY();
+            g.setColour (col::track);
+            g.fillRoundedRectangle (b.getX(), cy0 - 2.0f, b.getWidth(), 4.0f, 2.0f);
+            g.setColour (s.findColour (juce::Slider::trackColourId));
+            g.fillRoundedRectangle (minPos, cy0 - 2.0f, juce::jmax (1.0f, maxPos - minPos), 4.0f, 2.0f);
+            g.setColour (col::text);
+            for (float px : { minPos, maxPos }) g.fillRoundedRectangle (px - 3.0f, cy0 - 6.0f, 6.0f, 12.0f, 2.0f);
+            return;
+        }
         if (style == juce::Slider::LinearBar)   // the mapper's number fields
         {
             g.setColour (col::bg);

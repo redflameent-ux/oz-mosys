@@ -14,6 +14,7 @@ public:
         float crushBits = 24, crushRate = 1;
         float tapeWow = 0, tapeHiss = 0, tapeAge = 0;
         float ringFreq = 300, ringMix = 0;
+        float eqBass = 0, eqTreble = 0;   // dB
         float dlyMix = 0, dlyTimeMs = 375, dlyFb = 0.35f, dlyTone = 0.6f;
         float revMix = 0.15f, revSize = 0.6f, revDamp = 0.5f;
     };
@@ -33,6 +34,8 @@ public:
         smoothedDelay.setCurrentAndTargetValue (375.0f * 0.001f * (float) sr);
         reverb.setSampleRate (sr);
         dlyLp[0] = dlyLp[1] = 0.0f;
+        for (int c = 0; c < 2; ++c) { lowShelf[c].reset(); highShelf[c].reset(); }
+        lastBass = lastTreble = 999.0f;
         tapeBuf.setSize (2, (int) (sr * 0.05) + 4);
         tapeBuf.clear();
         tapePos = 0;
@@ -90,6 +93,21 @@ public:
                     ch[c][i] = o;
                 }
             }
+        }
+
+        // ---- Tone: bass and treble shelves ----
+        if (std::abs (s.eqBass) > 0.05f || std::abs (s.eqTreble) > 0.05f)
+        {
+            if (std::abs (s.eqBass - lastBass) > 0.01f || std::abs (s.eqTreble - lastTreble) > 0.01f)
+            {
+                lastBass = s.eqBass; lastTreble = s.eqTreble;
+                auto lo = juce::dsp::IIR::Coefficients<float>::makeLowShelf (sampleRate, 180.0, 0.7, juce::Decibels::decibelsToGain (s.eqBass));
+                auto hi = juce::dsp::IIR::Coefficients<float>::makeHighShelf (sampleRate, 4500.0, 0.7, juce::Decibels::decibelsToGain (s.eqTreble));
+                for (int c = 0; c < 2; ++c) { lowShelf[c].coefficients = lo; highShelf[c].coefficients = hi; }
+            }
+            float* ch2[2] = { L, R };
+            for (int c = 0; c < 2; ++c)
+                for (int i = 0; i < n; ++i) ch2[c][i] = highShelf[c].processSample (lowShelf[c].processSample (ch2[c][i]));
         }
 
         // ---- Bit-crush / sample-rate reduction ----
@@ -240,6 +258,8 @@ private:
     float wowPhase = 0, flutterPhase = 0, flutterNoise = 0, tapeLp[2] {}, hissLp[2] {};
     juce::Random hissRng { 99 };
     float ringPhase = 0;
+    juce::dsp::IIR::Filter<float> lowShelf[2], highShelf[2];
+    float lastBass = 999.0f, lastTreble = 999.0f;
 };
 
 } // namespace ff

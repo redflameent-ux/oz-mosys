@@ -1,12 +1,14 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Presets.h"
+#include "design/SoundFeatures.h"
 
 FourfoldProcessor::FourfoldProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "FourfoldState", ff::createLayout())
 {
     shared.p.bind (apvts);
+    shared.modView = modView;
 
     // Built-in tables and textures are generated once and shared by every instance.
     static const auto tables = []
@@ -39,6 +41,8 @@ FourfoldProcessor::FourfoldProcessor()
     refreshSharedPointers();
 
     sampler = std::make_unique<ff::SamplerEngine> (apvts, keyboardState);
+    for (int i = 0; i < numMsegs; ++i) setMseg (i, defaultMseg (i));
+    mutator = std::make_unique<ff::design::Mutator> (*this);
 }
 
 bool FourfoldProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -92,6 +96,15 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     keyboardState.processNextMidiBuffer (midi, 0, n, true);
 
     refreshSharedPointers();
+    if (swapLock.tryEnter())
+    {
+        for (int i = 0; i < numMsegs; ++i) msegAudio[i] = msegShapes[i];
+        swapLock.exit();
+    }
+    for (int i = 0; i < numMsegs; ++i) shared.mseg[i] = msegAudio[i].get();
+    if (auto* ph = getPlayHead())
+        if (auto pos = ph->getPosition())
+            if (auto b = pos->getBpm()) shared.bpm = *b;
     shared.table = audioTable.get();
     shared.grains = audioGrains.get();
 
@@ -126,6 +139,12 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     // sampler page: off / layered with the synth / sampler only
     const int smpPlay = (int) apvts.getRawParameterValue ("smp_play")->load();
     (mono ? monoSynth : synth).renderNextBlock (buffer, smpPlay == 2 ? emptyMidi : midi, 0, n);
+    {
+        auto& s = mono ? monoSynth : synth;
+        int active = 0;
+        for (int v = 0; v < s.getNumVoices(); ++v) if (s.getVoice (v)->isActive()) ++active;
+        activeVoices.store (active, std::memory_order_relaxed);
+    }
 
     const bool smpThroughFx = apvts.getRawParameterValue ("smp_fx")->load() > 0.5f;
     if (samplerBuf.getNumSamples() < n) samplerBuf.setSize (2, n, false, false, true);
@@ -152,6 +171,7 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
         s.crushBits = g ("crush_bits"); s.crushRate = g ("crush_rate");
         s.tapeWow = g ("tape_wow"); s.tapeHiss = g ("tape_hiss"); s.tapeAge = g ("tape_age");
         s.ringFreq = g ("ring_freq"); s.ringMix = g ("ring_mix");
+        s.eqBass = g ("eq_bass"); s.eqTreble = g ("eq_treble");
         s.choMix = g ("cho_mix"); s.choRate = g ("cho_rate"); s.choDepth = g ("cho_depth");
         s.dlyMix = g ("dly_mix"); s.dlyTimeMs = g ("dly_time"); s.dlyFb = g ("dly_fb"); s.dlyTone = g ("dly_tone");
         s.revMix = g ("rev_mix"); s.revSize = g ("rev_size"); s.revDamp = g ("rev_damp");
@@ -257,7 +277,13 @@ void FourfoldProcessor::setCurrentProgram (int index)
     if (! juce::isPositiveAndBelow (index, getNumPrograms())) return;
     currentProgram = index;
     ff::applyFactoryPreset (apvts, index);
+    const auto& fp = ff::factoryPresets()[(size_t) index];
+    for (int i = 0; i < numMsegs; ++i) setMseg (i, defaultMseg (i));
+    if (fp.mseg1.isNotEmpty()) setMseg (0, ff::MsegShape::fromString (fp.mseg1));
+    if (fp.mseg2.isNotEmpty()) setMseg (1, ff::MsegShape::fromString (fp.mseg2));
+    for (int i = 0; i < 8; ++i) macroNames.set (i, "Macro " + juce::String (i + 1));
     currentPresetName = getProgramName (index);
+    presetInfo = { "OZ-mosys", fp.category, fp.category.toLowerCase().replace (" & ", ", "), {}, fp.mapX, fp.mapY, fp.movement, true };
 }
 
 // ---------------------------------------------------------------------------
@@ -268,6 +294,8 @@ void FourfoldProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty ("grainFile", grainFile.getFullPathName(), nullptr);
     state.setProperty ("presetName", currentPresetName, nullptr);
     sampler->saveTo (state);
+    state.removeChild (state.getChildWithName ("Msegs"), nullptr);
+    state.appendChild (msegsToTree(), nullptr);
     state.removeChild (state.getChildWithName ("Roll"), nullptr);
     state.appendChild (roll.getPattern()->toTree(), nullptr);
     if (auto xml = state.createXml())
@@ -288,6 +316,7 @@ void FourfoldProcessor::applyStateTree (const juce::ValueTree& tree)
 
     currentPresetName = tree.getProperty ("presetName", "Init").toString();
     sampler->restoreFrom (tree);
+    msegsFromTree (tree.getChildWithName ("Msegs"));
     if (auto rt = tree.getChildWithName ("Roll"); rt.isValid())
         roll.setPattern (ff::roll::Pattern::fromTree (rt));
 }
@@ -314,20 +343,129 @@ bool FourfoldProcessor::savePresetToFile (const juce::File& file)
     state.setProperty ("grainFile", grainFile.getFullPathName(), nullptr);
     state.setProperty ("presetName", currentPresetName, nullptr);
     sampler->saveTo (state);
+    state.removeChild (state.getChildWithName ("Msegs"), nullptr);
+    state.appendChild (msegsToTree(), nullptr);
+    if (! presetInfo.measured) measureCurrentSound();
+    state.setProperty ("author", presetInfo.author, nullptr);
+    state.setProperty ("bank", presetInfo.bank, nullptr);
+    state.setProperty ("tags", presetInfo.tags, nullptr);
+    state.setProperty ("notes", presetInfo.notes, nullptr);
+    state.setProperty ("mapX", presetInfo.mapX, nullptr);
+    state.setProperty ("mapY", presetInfo.mapY, nullptr);
+    state.setProperty ("movement", presetInfo.movement, nullptr);
     if (auto xml = state.createXml())
         return xml->writeTo (file);
     return false;
+}
+
+void FourfoldProcessor::measureCurrentSound()
+{
+    const auto audio = ff::design::renderAudition (*this, 48000.0);
+    const auto f = ff::design::analyse (audio, 48000.0);
+    ff::placeOnMap (f.brightness, f.aggression, f.movement, presetInfo.mapX, presetInfo.mapY, presetInfo.movement);
+    presetInfo.measured = true;
+}
+
+juce::String FourfoldProcessor::getDefaultAuthor()
+{
+    juce::PropertiesFile::Options o;
+    o.applicationName = "OZ-mosys"; o.folderName = "OZ-mosys"; o.filenameSuffix = ".settings";
+    o.osxLibrarySubFolder = "Application Support";
+    juce::PropertiesFile f (o);
+    return f.getValue ("defaultAuthor", juce::SystemStats::getFullUserName());
+}
+
+void FourfoldProcessor::setDefaultAuthor (const juce::String& a)
+{
+    juce::PropertiesFile::Options o;
+    o.applicationName = "OZ-mosys"; o.folderName = "OZ-mosys"; o.filenameSuffix = ".settings";
+    o.osxLibrarySubFolder = "Application Support";
+    juce::PropertiesFile f (o);
+    f.setValue ("defaultAuthor", a);
+    f.saveIfNeeded();
 }
 
 bool FourfoldProcessor::loadPresetFromFile (const juce::File& file)
 {
     if (auto xml = juce::XmlDocument::parse (file))
     {
-        applyStateTree (juce::ValueTree::fromXml (*xml));
+        auto tree = juce::ValueTree::fromXml (*xml);
+        applyStateTree (tree);
         currentPresetName = file.getFileNameWithoutExtension();
+        presetInfo.author = tree["author"].toString();
+        presetInfo.bank = tree.getProperty ("bank", "My Presets").toString();
+        presetInfo.tags = tree["tags"].toString();
+        presetInfo.notes = tree["notes"].toString();
+        presetInfo.mapX = (float) tree.getProperty ("mapX", 0.5f);
+        presetInfo.mapY = (float) tree.getProperty ("mapY", 0.5f);
+        presetInfo.movement = (float) tree.getProperty ("movement", 0.5f);
+        presetInfo.measured = tree.hasProperty ("mapX");
         return true;
     }
     return false;
+}
+
+void FourfoldProcessor::setMseg (int index, const ff::MsegShape& shape)
+{
+    auto copy = shape;
+    copy.sanitise();
+    auto p = std::make_shared<const ff::MsegShape> (copy);
+    {
+        const juce::SpinLock::ScopedLockType sl (swapLock);
+        msegShapes[juce::jlimit (0, numMsegs - 1, index)] = p;
+    }
+    msegKeep.push_back (p);
+    while (msegKeep.size() > 64) msegKeep.pop_front();
+}
+
+ff::MsegShape FourfoldProcessor::defaultMseg (int index)
+{
+    ff::MsegShape m;
+    switch (index)
+    {
+        case 0: m = ff::MsegShape::swell(); break;
+        case 1: m = ff::MsegShape::rhythm(); break;
+        case 2: m.points = { { 0.0, 0.0f, -0.3f }, { 2.0, 1.0f, 0.0f } }; break;
+        default: m.points = { { 0.0, 1.0f, 0.7f }, { 0.4, 0.15f, 0.3f }, { 1.5, 0.0f, 0.0f } }; break;
+    }
+    m.name = "MSEG " + juce::String (index + 1);
+    m.sanitise();
+    return m;
+}
+
+ff::MsegPtr FourfoldProcessor::getMseg (int index) const
+{
+    const juce::SpinLock::ScopedLockType sl (swapLock);
+    return msegShapes[juce::jlimit (0, numMsegs - 1, index)];
+}
+
+juce::ValueTree FourfoldProcessor::msegsToTree() const
+{
+    juce::ValueTree t ("Msegs");
+    for (int i = 0; i < numMsegs; ++i)
+    {
+        t.setProperty ("m" + juce::String (i + 1), getMseg (i)->toString(), nullptr);
+        t.setProperty ("n" + juce::String (i + 1), getMseg (i)->name, nullptr);
+    }
+    t.setProperty ("macroNames", macroNames.joinIntoString ("|"), nullptr);
+    return t;
+}
+
+void FourfoldProcessor::msegsFromTree (const juce::ValueTree& t)
+{
+    if (! t.isValid()) return;
+    for (int i = 0; i < numMsegs; ++i)
+    {
+        const juce::String key = "m" + juce::String (i + 1);
+        auto m = t.hasProperty (key) ? ff::MsegShape::fromString (t[key].toString()) : defaultMseg (i);
+        m.name = t.getProperty ("n" + juce::String (i + 1), m.name).toString();
+        setMseg (i, m);
+    }
+    if (t.hasProperty ("macroNames"))
+    {
+        auto names = juce::StringArray::fromTokens (t["macroNames"].toString(), "|", "");
+        for (int i = 0; i < juce::jmin (8, names.size()); ++i) macroNames.set (i, names[i]);
+    }
 }
 
 void FourfoldProcessor::updateZoneLayout (int masterBendRange)

@@ -1,10 +1,12 @@
 #pragma once
+#include <atomic>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Params.h"
 #include "dsp/Wavetable.h"
 #include "dsp/Granular.h"
 #include "dsp/DspCore.h"
 #include "dsp/Resonator.h"
+#include "dsp/Mseg.h"
 
 namespace ff
 {
@@ -21,7 +23,7 @@ struct ParamRefs
     std::atomic<float> *fltOn, *fltType, *fltCutoff, *fltRes, *fltDrive, *fltEnv, *fltKey;
     std::atomic<float> *env[3][4];
     std::atomic<float> *lfoShape[2], *lfoRate[2], *lfoRetrig[2];
-    std::atomic<float> *macro[4];
+    std::atomic<float> *macro[8];
     std::atomic<float> *modSrc[numModSlots], *modDst[numModSlots], *modAmt[numModSlots];
 
     void bind (juce::AudioProcessorValueTreeState& s)
@@ -53,7 +55,7 @@ struct ParamRefs
             lfoShape[i] = g (pre + "_shape"); lfoRate[i] = g (pre + "_rate"); lfoRetrig[i] = g (pre + "_retrig");
             lfoFade[i] = g (pre + "_fade");
         }
-        for (int i = 0; i < 4; ++i) macro[i] = g ("macro" + juce::String (i + 1));
+        for (int i = 0; i < 8; ++i) macro[i] = g ("macro" + juce::String (i + 1));
         for (int i = 0; i < numModSlots; ++i) { modSrc[i] = g (slotSrc (i)); modDst[i] = g (slotDst (i)); modAmt[i] = g (slotAmt (i)); }
     }
 };
@@ -66,6 +68,9 @@ struct SharedState
     GrainSource* grains = nullptr;
     float modWheel = 0.0f, aftertouch = 0.0f, pitchBend = 0.0f;   // pitchBend -1..1
     float lastNote = -1.0f;
+    const MsegShape* mseg[4] { nullptr, nullptr, nullptr, nullptr };
+    double bpm = 120.0;
+    std::atomic<float>* modView = nullptr;   // live mod-source values for the GUI strip (last voice wins)
     // free-running LFO phases for when "retrigger" is off
     float freeLfoPhase[2] { 0.0f, 0.0f };
 };
@@ -103,6 +108,7 @@ private:
     AnalogOsc analog;
     GrainCloud cloud;
     Resonator resonator;
+    MsegPlayer msegPlayer[4];
     float noteTime = 0.0f;
     float tuneOffset = 0.0f;   // A4 tuning + scale tuning, in semitones
 

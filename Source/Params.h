@@ -13,7 +13,7 @@ enum ModSource
 {
     srcNone = 0, srcEnv2, srcEnv3, srcLfo1, srcLfo2, srcVelocity, srcModWheel,
     srcAftertouch, srcKeyTrack, srcRandom, srcMacro1, srcMacro2, srcMacro3, srcMacro4,
-    srcSlide,
+    srcSlide, srcMseg1, srcMseg2, srcMseg3, srcMseg4, srcMacro5, srcMacro6, srcMacro7, srcMacro8,
     numModSources
 };
 
@@ -21,7 +21,8 @@ inline const juce::StringArray& modSourceNames()
 {
     static const juce::StringArray names { "None", "Env 2", "Env 3", "LFO 1", "LFO 2", "Velocity",
                                            "Mod Wheel", "Aftertouch", "Key Track", "Random",
-                                           "Macro 1", "Macro 2", "Macro 3", "Macro 4", "Slide (MPE)" };
+                                           "Macro 1", "Macro 2", "Macro 3", "Macro 4", "Slide (MPE)",
+                                           "MSEG 1", "MSEG 2", "MSEG 3", "MSEG 4", "Macro 5", "Macro 6", "Macro 7", "Macro 8" };
     return names;
 }
 
@@ -273,7 +274,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     }
 
     // ---- Macros ----
-    for (int i = 1; i <= 4; ++i)
+    for (int i = 1; i <= 8; ++i)
         addF ("macro" + String (i), "Macro " + String (i), { 0.0f, 1.0f }, 0.0f);
 
     // ---- Mod matrix ----
@@ -302,6 +303,8 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         addF ("ring_freq", "Ring Mod Freq", rf, 300.0f, "Hz");
     }
     addF ("ring_mix", "Ring Mod Mix", { 0.0f, 1.0f }, 0.0f);
+    addF ("eq_bass", "Bass", { -12.0f, 12.0f, 0.1f }, 0.0f, "dB");
+    addF ("eq_treble", "Treble", { -12.0f, 12.0f, 0.1f }, 0.0f, "dB");
     addF ("cho_mix", "Chorus Mix", { 0.0f, 1.0f }, 0.0f);
     addF ("cho_rate", "Chorus Rate", { 0.05f, 5.0f }, 0.6f, "Hz");
     addF ("cho_depth", "Chorus Depth", { 0.0f, 1.0f }, 0.4f);

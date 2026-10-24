@@ -3,6 +3,7 @@
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
 #include "../Source/Presets.h"
+#include "../Source/design/SoundFeatures.h"
 
 static void writeWav (const juce::File& f, const juce::AudioBuffer<float>& b, double sr)
 {
@@ -29,6 +30,25 @@ int main (int argc, char** argv)
     const double sr = 48000.0;
     const int block = 512;
     int failures = 0;
+
+    // ---- measure every factory preset for the BROWSE map ----
+    if (juce::SystemStats::getEnvironmentVariable ("OZ_FEATURES", {}) == "1")
+    {
+        juce::String json ("{\n");
+        for (int preset = 0; preset < (int) ff::factoryPresets().size(); ++preset)
+        {
+            FourfoldProcessor proc;
+            proc.setCurrentProgram (preset);
+            auto audio = ff::design::renderAudition (proc, sr);
+            auto f = ff::design::analyse (audio, sr);
+            json << "  \"" << ff::factoryPresets()[(size_t) preset].name << "\": [" << juce::String (f.brightness, 4) << ", "
+                 << juce::String (f.aggression, 4) << ", " << juce::String (f.movement, 4) << "],\n";
+        }
+        json = json.trimEnd().dropLastCharacters (1) + "\n}\n";
+        outDir.getChildFile ("features.json").replaceWithText (json);
+        std::printf ("features written\n");
+        return 0;
+    }
 
     // ---- ROLL test: one gliding line, rendered with the internal transport ----
     if (juce::SystemStats::getEnvironmentVariable ("OZ_ROLL", {}) == "1")
@@ -196,6 +216,22 @@ int main (int argc, char** argv)
         if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "roll")
             for (auto* c : ed->getChildren())
                 if (auto* page = dynamic_cast<ff::gui::RollPage*> (c)) { page->setVisible (true); page->toFront (false); }
+        // OZ_CLICK="BROWSE,Expansions": press buttons (by their text) in order
+        {
+            std::function<juce::TextButton* (juce::Component*, const juce::String&)> find = [&] (juce::Component* c, const juce::String& t) -> juce::TextButton*
+            {
+                for (auto* ch : c->getChildren())
+                {
+                    if (! ch->isVisible()) continue;
+                    if (auto* b = dynamic_cast<juce::TextButton*> (ch); b != nullptr && b->getButtonText() == t) return b;
+                    if (auto* r = find (ch, t)) return r;
+                }
+                return nullptr;
+            };
+            for (auto& t : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("OZ_CLICK", {}), ",", ""))
+                if (auto* b = find (ed.get(), t)) { if (b->onClick) b->onClick(); }
+                else std::printf ("no button '%s'\n", t.toRawUTF8());
+        }
         auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);
         juce::PNGImageFormat png;
         auto f = outDir.getChildFile ("screenshot.png");

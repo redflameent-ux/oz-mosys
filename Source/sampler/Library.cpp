@@ -1,3 +1,5 @@
+#include <complex>
+#include <mutex>
 #include "Library.h"
 #include <regex>
 #include <map>
@@ -441,6 +443,16 @@ InstrumentPtr Library::load (const InstrumentInfo& info, juce::AudioFormatManage
 // Only a placeholder for testing - the real thing is the recorded library.
 InstrumentPtr Library::makeDemoBowl()
 {
+    // built once per process and shared (it's read-only), so opening the plugin stays fast
+    static InstrumentPtr cached;
+    static std::mutex m;
+    std::lock_guard<std::mutex> lock (m);
+    if (cached == nullptr) cached = buildDemoBowl();
+    return std::make_shared<Instrument> (*cached);   // own copy, in case it gets edited
+}
+
+InstrumentPtr Library::buildDemoBowl()
+{
     auto inst = std::make_shared<Instrument>();
     inst->name = "Demo Bowl (built-in)";
     inst->category = "Built-in";
@@ -473,15 +485,20 @@ InstrumentPtr Library::makeDemoBowl()
             double f = f0 * p[0];
             if (f > sr * 0.45) continue;
             double ph1 = rng.nextDouble() * juce::MathConstants<double>::twoPi, ph2 = ph1 + 0.6;
-            double w1 = juce::MathConstants<double>::twoPi * f / sr;
-            double w2 = juce::MathConstants<double>::twoPi * (f + p[3]) / sr;
+            const double w1 = juce::MathConstants<double>::twoPi * f / sr;
+            const double w2 = juce::MathConstants<double>::twoPi * (f + p[3]) / sr;
+            // rotating phasors instead of sin() per sample
+            std::complex<double> a (std::cos (ph1), std::sin (ph1)), b (std::cos (ph2), std::sin (ph2)), c (std::cos (ph2 + 0.3), std::sin (ph2 + 0.3));
+            const std::complex<double> ra (std::cos (w1), std::sin (w1)), rb (std::cos (w2), std::sin (w2));
+            const double decay = std::exp (-1.0 / (sr * p[2]));
+            double env = p[1];
             for (int i = 0; i < len; ++i)
             {
-                double t = i / sr;
-                double env = p[1] * std::exp (-t / p[2]) * juce::jmin (1.0, t * 400.0);
-                L[i] += (float) (env * (0.6 * std::sin (ph1) + 0.4 * std::sin (ph2)));
-                R[i] += (float) (env * (0.4 * std::sin (ph1) + 0.6 * std::sin (ph2 + 0.3)));
-                ph1 += w1; ph2 += w2;
+                const double e = env * juce::jmin (1.0, i * (400.0 / sr));
+                L[i] += (float) (e * (0.6 * a.imag() + 0.4 * b.imag()));
+                R[i] += (float) (e * (0.4 * a.imag() + 0.6 * c.imag()));
+                a *= ra; b *= rb; c *= rb; env *= decay;
+                if ((i & 4095) == 0) { a /= std::abs (a); b /= std::abs (b); c /= std::abs (c); }
             }
         }
         for (int i = 0; i < (int) (sr * 0.012); ++i)   // mallet tick

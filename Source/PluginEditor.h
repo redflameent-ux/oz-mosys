@@ -4,6 +4,9 @@
 #include "gui/Displays.h"
 #include "gui/SamplerPage.h"
 #include "gui/RollPage.h"
+#include "gui/EnvelopePage.h"
+#include "gui/BrowsePage.h"
+#include "gui/PerformBar.h"
 
 class FourfoldEditor : public juce::AudioProcessorEditor,
                        public juce::DragAndDropContainer,
@@ -93,8 +96,7 @@ private:
     juce::ToggleButton lfoRetrig[2];
 
     // macros + matrix
-    std::vector<std::unique_ptr<Knob>> macroKnobs;
-    std::vector<std::unique_ptr<ff::gui::ModChip>> chips;
+    std::unique_ptr<ff::gui::ModStrip> modStrip;
     struct MatrixRow
     {
         juce::ComboBox src, dst;
@@ -112,10 +114,13 @@ private:
     juce::MidiKeyboardComponent keyboard;
 
     // pages
-    juce::TextButton synthTab { "SYNTH" }, samplerTab { "SAMPLER" }, rollTab { "ROLL" };
+    juce::TextButton synthTab { "SYNTH" }, envTab { "ENV" }, browseTab { "BROWSE" }, samplerTab { "SAMPLER" }, rollTab { "ROLL" };
+    std::unique_ptr<ff::gui::EnvelopePage> envPage;
+    std::unique_ptr<ff::gui::BrowsePage> browsePage;
+    std::unique_ptr<ff::gui::MacroBar> macroBar;
     std::unique_ptr<SamplerPage> samplerPage;
     std::unique_ptr<ff::gui::RollPage> rollPage;
-    void showPage (int page);   // 0 synth, 1 sampler, 2 roll
+    void showPage (int page);   // 0 synth, 1 env, 2 browse, 3 sampler, 4 roll
 
     std::vector<std::unique_ptr<APVTS::ComboBoxAttachment>> comboAttachments;
     std::vector<std::unique_ptr<APVTS::ButtonAttachment>> buttonAttachments;

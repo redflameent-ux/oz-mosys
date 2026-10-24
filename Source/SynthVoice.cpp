@@ -42,6 +42,7 @@ void SynthVoice::noteStarted()
     filter.reset();
     cloud.reset (rng);
     resonator.noteOn (rng);
+    for (auto& m : msegPlayer) m.start();
 
     for (int i = 0; i < 2; ++i)
     {
@@ -62,6 +63,7 @@ void SynthVoice::noteStopped (bool allowTailOff)
 {
     if (allowTailOff)
     {
+        for (auto& m : msegPlayer) m.release();
         ampEnv.noteOff(); env2.noteOff(); env3.noteOff();
     }
     else
@@ -142,6 +144,9 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
     src[srcKeyTrack] = juce::jlimit (-1.0f, 1.0f, (targetNote - 60.0f) / 36.0f);
     src[srcRandom] = randomValue;
     for (int i = 0; i < 4; ++i) src[srcMacro1 + i] = rd (p.macro[i]);
+    for (int i = 0; i < 4; ++i)
+        src[srcMseg1 + i] = shared.mseg[i] != nullptr ? msegPlayer[i].advance (*shared.mseg[i], secs, shared.bpm) : 0.0f;
+    for (int i = 4; i < 8; ++i) src[srcMacro5 + i - 4] = rd (p.macro[i]);
 
     // First pass for LFO-rate destinations (an LFO can't modulate itself here)
     float mod[numModDests] {};
@@ -167,6 +172,8 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
         src[srcLfo1 + i] = lfo[i].advance ((int) rd (p.lfoShape[i]), rate, secs, rng) * fadeGain;
     }
     accumulate (true);
+    if (shared.modView != nullptr)
+        for (int i = 1; i < numModSources; ++i) shared.modView[i].store (src[i], std::memory_order_relaxed);
 
     // ---- pitch ----
     const float glideT = rd (p.glide);
