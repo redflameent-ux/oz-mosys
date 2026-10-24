@@ -1,4 +1,6 @@
 #include "OmniImport.h"
+#include <set>
+#include <algorithm>
 #include "../Params.h"
 #include "../perform/Perform.h"
 
@@ -520,32 +522,132 @@ bool writePreset (const Converted& c, const File& file)
     return root.writeTo (file);
 }
 
-int importOmnisphereFolder (const File& rootDir, AudioProcessorValueTreeState& apvts,
-                            std::function<bool (int, int, const String&)> progress, String& summary)
+namespace
 {
-    auto files = rootDir.findChildFiles (File::findFiles, true, "*.prt_omn");
-    files.sort();
+struct Item
+{
+    String bank, sub, name;
+    File file;                       // a loose .prt_omn ...
+    File bundle; int64 pos = 0; int size = 0;   // ... or a patch inside a .omnisphere bundle
+};
+
+// .omnisphere bundles: an XML table of contents (<FileSystem> with DIR / FILE offset size),
+// then the files back to back. Only the patch files are read; soundsource data is skipped.
+void listBundle (const File& bundle, std::vector<Item>& items)
+{
+    FileInputStream in (bundle);
+    if (! in.openedOk()) return;
+    MemoryBlock head;
+    const size_t maxHead = 8 * 1024 * 1024;
+    String text;
+    int64 headerEnd = -1;
+    static const char tag[] = "</FileSystem>";
+    while (head.getSize() < maxHead && ! in.isExhausted())
+    {
+        char buf[65536];
+        const int n = in.read (buf, sizeof (buf));
+        if (n <= 0) break;
+        head.append (buf, (size_t) n);
+        auto* b = static_cast<const char*> (head.getData());
+        auto* e = std::search (b, b + head.getSize(), tag, tag + 13);
+        if (e != b + head.getSize())
+        {
+            headerEnd = (int64) (e - b) + 13;
+            text = String::createStringFromData (b, (int) headerEnd);
+            break;
+        }
+    }
+    if (headerEnd < 0 || ! text.startsWith ("<FileSystem>")) return;
+    int64 base = headerEnd;
+    if (head.getSize() > (size_t) base && static_cast<const char*> (head.getData())[base] == '\n') ++base;
+    auto xml = XmlDocument::parse (text);
+    if (xml == nullptr) return;
+    const String bank = bundle.getFileNameWithoutExtension();
+    std::function<void (const XmlElement&, const String&)> walk = [&] (const XmlElement& e, const String& path)
+    {
+        for (auto* c : e.getChildIterator())
+        {
+            if (c->hasTagName ("DIR")) walk (*c, path.isEmpty() ? c->getStringAttribute ("name") : path + "/" + c->getStringAttribute ("name"));
+            else if (c->hasTagName ("FILE") && c->getStringAttribute ("name").endsWithIgnoreCase (".prt_omn"))
+            {
+                Item it;
+                it.bank = bank;
+                it.sub = path.startsWithIgnoreCase ("Patches") ? path.fromFirstOccurrenceOf ("Patches", false, true).trimCharactersAtStart ("/") : path;
+                it.name = c->getStringAttribute ("name").upToLastOccurrenceOf (".", false, false);
+                it.bundle = bundle;
+                it.pos = base + c->getStringAttribute ("offset").getLargeIntValue();
+                it.size = c->getIntAttribute ("size");
+                if (it.size > 0 && it.size < 16 * 1024 * 1024) items.push_back (it);
+            }
+        }
+    };
+    walk (*xml, {});
+}
+
+std::unique_ptr<XmlElement> loadItem (const Item& it)
+{
+    if (it.bundle == File()) return XmlDocument::parse (it.file);
+    FileInputStream in (it.bundle);
+    if (! in.openedOk() || ! in.setPosition (it.pos)) return nullptr;
+    MemoryBlock mb;
+    if (in.readIntoMemoryBlock (mb, it.size) != (size_t) it.size) return nullptr;
+    return XmlDocument::parse (String::createStringFromData (mb.getData(), (int) mb.getSize()));
+}
+} // namespace
+
+int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& apvts,
+                      std::function<bool (int, int, const String&)> progress, String& summary)
+{
+    std::vector<Item> items;
+    for (auto& src : sources)
+    {
+        if (src.hasFileExtension ("omnisphere")) { listBundle (src, items); continue; }
+        if (src.hasFileExtension ("prt_omn"))
+        {
+            Item it; it.bank = src.getParentDirectory().getFileName(); it.name = src.getFileNameWithoutExtension(); it.file = src;
+            items.push_back (it);
+            continue;
+        }
+        if (! src.isDirectory()) continue;
+        auto loose = src.findChildFiles (File::findFiles, true, "*.prt_omn");
+        loose.sort();
+        for (auto& f : loose)
+        {
+            // bank = first folder under the chosen one (or the chosen folder itself)
+            const auto rel = f.getRelativePathFrom (src).replaceCharacter ('\\', '/');
+            Item it;
+            it.bank = rel.containsChar ('/') ? rel.upToFirstOccurrenceOf ("/", false, false) : src.getFileName();
+            const String afterBank = rel.containsChar ('/') ? rel.fromFirstOccurrenceOf ("/", false, false) : String();
+            if (afterBank.containsChar ('/')) it.sub = afterBank.upToLastOccurrenceOf ("/", false, false);
+            it.name = f.getFileNameWithoutExtension();
+            it.file = f;
+            items.push_back (it);
+        }
+        auto bundles = src.findChildFiles (File::findFiles, true, "*.omnisphere");
+        bundles.sort();
+        for (auto& b : bundles) listBundle (b, items);
+    }
+
     const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Expansions");
     int written = 0, failed = 0;
     std::map<String, int> perBank;
-    for (int i = 0; i < files.size(); ++i)
+    std::set<String> seen;
+    for (int i = 0; i < (int) items.size(); ++i)
     {
-        const auto& f = files.getReference (i);
-        // bank = first folder under the chosen one (or the chosen folder itself)
-        auto rel = f.getRelativePathFrom (rootDir).replaceCharacter ('\\', '/');
-        String bank = rel.containsChar ('/') ? rel.upToFirstOccurrenceOf ("/", false, false) : rootDir.getFileName();
-        String sub;
-        {
-            const String afterBank = rel.containsChar ('/') ? rel.fromFirstOccurrenceOf ("/", false, false) : String();
-            if (afterBank.containsChar ('/')) sub = afterBank.upToLastOccurrenceOf ("/", false, false);
-        }
+        const auto& it = items[(size_t) i];
+        if (progress && ! progress (i, (int) items.size(), it.name)) break;
+        String bank = it.bank;
+        for (auto* junk : { " (OMNISPHERE)", " (Omnisphere)", " (Omnisphere Bank)", " (OMNISPHERE BANK)", " (SOUNDBANK)", " (SYNTH PRESET)" })
+            bank = bank.replace (junk, "");
+        bank = bank.trim();
         const String packName = "Omni - " + File::createLegalFileName (bank);
-        if (progress && ! progress (i, files.size(), f.getFileNameWithoutExtension())) break;
+        // the same patch often exists both loose and inside its bundle
+        if (! seen.insert (packName + "/" + it.sub + "/" + it.name).second) continue;
 
-        auto xml = XmlDocument::parse (f);
+        auto xml = loadItem (it);
         Converted c;
-        if (xml == nullptr || ! convertOmniPatch (*xml, f.getFileNameWithoutExtension(), packName, apvts, c)) { ++failed; continue; }
-        if (sub.isNotEmpty()) c.tags << ", " << sub.replaceCharacter ('/', ' ').toLowerCase();
+        if (xml == nullptr || ! convertOmniPatch (*xml, it.name, packName, apvts, c)) { ++failed; continue; }
+        if (it.sub.isNotEmpty()) c.tags << ", " << it.sub.replaceCharacter ('/', ' ').toLowerCase();
         auto packDir = expansions.getChildFile (packName);
         if (! packDir.getChildFile ("pack.xml").existsAsFile())
         {
@@ -557,13 +659,18 @@ int importOmnisphereFolder (const File& rootDir, AudioProcessorValueTreeState& a
             px.setAttribute ("style", "imported");
             px.writeTo (packDir.getChildFile ("pack.xml"));
         }
-        auto out = packDir.getChildFile ("Presets").getChildFile (File::createLegalFileName (sub.replaceCharacter ('/', ' ')))
-                          .getChildFile (File::createLegalFileName (c.name) + ".ozpreset");
-        if (sub.isEmpty()) out = packDir.getChildFile ("Presets").getChildFile (File::createLegalFileName (c.name) + ".ozpreset");
-        if (writePreset (c, out)) { ++written; ++perBank[packName]; } else ++failed;
+        auto dir = packDir.getChildFile ("Presets");
+        if (it.sub.isNotEmpty()) dir = dir.getChildFile (File::createLegalFileName (it.sub.replaceCharacter ('/', ' ')));
+        if (writePreset (c, dir.getChildFile (File::createLegalFileName (c.name) + ".ozpreset"))) { ++written; ++perBank[packName]; } else ++failed;
     }
     summary = String (written) + " presets imported into " + String ((int) perBank.size()) + " collection" + (perBank.size() == 1 ? "" : "s");
     if (failed > 0) summary << " (" << failed << " couldn't be read)";
     return written;
+}
+
+int importOmnisphereFolder (const File& rootDir, AudioProcessorValueTreeState& apvts,
+                            std::function<bool (int, int, const String&)> progress, String& summary)
+{
+    return importOmnisphere (Array<File> { rootDir }, apvts, std::move (progress), summary);
 }
 } // namespace ff::import

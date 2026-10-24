@@ -44,7 +44,7 @@ private:
     juce::TextButton backBtn { "< Presets" }, installBtn { "Install Pack..." }, makeBtn { "Make a Pack..." }, omniBtn { "Import Omnisphere..." };
     struct ImportThread;
     std::unique_ptr<ImportThread> importer;
-    void startOmniImport (const juce::File& folder);
+    void startOmniImport (const juce::Array<juce::File>& sources);
     juce::Viewport viewport;
     std::unique_ptr<Grid> grid;
     std::unique_ptr<MakePackPanel> makePanel;

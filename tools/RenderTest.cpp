@@ -38,7 +38,11 @@ int main (int argc, char** argv)
     {
         FourfoldProcessor proc;
         juce::String summary;
-        ff::import::importOmnisphereFolder (juce::File (omni), proc.apvts, nullptr, summary);
+        {
+            juce::Array<juce::File> srcs;
+            for (auto& t : juce::StringArray::fromTokens (omni, "|", "")) srcs.add (juce::File (t));
+            ff::import::importOmnisphere (srcs, proc.apvts, nullptr, summary);
+        }
         std::printf ("%s\n", summary.toRawUTF8());
         auto exp = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("OZ-mosys/Expansions");
         int bad = 0, n = 0;

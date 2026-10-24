@@ -121,7 +121,7 @@ Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or t
 - Keys with sampler recordings get a gold strip. When Chords is on "In key", the notes of the key get a purple dot (bigger on the root).
 
 ## Importing Omnisphere patches
-- On the BROWSE page open **Expansions**, press **Import Omnisphere...** and pick a folder of Omnisphere patches (.prt_omn), for example your Omnisphere "Settings Library/Patches" folder or a downloaded bank.
+- On the BROWSE page open **Expansions**, press **Import Omnisphere...** and pick a folder, or pick bank files (.omnisphere or .prt_omn). You can also drag .omnisphere bank files straight onto the Expansions page. Folders are searched for both loose patches and .omnisphere banks.
 - Every patch is rebuilt as an OZ-mosys preset: filters, envelopes, LFOs, mod wheel routings, arpeggiator, effects, layer pitch / level / pan. Each Omnisphere soundsource is replaced by the closest OZ-mosys engine (picked from its name), so the result is a close cousin, not a copy. No Omnisphere audio is read or copied.
 - Each top-level folder becomes a private collection ("Omni - Plughugger" etc.) on this computer only.
 

@@ -276,12 +276,12 @@ struct ExpansionsPage::MakePackPanel : public Component
 // ============================================================================ page
 struct ExpansionsPage::ImportThread : public Thread
 {
-    ImportThread (ExpansionsPage& o, File f) : Thread ("OZ Omnisphere import"), owner (o), folder (std::move (f)) {}
+    ImportThread (ExpansionsPage& o, Array<File> f) : Thread ("OZ Omnisphere import"), owner (o), sources (std::move (f)) {}
     void run() override
     {
         SafePointer<ExpansionsPage> sp (&owner);
         String summary;
-        ff::import::importOmnisphereFolder (folder, owner.proc.apvts, [this, sp] (int done, int total, const String& name)
+        ff::import::importOmnisphere (sources, owner.proc.apvts, [this, sp] (int done, int total, const String& name)
         {
             if (done % 25 == 0)
                 MessageManager::callAsync ([sp, done, total, name]
@@ -302,7 +302,7 @@ struct ExpansionsPage::ImportThread : public Thread
         });
     }
     ExpansionsPage& owner;
-    File folder;
+    Array<File> sources;
 };
 
 ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
@@ -323,13 +323,29 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
     addAndMakeVisible (search);
     for (auto* b : { &backBtn, &installBtn, &makeBtn, &omniBtn }) addAndMakeVisible (b);
     omniBtn.setColour (TextButton::buttonColourId, Colour (0xff7ee0c3).withAlpha (0.25f));
-    omniBtn.setTooltip ("Rebuild a folder of Omnisphere patches (.prt_omn) as OZ-mosys presets. They stay private on this computer.");
+    omniBtn.setTooltip ("Rebuild Omnisphere patches (.prt_omn) and banks (.omnisphere) as OZ-mosys presets. You can also drag bank files onto this page. They stay private on this computer.");
     omniBtn.onClick = [this]
     {
         if (importer != nullptr) { importer->signalThreadShouldExit(); return; }
-        chooser = std::make_unique<FileChooser> ("Choose a folder of Omnisphere patches", File::getSpecialLocation (File::userDocumentsDirectory));
-        chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectDirectories,
-                              [this] (const FileChooser& fc) { if (fc.getResult().isDirectory()) startOmniImport (fc.getResult()); });
+        PopupMenu m;
+        m.addSectionHeader ("Import Omnisphere patches");
+        m.addItem (1, "A whole folder (patches + .omnisphere banks inside it)...");
+        m.addItem (2, "Bank files (.omnisphere or .prt_omn)...");
+        m.showMenuAsync (PopupMenu::Options().withTargetComponent (&omniBtn), [this] (int r)
+        {
+            if (r == 1)
+            {
+                chooser = std::make_unique<FileChooser> ("Choose a folder of Omnisphere patches / banks", File::getSpecialLocation (File::userDocumentsDirectory));
+                chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectDirectories,
+                                      [this] (const FileChooser& fc) { if (fc.getResult().isDirectory()) startOmniImport ({ fc.getResult() }); });
+            }
+            else if (r == 2)
+            {
+                chooser = std::make_unique<FileChooser> ("Choose Omnisphere banks", File::getSpecialLocation (File::userDocumentsDirectory), "*.omnisphere;*.prt_omn");
+                chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::canSelectMultipleItems,
+                                      [this] (const FileChooser& fc) { if (! fc.getResults().isEmpty()) startOmniImport (fc.getResults()); });
+            }
+        });
     };
     installBtn.setColour (TextButton::buttonColourId, col::sampler.withAlpha (0.25f));
     backBtn.onClick = [this] { if (onClose) onClose(); };
@@ -389,14 +405,20 @@ void ExpansionsPage::installFile (const File& f)
 
 bool ExpansionsPage::isInterestedInFileDrag (const StringArray& files)
 {
-    for (auto& f : files) if (f.endsWithIgnoreCase (".ozpack")) return true;
+    for (auto& f : files) if (f.endsWithIgnoreCase (".ozpack") || f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")) return true;
     return false;
 }
 
 void ExpansionsPage::filesDropped (const StringArray& files, int, int)
 {
     dragOver = false;
-    for (auto& f : files) if (f.endsWithIgnoreCase (".ozpack")) installFile (File (f));
+    Array<File> omni;
+    for (auto& f : files)
+    {
+        if (f.endsWithIgnoreCase (".ozpack")) installFile (File (f));
+        else if (f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")) omni.add (File (f));
+    }
+    if (! omni.isEmpty()) startOmniImport (omni);
     repaint();
 }
 
@@ -445,11 +467,12 @@ void ExpansionsPage::layoutTiles()
 }
 
 // ---------------------------------------------------------------------------- Omnisphere import
-void ExpansionsPage::startOmniImport (const File& folder)
+void ExpansionsPage::startOmniImport (const Array<File>& sources)
 {
-    status.setText ("Looking for Omnisphere patches in " + folder.getFileName() + "...", dontSendNotification);
+    if (importer != nullptr) return;
+    status.setText ("Reading " + (sources.size() == 1 ? sources[0].getFileName() : String (sources.size()) + " items") + "...", dontSendNotification);
     omniBtn.setButtonText ("Stop import");
-    importer = std::make_unique<ImportThread> (*this, folder);
+    importer = std::make_unique<ImportThread> (*this, sources);
     importer->startThread();
 }
 
