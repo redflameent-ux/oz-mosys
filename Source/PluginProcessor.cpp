@@ -20,23 +20,22 @@ FourfoldProcessor::FourfoldProcessor()
     builtInTables = tables;
     builtInGrains = grains;
 
-    synth.addSound (new ff::SynthSound());
     for (int i = 0; i < 12; ++i)
     {
         auto* v = new ff::SynthVoice (shared, 1000 + i * 37);
         voices.push_back (v);
         synth.addVoice (v);
     }
-    synth.setNoteStealingEnabled (true);
+    synth.setVoiceStealingEnabled (true);
 
     // Mono mode: one voice, so a new note cuts the last (hi-hat choke, 808 slides)
-    monoSynth.addSound (new ff::SynthSound());
     {
         auto* v = new ff::SynthVoice (shared, 4242);
         voices.push_back (v);
         monoSynth.addVoice (v);
     }
-    monoSynth.setNoteStealingEnabled (true);
+    monoSynth.setVoiceStealingEnabled (true);
+    updateZoneLayout (2);
     refreshSharedPointers();
 
     sampler = std::make_unique<ff::SamplerEngine> (apvts, keyboardState);
@@ -52,8 +51,12 @@ void FourfoldProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     synth.setCurrentPlaybackSampleRate (sampleRate);
     monoSynth.setCurrentPlaybackSampleRate (sampleRate);
+    synth.setMinimumRenderingSubdivisionSize (32, false);
+    monoSynth.setMinimumRenderingSubdivisionSize (32, false);
     fx.prepare (sampleRate, juce::jmax (32, samplesPerBlock));
     sampler->prepare (sampleRate, samplesPerBlock);
+    roll.prepare (sampleRate);
+    samplerMidi.ensureSize (8192);
     samplerBuf.setSize (2, juce::jmax (512, samplesPerBlock));
     keyboardState.reset();
 }
@@ -103,10 +106,23 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     const bool mono = apvts.getRawParameterValue ("voice_mode")->load() > 0.5f;
     if (mono != wasMono)
     {
-        synth.allNotesOff (0, false);
-        monoSynth.allNotesOff (0, false);
+        synth.turnOffAllVoices (false);
+        monoSynth.turnOffAllVoices (false);
         wasMono = mono;
     }
+    // ROLL page: drawn lines become MPE notes (each on its own channel)
+    roll.process (midi, n, getPlayHead(), (int) apvts.getRawParameterValue ("bend")->load());
+
+    // MPE: channel 1 = normal keyboard (Bend knob range), channels 2-16 = one note each (+/-48 st)
+    if (const int bendRange = (int) apvts.getRawParameterValue ("bend")->load(); bendRange != lastMasterBend)
+        updateZoneLayout (bendRange);
+    for (const auto meta : midi)
+    {
+        const auto m = meta.getMessage();
+        if (m.isController() && m.getControllerNumber() == 1) shared.modWheel = (float) m.getControllerValue() / 127.0f;
+        else if (m.isChannelPressure() && m.getChannel() == 1) shared.aftertouch = (float) m.getChannelPressureValue() / 127.0f;
+    }
+
     // sampler page: off / layered with the synth / sampler only
     const int smpPlay = (int) apvts.getRawParameterValue ("smp_play")->load();
     (mono ? monoSynth : synth).renderNextBlock (buffer, smpPlay == 2 ? emptyMidi : midi, 0, n);
@@ -114,7 +130,16 @@ void FourfoldProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mi
     const bool smpThroughFx = apvts.getRawParameterValue ("smp_fx")->load() > 0.5f;
     if (samplerBuf.getNumSamples() < n) samplerBuf.setSize (2, n, false, false, true);
     samplerBuf.clear (0, n);
-    sampler->render (samplerBuf, smpPlay > 0 ? midi : emptyMidi, n);
+    // the sampler plays the ROLL's notes at their starting pitch (its bend range is the normal one)
+    samplerMidi.clear();
+    if (smpPlay > 0)
+        for (const auto meta : midi)
+        {
+            const auto m = meta.getMessage();
+            if (m.isPitchWheel() && m.getChannel() > 1) continue;
+            samplerMidi.addEvent (m, meta.samplePosition);
+        }
+    sampler->render (samplerBuf, samplerMidi, n);
     if (smpThroughFx)
         for (int ch = 0; ch < buffer.getNumChannels(); ++ch) buffer.addFrom (ch, 0, samplerBuf, juce::jmin (ch, 1), 0, n);
 
@@ -243,6 +268,8 @@ void FourfoldProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty ("grainFile", grainFile.getFullPathName(), nullptr);
     state.setProperty ("presetName", currentPresetName, nullptr);
     sampler->saveTo (state);
+    state.removeChild (state.getChildWithName ("Roll"), nullptr);
+    state.appendChild (roll.getPattern()->toTree(), nullptr);
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
 }
@@ -261,6 +288,8 @@ void FourfoldProcessor::applyStateTree (const juce::ValueTree& tree)
 
     currentPresetName = tree.getProperty ("presetName", "Init").toString();
     sampler->restoreFrom (tree);
+    if (auto rt = tree.getChildWithName ("Roll"); rt.isValid())
+        roll.setPattern (ff::roll::Pattern::fromTree (rt));
 }
 
 void FourfoldProcessor::setStateInformation (const void* data, int sizeInBytes)
@@ -299,6 +328,15 @@ bool FourfoldProcessor::loadPresetFromFile (const juce::File& file)
         return true;
     }
     return false;
+}
+
+void FourfoldProcessor::updateZoneLayout (int masterBendRange)
+{
+    lastMasterBend = masterBendRange;
+    juce::MPEZoneLayout layout;
+    layout.setLowerZone (15, 48, juce::jmax (0, masterBendRange));
+    synth.setZoneLayout (layout);
+    monoSynth.setZoneLayout (layout);
 }
 
 juce::AudioProcessorEditor* FourfoldProcessor::createEditor() { return new FourfoldEditor (*this); }

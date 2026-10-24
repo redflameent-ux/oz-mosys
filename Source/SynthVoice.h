@@ -70,27 +70,21 @@ struct SharedState
     float freeLfoPhase[2] { 0.0f, 0.0f };
 };
 
-class SynthSound : public juce::SynthesiserSound
-{
-public:
-    bool appliesToNote (int) override { return true; }
-    bool appliesToChannel (int) override { return true; }
-};
-
-class SynthVoice : public juce::SynthesiserVoice
+// MPE voice: every note has its own pitch bend, pressure and slide (timbre),
+// so the ROLL page, Logic/Ableton/Bitwig and MPE keyboards can bend single notes.
+class SynthVoice : public juce::MPESynthesiserVoice
 {
 public:
     explicit SynthVoice (SharedState& s, int seed) : shared (s), rng (seed) {}
 
-    bool canPlaySound (juce::SynthesiserSound* s) override { return dynamic_cast<SynthSound*> (s) != nullptr; }
-    void startNote (int midiNote, float velocity, juce::SynthesiserSound*, int pitchWheel) override;
-    void stopNote (float velocity, bool allowTailOff) override;
-    void pitchWheelMoved (int v) override;
-    void controllerMoved (int cc, int v) override;
-    void channelPressureChanged (int v) override { shared.aftertouch = (float) v / 127.0f; }
-    void aftertouchChanged (int v) override { aftertouch = (float) v / 127.0f; }
+    void noteStarted() override;
+    void noteStopped (bool allowTailOff) override;
+    void notePitchbendChanged() override {}
+    void notePressureChanged() override {}
+    void noteTimbreChanged() override {}
+    void noteKeyStateChanged() override {}
     void renderNextBlock (juce::AudioBuffer<float>&, int startSample, int numSamples) override;
-    void setCurrentPlaybackSampleRate (double sr) override;
+    void setCurrentSampleRate (double sr) override;
 
     // For the GUI: latest modulated wavetable position of this voice (-1 when idle)
     std::atomic<float> displayWtPos { -1.0f };
@@ -115,7 +109,8 @@ private:
     static constexpr int maxUnison = 7;
     float wtPhase[maxUnison] {};
     float note = 60.0f, targetNote = 60.0f;
-    float velocity = 1.0f, aftertouch = 0.0f, randomValue = 0.0f;
+    float velocity = 1.0f, randomValue = 0.0f, bendNow = 0.0f;
+    bool  bendReset = true;
     float driftValue = 0.0f, driftTarget = 0.0f;
     float scanOffset = 0.0f;
     double sampleRate = 48000.0;

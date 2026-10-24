@@ -5,6 +5,7 @@
 #include "SynthVoice.h"
 #include "dsp/Effects.h"
 #include "sampler/SamplerEngine.h"
+#include "roll/RollEngine.h"
 
 class FourfoldProcessor : public juce::AudioProcessor
 {
@@ -39,6 +40,7 @@ public:
     juce::AudioProcessorValueTreeState apvts;
     juce::MidiKeyboardState keyboardState;
     std::unique_ptr<ff::SamplerEngine> sampler;
+    ff::roll::RollEngine roll;
 
     bool loadUserWavetable (const juce::File& file);
     bool loadGrainSample (const juce::File& file);
@@ -65,7 +67,9 @@ private:
     void applyStateTree (const juce::ValueTree& tree);
 
     ff::SharedState shared;
-    juce::Synthesiser synth, monoSynth;
+    juce::MPESynthesiser synth, monoSynth;
+    int lastMasterBend = -1;
+    void updateZoneLayout (int masterBendRange);
     bool wasMono = false;
     std::vector<ff::SynthVoice*> voices;
     ff::EffectsChain fx;
@@ -81,7 +85,7 @@ private:
     ff::GrainSource::Ptr audioGrains;
     juce::SpinLock swapLock;
     juce::AudioBuffer<float> samplerBuf;
-    juce::MidiBuffer emptyMidi;
+    juce::MidiBuffer emptyMidi, samplerMidi;
     juce::ReferenceCountedArray<juce::ReferenceCountedObject> graveyard;   // old data freed off the audio thread
 
     juce::File userTableFile, grainFile;

@@ -3,6 +3,7 @@
 #include "gui/Widgets.h"
 #include "gui/Displays.h"
 #include "gui/SamplerPage.h"
+#include "gui/RollPage.h"
 
 class FourfoldEditor : public juce::AudioProcessorEditor,
                        public juce::DragAndDropContainer,
@@ -111,9 +112,10 @@ private:
     juce::MidiKeyboardComponent keyboard;
 
     // pages
-    juce::TextButton synthTab { "SYNTH" }, samplerTab { "SAMPLER" };
+    juce::TextButton synthTab { "SYNTH" }, samplerTab { "SAMPLER" }, rollTab { "ROLL" };
     std::unique_ptr<SamplerPage> samplerPage;
-    void showPage (bool sampler);
+    std::unique_ptr<ff::gui::RollPage> rollPage;
+    void showPage (int page);   // 0 synth, 1 sampler, 2 roll
 
     std::vector<std::unique_ptr<APVTS::ComboBoxAttachment>> comboAttachments;
     std::vector<std::unique_ptr<APVTS::ButtonAttachment>> buttonAttachments;

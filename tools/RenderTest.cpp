@@ -30,6 +30,45 @@ int main (int argc, char** argv)
     const int block = 512;
     int failures = 0;
 
+    // ---- ROLL test: one gliding line, rendered with the internal transport ----
+    if (juce::SystemStats::getEnvironmentVariable ("OZ_ROLL", {}) == "1")
+    {
+        FourfoldProcessor proc;
+        proc.setPlayConfigDetails (0, 2, sr, block);
+        proc.prepareToPlay (sr, block);
+        proc.setCurrentProgram (0);
+        if (auto* p = proc.apvts.getParameter ("rev_mix")) p->setValueNotifyingHost (0.0f);
+        if (auto* p = proc.apvts.getParameter ("flt_on")) p->setValueNotifyingHost (0.0f);
+        if (auto* p = proc.apvts.getParameter ("wt_pos")) p->setValueNotifyingHost (0.0f);   // pure sine
+        ff::roll::Pattern pat;
+        pat.lengthBeats = 16;
+        ff::roll::Line l; l.id = pat.nextId++;
+        l.nodes = { { 0.0, 57.0f, 0.0f }, { 4.0, 64.0f, 0.0f }, { 8.0, 64.0f, 0.0f } };   // A3 -> E4 over 2 s, then hold
+        pat.lines.push_back (l);
+        proc.roll.setPattern (pat);
+        proc.roll.play();
+        const int total = (int) (sr * 4.0);
+        juce::AudioBuffer<float> out (2, total), buf (2, block);
+        for (int pos = 0; pos < total; pos += block)
+        {
+            juce::MidiBuffer midi;
+            const int n = juce::jmin (block, total - pos);
+            buf.setSize (2, n, false, false, true);
+            proc.processBlock (buf, midi);
+            for (int ch = 0; ch < 2; ++ch) out.copyFrom (ch, pos, buf, ch, 0, n);
+        }
+        auto freqAt = [&] (double t)
+        {
+            const int s0 = (int) (t * sr), len = 4800;
+            int crossings = 0; float prev = out.getSample (0, s0);
+            for (int i = 1; i < len; ++i) { const float v = out.getSample (0, s0 + i); if (prev < 0 && v >= 0) ++crossings; prev = v; }
+            return crossings / (len / sr);
+        };
+        std::printf ("ROLL glide: %.1f Hz at 0.05 s (A3 = 220), %.1f Hz at 1.0 s, %.1f Hz at 3.0 s (E4 = 329.6)\n", freqAt (0.05), freqAt (1.0), freqAt (3.0));
+        writeWav (outDir.getChildFile ("roll_glide.wav"), out, sr);
+        return 0;
+    }
+
     for (int preset = 0; preset < (int) ff::factoryPresets().size(); ++preset)
     {
         FourfoldProcessor proc;
@@ -102,6 +141,27 @@ int main (int argc, char** argv)
         const auto want = juce::SystemStats::getEnvironmentVariable ("OZ_SHOT", {});
         for (int i = 0; i < (int) ff::factoryPresets().size(); ++i) if (ff::factoryPresets()[(size_t) i].name == want) shot = i;
         proc.setCurrentProgram (shot);
+        if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "roll")
+        {
+            ff::roll::Pattern pat;
+            pat.lengthBeats = 16;
+            pat.modShape = 1; pat.modAmount = 40; pat.modRateBeats = 0.25; pat.modFade = 0.6f;
+            const float from[] = { 48, 55, 60, 63, 67, 70 };
+            const float to[]   = { 43, 55, 58, 62, 65, 74 };
+            for (int i = 0; i < 6; ++i)
+            {
+                ff::roll::Line l; l.id = pat.nextId++;
+                l.velocity = 0.6f + 0.06f * i;
+                l.nodes = { { 0.0, from[i], 0.4f }, { 3.0, from[i], 0.0f }, { 5.0, to[i], 0.0f }, { 7.5, to[i], 0.0f } };
+                l.pressure = { { 0.0, 0.1f }, { 4.0, 0.8f }, { 7.5, 0.2f } };
+                pat.lines.push_back (l);
+            }
+            ff::roll::Line lead; lead.id = pat.nextId++;
+            lead.nodes = { { 8.0, 72.0f, 0.0f }, { 9.0, 75.0f, 0.6f }, { 10.5, 74.0f, -0.5f }, { 12.0, 79.0f, 0.0f }, { 15.5, 77.0f, 0.0f } };
+            lead.slide = { { 8.0, 0.5f }, { 12.0, 0.9f }, { 15.5, 0.3f } };
+            pat.lines.push_back (lead);
+            proc.roll.setPattern (pat);
+        }
         std::unique_ptr<juce::AudioProcessorEditor> ed (proc.createEditor());
         ed->setVisible (true);
         if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "sampler")
@@ -133,6 +193,9 @@ int main (int argc, char** argv)
         if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "sampler")
             for (auto* c : ed->getChildren())
                 if (auto* page = dynamic_cast<SamplerPage*> (c)) { page->setVisible (true); page->toFront (false); }
+        if (juce::SystemStats::getEnvironmentVariable ("OZ_PAGE", {}) == "roll")
+            for (auto* c : ed->getChildren())
+                if (auto* page = dynamic_cast<ff::gui::RollPage*> (c)) { page->setVisible (true); page->toFront (false); }
         auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);
         juce::PNGImageFormat png;
         auto f = outDir.getChildFile ("screenshot.png");

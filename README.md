@@ -16,6 +16,17 @@ World tunings (Raga Bhairav, Maqam Rast / Bayati / Hijaz, just, Pythagorean) wit
 165 factory presets in 18 banks, from Sacred World, Resonance & Drones and Memphis Drums to Industrial, Japanese Acid Jazz, 60s Psych, Dungeon Synth, 8-Bit Lo-Fi, Krautrock, Zamrock and Jazz Noir.
 Every preset has Macro 1 (brightness) and Macro 2 (character) ready to tweak.
 
+## ROLL page (bend every note)
+Press **ROLL**. Notes are lines you can bend: click empty space for a note, click a line to add a bend point,
+drag points to glide, Alt-drag a line to curve it. Every note has its own **velocity, pressure and slide**
+(the *Edit* menu), plus **Pitch Mod** (wobble with amount, speed, fade-in and polarity), loop length, grid,
+quantise, record, undo/redo, copy/paste and save/open (`Documents\OZ-mosys\Rolls`).
+It follows your DAW's transport (or its own Play button), so it works in FL Studio too.
+**Export MIDI** writes an MPE file that keeps every bend for Logic, Ableton, Bitwig, Cubase or Studio One.
+
+OZ-mosys is also a full **MPE instrument**: per-note pitch bend, pressure (Aftertouch) and slide (CC74) from MPE
+keyboards or DAWs that draw per-note bends. Channel 1 is the normal keyboard; channels 2-16 carry one note each (+/-48 st).
+
 ## Sampler page
 Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or the keyboard, layered with the synth or on their own.
 - **Drop a folder** (or WAV files) on the left. It becomes an instrument; folders inside it become articulations.

@@ -141,7 +141,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     const std::pair<int, const char*> chipDefs[] = {
         { srcEnv2, "ENV 2" }, { srcEnv3, "ENV 3" }, { srcLfo1, "LFO 1" }, { srcLfo2, "LFO 2" },
         { srcVelocity, "VEL" }, { srcModWheel, "MOD W" }, { srcAftertouch, "AFTER" }, { srcKeyTrack, "KEY" },
-        { srcRandom, "RAND" }, { srcMacro1, "M1" }, { srcMacro2, "M2" }, { srcMacro3, "M3" }, { srcMacro4, "M4" } };
+        { srcRandom, "RAND" }, { srcSlide, "SLIDE" }, { srcMacro1, "M1" }, { srcMacro2, "M2" }, { srcMacro3, "M3" }, { srcMacro4, "M4" } };
     for (auto& [src, text] : chipDefs)
     {
         chips.push_back (std::make_unique<ModChip> (src, text));
@@ -180,17 +180,21 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     for (auto& [id, label] : fxDefs) makeKnob (fxKnobs, id, label, col::fx);
 
     // ---------------- pages ----------------
-    for (auto* t : { &synthTab, &samplerTab })
+    for (auto* t : { &synthTab, &samplerTab, &rollTab })
     {
         t->setClickingTogglesState (false);
         t->setColour (juce::TextButton::buttonOnColourId, col::sampler.withAlpha (0.25f));
         addAndMakeVisible (t);
     }
-    synthTab.onClick = [this] { showPage (false); };
-    samplerTab.onClick = [this] { showPage (true); };
+    synthTab.onClick = [this] { showPage (0); };
+    samplerTab.onClick = [this] { showPage (1); };
+    rollTab.onClick = [this] { showPage (2); };
+    rollTab.setTooltip ("Draw notes as lines and bend them (per-note pitch, pressure and slide)");
     samplerTab.setTooltip ("Pad sampler: your own recordings, 4x4 pads and the mapper");
     samplerPage = std::make_unique<SamplerPage> (proc, proc.apvts);
     addChildComponent (*samplerPage);
+    rollPage = std::make_unique<ff::gui::RollPage> (proc);
+    addChildComponent (*rollPage);
     synthTab.setToggleState (true, juce::dontSendNotification);
 
     // ---------------- keyboard ----------------
@@ -326,16 +330,17 @@ void FourfoldEditor::resized()
 
     // ---- top bar ----
     auto top = area.removeFromTop (46);
-    logoArea = top.removeFromLeft (170);
+    logoArea = top.removeFromLeft (158);
     prevBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
-    presetBox.setBounds (top.removeFromLeft (220).reduced (4, 9));
+    presetBox.setBounds (top.removeFromLeft (190).reduced (4, 9));
     nextBtn.setBounds (top.removeFromLeft (28).reduced (0, 9));
     top.removeFromLeft (6);
-    saveBtn.setBounds (top.removeFromLeft (56).reduced (0, 9));
+    saveBtn.setBounds (top.removeFromLeft (52).reduced (0, 9));
     top.removeFromLeft (14);
-    synthTab.setBounds (top.removeFromLeft (74).reduced (0, 9));
-    samplerTab.setBounds (top.removeFromLeft (84).reduced (2, 9));
-    meterArea = top.removeFromRight (120).reduced (0, 19);
+    synthTab.setBounds (top.removeFromLeft (66).reduced (0, 9));
+    samplerTab.setBounds (top.removeFromLeft (80).reduced (2, 9));
+    rollTab.setBounds (top.removeFromLeft (58).reduced (0, 9));
+    meterArea = top.removeFromRight (80).reduced (0, 19);
     top.removeFromRight (8);
     for (int i = 2; i >= 0; --i) topKnobs[(size_t) i]->setBounds (top.removeFromRight (56));
     top.removeFromRight (10);
@@ -343,7 +348,7 @@ void FourfoldEditor::resized()
     top.removeFromRight (4);
     rootBox.setBounds (top.removeFromRight (54).reduced (0, 11));
     top.removeFromRight (4);
-    scaleBox.setBounds (top.removeFromRight (132).reduced (0, 11));
+    scaleBox.setBounds (top.removeFromRight (118).reduced (0, 11));
     top.removeFromRight (8);
     monoToggle.setBounds (top.removeFromRight (58).reduced (0, 11));
     area.removeFromTop (4);
@@ -499,6 +504,7 @@ void FourfoldEditor::resized()
 
     keyboard.setBounds (area);
     samplerPage->setBounds (juce::Rectangle<int> (gap, 46 + gap + 4, editorW - 2 * gap, area.getY() - gap - (46 + gap + 4)));
+    rollPage->setBounds (samplerPage->getBounds());
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) area.getWidth() / 50.0f));
 }
 
@@ -686,10 +692,13 @@ void FourfoldEditor::loadGrainFile (const juce::File& f)
         juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Couldn't load", "That audio file couldn't be read.");
 }
 
-void FourfoldEditor::showPage (bool sampler)
+void FourfoldEditor::showPage (int page)
 {
-    samplerPage->setVisible (sampler);
-    if (sampler) samplerPage->toFront (false);
-    synthTab.setToggleState (! sampler, juce::dontSendNotification);
-    samplerTab.setToggleState (sampler, juce::dontSendNotification);
+    samplerPage->setVisible (page == 1);
+    rollPage->setVisible (page == 2);
+    if (page == 1) samplerPage->toFront (false);
+    if (page == 2) rollPage->toFront (true);
+    synthTab.setToggleState (page == 0, juce::dontSendNotification);
+    samplerTab.setToggleState (page == 1, juce::dontSendNotification);
+    rollTab.setToggleState (page == 2, juce::dontSendNotification);
 }

@@ -5,9 +5,9 @@ namespace ff
 static inline float rd (std::atomic<float>* p) noexcept { return p->load (std::memory_order_relaxed); }
 static inline float semisToRatio (float s) noexcept { return std::exp2 (s / 12.0f); }
 
-void SynthVoice::setCurrentPlaybackSampleRate (double sr)
+void SynthVoice::setCurrentSampleRate (double sr)
 {
-    juce::SynthesiserVoice::setCurrentPlaybackSampleRate (sr);
+    juce::MPESynthesiserVoice::setCurrentSampleRate (sr);
     if (sr <= 0) return;
     sampleRate = sr;
     ampEnv.setSampleRate (sr); env2.setSampleRate (sr); env3.setSampleRate (sr);
@@ -16,10 +16,12 @@ void SynthVoice::setCurrentPlaybackSampleRate (double sr)
     resonator.prepare (sr);
 }
 
-void SynthVoice::startNote (int midiNote, float vel, juce::SynthesiserSound*, int pitchWheel)
+void SynthVoice::noteStarted()
 {
     auto& p = shared.p;
-    velocity = vel;
+    const int midiNote = currentlyPlayingNote.initialNote;
+    velocity = currentlyPlayingNote.noteOnVelocity.asUnsignedFloat();
+    bendReset = true;
     // tuning: A4 reference + per-scale-degree offsets (ragas, maqamat, just)
     const int root = (int) rd (p.scaleRoot);
     tuneOffset = 12.0f * std::log2 (rd (p.tuneA4) / 440.0f)
@@ -29,10 +31,8 @@ void SynthVoice::startNote (int midiNote, float vel, juce::SynthesiserSound*, in
     const bool glideOn = rd (p.glide) > 0.001f && shared.lastNote >= 0.0f;
     note = glideOn ? shared.lastNote : targetNote;
     shared.lastNote = targetNote;
-    pitchWheelMoved (pitchWheel);
 
     randomValue = rng.nextFloat() * 2.0f - 1.0f;
-    aftertouch = 0.0f;
     driftValue = 0.0f; driftTarget = rng.nextFloat() * 2.0f - 1.0f;
     scanOffset = 0.0f;
 
@@ -58,7 +58,7 @@ void SynthVoice::startNote (int midiNote, float vel, juce::SynthesiserSound*, in
     }
 }
 
-void SynthVoice::stopNote (float, bool allowTailOff)
+void SynthVoice::noteStopped (bool allowTailOff)
 {
     if (allowTailOff)
     {
@@ -72,15 +72,6 @@ void SynthVoice::stopNote (float, bool allowTailOff)
     }
 }
 
-void SynthVoice::pitchWheelMoved (int v)
-{
-    shared.pitchBend = juce::jlimit (-1.0f, 1.0f, ((float) v - 8192.0f) / 8191.0f);
-}
-
-void SynthVoice::controllerMoved (int cc, int v)
-{
-    if (cc == 1) shared.modWheel = (float) v / 127.0f;
-}
 
 float SynthVoice::warpPhase (float p, int mode, float amt) const noexcept
 {
@@ -99,7 +90,7 @@ float SynthVoice::warpPhase (float p, int mode, float amt) const noexcept
 
 void SynthVoice::renderNextBlock (juce::AudioBuffer<float>& out, int start, int num)
 {
-    if (! isVoiceActive()) return;
+    if (! isActive()) return;
 
     float tmpL[32], tmpR[32];
     while (num > 0)
@@ -146,7 +137,8 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
     src[srcEnv3] = env3.getValue();
     src[srcVelocity] = velocity;
     src[srcModWheel] = shared.modWheel;
-    src[srcAftertouch] = juce::jmax (aftertouch, shared.aftertouch);
+    src[srcAftertouch] = juce::jmax (currentlyPlayingNote.pressure.asUnsignedFloat(), shared.aftertouch);
+    src[srcSlide] = juce::jlimit (-1.0f, 1.0f, (currentlyPlayingNote.timbre.asUnsignedFloat() - 0.5f) * 2.0f);
     src[srcKeyTrack] = juce::jlimit (-1.0f, 1.0f, (targetNote - 60.0f) / 36.0f);
     src[srcRandom] = randomValue;
     for (int i = 0; i < 4; ++i) src[srcMacro1 + i] = rd (p.macro[i]);
@@ -189,7 +181,11 @@ void SynthVoice::renderChunk (float* outL, float* outR, int n)
     driftValue += (driftTarget - driftValue) * juce::jmin (1.0f, secs * 1.5f);
     if (std::abs (driftTarget - driftValue) < 0.05f) driftTarget = rng.nextFloat() * 2.0f - 1.0f;
 
-    const float bendSemis = shared.pitchBend * rd (p.bend);
+    // per-note bend (MPE) plus the master pitch wheel, already in semitones; lightly smoothed
+    const float bendTarget = (float) currentlyPlayingNote.totalPitchbendInSemitones;
+    if (bendReset) { bendNow = bendTarget; bendReset = false; }
+    bendNow += (bendTarget - bendNow) * 0.6f;
+    const float bendSemis = bendNow;
     const float basePitch = note + bendSemis + mod[dstPitchAll] * 24.0f;
     const float sr = (float) sampleRate;
     auto hzFor = [] (float midi) { return 440.0f * std::exp2 ((midi - 69.0f) / 12.0f); };

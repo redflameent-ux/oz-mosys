@@ -13,6 +13,7 @@ enum ModSource
 {
     srcNone = 0, srcEnv2, srcEnv3, srcLfo1, srcLfo2, srcVelocity, srcModWheel,
     srcAftertouch, srcKeyTrack, srcRandom, srcMacro1, srcMacro2, srcMacro3, srcMacro4,
+    srcSlide,
     numModSources
 };
 
@@ -20,7 +21,7 @@ inline const juce::StringArray& modSourceNames()
 {
     static const juce::StringArray names { "None", "Env 2", "Env 3", "LFO 1", "LFO 2", "Velocity",
                                            "Mod Wheel", "Aftertouch", "Key Track", "Random",
-                                           "Macro 1", "Macro 2", "Macro 3", "Macro 4" };
+                                           "Macro 1", "Macro 2", "Macro 3", "Macro 4", "Slide (MPE)" };
     return names;
 }
 
