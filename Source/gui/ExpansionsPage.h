@@ -41,7 +41,10 @@ private:
     juce::OwnedArray<juce::TextButton> styleChips;
     juce::String styleFilter { "All" };
     juce::TextEditor search;
-    juce::TextButton backBtn { "< Presets" }, installBtn { "Install Pack..." }, makeBtn { "Make a Pack..." };
+    juce::TextButton backBtn { "< Presets" }, installBtn { "Install Pack..." }, makeBtn { "Make a Pack..." }, omniBtn { "Import Omnisphere..." };
+    struct ImportThread;
+    std::unique_ptr<ImportThread> importer;
+    void startOmniImport (const juce::File& folder);
     juce::Viewport viewport;
     std::unique_ptr<Grid> grid;
     std::unique_ptr<MakePackPanel> makePanel;

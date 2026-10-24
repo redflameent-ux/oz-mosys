@@ -3,6 +3,7 @@
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
 #include "../Source/gui/SlicerPanel.h"
+#include "../Source/import/OmniImport.h"
 #include "../Source/Presets.h"
 #include "../Source/design/SoundFeatures.h"
 
@@ -31,6 +32,43 @@ int main (int argc, char** argv)
     const double sr = 48000.0;
     const int block = 512;
     int failures = 0;
+
+    // ---- Omnisphere import test: OZ_OMNI=/folder converts, then renders every result ----
+    if (auto omni = juce::SystemStats::getEnvironmentVariable ("OZ_OMNI", {}); omni.isNotEmpty())
+    {
+        FourfoldProcessor proc;
+        juce::String summary;
+        ff::import::importOmnisphereFolder (juce::File (omni), proc.apvts, nullptr, summary);
+        std::printf ("%s\n", summary.toRawUTF8());
+        auto exp = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("OZ-mosys/Expansions");
+        int bad = 0, n = 0;
+        for (auto& f : exp.findChildFiles (juce::File::findFiles, true, "*.ozpreset"))
+        {
+            if (! f.getFullPathName().contains ("Omni - ")) continue;
+            FourfoldProcessor p2;
+            p2.setPlayConfigDetails (0, 2, sr, block);
+            p2.prepareToPlay (sr, block);
+            if (! p2.loadPresetFromFile (f)) { std::printf ("LOAD FAIL %s\n", f.getFileName().toRawUTF8()); ++bad; continue; }
+            juce::AudioBuffer<float> buf (2, block);
+            float peak = 0; double sum = 0; int count = 0;
+            for (int b = 0; b < (int) (sr * 3 / block); ++b)
+            {
+                juce::MidiBuffer midi;
+                if (b == 2) { midi.addEvent (juce::MidiMessage::noteOn (1, 48, 0.8f), 0); midi.addEvent (juce::MidiMessage::noteOn (1, 55, 0.8f), 0); midi.addEvent (juce::MidiMessage::noteOn (1, 60, 0.8f), 0); }
+                if (b == (int) (sr * 2 / block)) { midi.addEvent (juce::MidiMessage::noteOff (1, 48), 0); midi.addEvent (juce::MidiMessage::noteOff (1, 55), 0); midi.addEvent (juce::MidiMessage::noteOff (1, 60), 0); }
+                buf.clear();
+                p2.processBlock (buf, midi);
+                for (int ch = 0; ch < 2; ++ch) for (int i = 0; i < block; ++i) { const float v = buf.getSample (ch, i); peak = std::max (peak, std::abs (v)); sum += v * v; ++count; }
+            }
+            const double rms = std::sqrt (sum / std::max (1, count));
+            const bool ok = std::isfinite (peak) && peak > 0.005f && peak < 1.5f;
+            if (! ok) ++bad;
+            ++n;
+            std::printf ("%-48s peak %.3f rms %.4f %s\n", f.getFileNameWithoutExtension().substring (0, 48).toRawUTF8(), peak, rms, ok ? "OK" : "CHECK");
+        }
+        std::printf ("%d rendered, %d to check\n", n, bad);
+        return 0;
+    }
 
     // ---- morph self-test ----
     if (juce::SystemStats::getEnvironmentVariable ("OZ_MORPHTEST", {}) == "1")

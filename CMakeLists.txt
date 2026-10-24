@@ -43,6 +43,7 @@ set(FOURFOLD_SOURCES
     Source/gui/PlayPage.cpp
     Source/gui/MorphPage.cpp
     Source/perform/Morph.cpp
+    Source/import/OmniImport.cpp
     Source/gui/ExpansionsPage.cpp
     Source/design/Packs.cpp
     Source/roll/RollEngine.cpp

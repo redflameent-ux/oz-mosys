@@ -227,7 +227,8 @@ PlayPage::PlayPage (FourfoldProcessor& p, std::function<void (Knob&)> reg) : pro
     morphBtn.onClick = [this]
     {
         morphPage = std::make_unique<MorphPage> (proc, registerKnob);
-        morphPage->onClose = [sp = SafePointer<PlayPage> (this)] { MessageManager::callAsync ([sp] { if (sp) sp->morphPage.reset(); }); };
+        Component::SafePointer<PlayPage> sp (this);
+        morphPage->onClose = [sp] { MessageManager::callAsync ([sp] { if (sp != nullptr) sp->morphPage.reset(); }); };
         addAndMakeVisible (*morphPage);
         morphPage->setBounds (getLocalBounds());
     };

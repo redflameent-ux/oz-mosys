@@ -1,3 +1,4 @@
+#include <set>
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Presets.h"
@@ -468,6 +469,22 @@ bool FourfoldProcessor::loadPresetFromFile (const juce::File& file)
     if (auto xml = juce::XmlDocument::parse (file))
     {
         auto tree = juce::ValueTree::fromXml (*xml);
+        if ((bool) tree.getProperty ("sparse", false))
+        {
+            // imported presets only list what differs from Init: fill in the rest
+            std::set<juce::String> have;
+            for (auto c : tree) if (c.hasType ("PARAM")) have.insert (c["id"].toString());
+            for (auto* p : getParameters())
+                if (auto* rp = dynamic_cast<juce::RangedAudioParameter*> (p); rp != nullptr && ! have.count (rp->getParameterID()))
+                {
+                    juce::ValueTree c ("PARAM");
+                    c.setProperty ("id", rp->getParameterID(), nullptr);
+                    c.setProperty ("value", rp->convertFrom0to1 (rp->getDefaultValue()), nullptr);
+                    tree.appendChild (c, nullptr);
+                }
+            if (! tree.hasProperty ("arpPattern")) tree.setProperty ("arpPattern", ff::perf::ArpPattern().toString(), nullptr);
+            tree.removeProperty ("sparse", nullptr);
+        }
         applyStateTree (tree);
         currentPresetName = file.getFileNameWithoutExtension();
         presetInfo.author = tree["author"].toString();

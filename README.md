@@ -120,6 +120,11 @@ Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or t
 ### Coloured keyboard
 - Keys with sampler recordings get a gold strip. When Chords is on "In key", the notes of the key get a purple dot (bigger on the root).
 
+## Importing Omnisphere patches
+- On the BROWSE page open **Expansions**, press **Import Omnisphere...** and pick a folder of Omnisphere patches (.prt_omn), for example your Omnisphere "Settings Library/Patches" folder or a downloaded bank.
+- Every patch is rebuilt as an OZ-mosys preset: filters, envelopes, LFOs, mod wheel routings, arpeggiator, effects, layer pitch / level / pan. Each Omnisphere soundsource is replaced by the closest OZ-mosys engine (picked from its name), so the result is a close cousin, not a copy. No Omnisphere audio is read or copied.
+- Each top-level folder becomes a private collection ("Omni - Plughugger" etc.) on this computer only.
+
 ## Installing
 **Mac:** download **OZ-mosys-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.
 It installs the AU (Logic, GarageBand), the VST3 and a stand-alone app.

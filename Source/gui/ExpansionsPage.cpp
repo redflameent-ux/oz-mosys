@@ -1,4 +1,5 @@
 #include "ExpansionsPage.h"
+#include "../import/OmniImport.h"
 #include "../PluginProcessor.h"
 
 using namespace juce;
@@ -273,6 +274,37 @@ struct ExpansionsPage::MakePackPanel : public Component
 };
 
 // ============================================================================ page
+struct ExpansionsPage::ImportThread : public Thread
+{
+    ImportThread (ExpansionsPage& o, File f) : Thread ("OZ Omnisphere import"), owner (o), folder (std::move (f)) {}
+    void run() override
+    {
+        SafePointer<ExpansionsPage> sp (&owner);
+        String summary;
+        ff::import::importOmnisphereFolder (folder, owner.proc.apvts, [this, sp] (int done, int total, const String& name)
+        {
+            if (done % 25 == 0)
+                MessageManager::callAsync ([sp, done, total, name]
+                {
+                    if (sp != nullptr) sp->status.setText ("Importing " + String (done) + " / " + String (total) + "  -  " + name, dontSendNotification);
+                });
+            return ! threadShouldExit();
+        }, summary);
+        MessageManager::callAsync ([sp, summary]
+        {
+            if (sp == nullptr) return;
+            sp->status.setText (summary + ". Find them under BROWSE, or as packs here.", dontSendNotification);
+            sp->omniBtn.setButtonText ("Import Omnisphere...");
+            sp->refresh();
+            if (sp->onPacksChanged) sp->onPacksChanged();
+            sp->importer->stopThread (2000);
+            sp->importer.reset();
+        });
+    }
+    ExpansionsPage& owner;
+    File folder;
+};
+
 ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
 {
     setOpaque (true);
@@ -289,7 +321,16 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
     search.setFont (font (13.0f));
     search.onTextChange = [this] { layoutTiles(); };
     addAndMakeVisible (search);
-    for (auto* b : { &backBtn, &installBtn, &makeBtn }) addAndMakeVisible (b);
+    for (auto* b : { &backBtn, &installBtn, &makeBtn, &omniBtn }) addAndMakeVisible (b);
+    omniBtn.setColour (TextButton::buttonColourId, Colour (0xff7ee0c3).withAlpha (0.25f));
+    omniBtn.setTooltip ("Rebuild a folder of Omnisphere patches (.prt_omn) as OZ-mosys presets. They stay private on this computer.");
+    omniBtn.onClick = [this]
+    {
+        if (importer != nullptr) { importer->signalThreadShouldExit(); return; }
+        chooser = std::make_unique<FileChooser> ("Choose a folder of Omnisphere patches", File::getSpecialLocation (File::userDocumentsDirectory));
+        chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectDirectories,
+                              [this] (const FileChooser& fc) { if (fc.getResult().isDirectory()) startOmniImport (fc.getResult()); });
+    };
     installBtn.setColour (TextButton::buttonColourId, col::sampler.withAlpha (0.25f));
     backBtn.onClick = [this] { if (onClose) onClose(); };
     installBtn.setTooltip ("Install an OZ-mosys pack (.ozpack). You can also drag the file onto this page.");
@@ -312,7 +353,7 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
     refresh();
 }
 
-ExpansionsPage::~ExpansionsPage() = default;
+ExpansionsPage::~ExpansionsPage() { if (importer != nullptr) importer->stopThread (5000); }
 
 void ExpansionsPage::refresh()
 {
@@ -403,6 +444,15 @@ void ExpansionsPage::layoutTiles()
     grid->repaint();
 }
 
+// ---------------------------------------------------------------------------- Omnisphere import
+void ExpansionsPage::startOmniImport (const File& folder)
+{
+    status.setText ("Looking for Omnisphere patches in " + folder.getFileName() + "...", dontSendNotification);
+    omniBtn.setButtonText ("Stop import");
+    importer = std::make_unique<ImportThread> (*this, folder);
+    importer->startThread();
+}
+
 void ExpansionsPage::resized()
 {
     auto r = getLocalBounds().reduced (16, 12);
@@ -410,6 +460,8 @@ void ExpansionsPage::resized()
     backBtn.setBounds (top.removeFromLeft (96));
     top.removeFromLeft (16);
     makeBtn.setBounds (top.removeFromRight (120));
+    top.removeFromRight (8);
+    omniBtn.setBounds (top.removeFromRight (150));
     top.removeFromRight (8);
     installBtn.setBounds (top.removeFromRight (120));
     top.removeFromRight (16);
