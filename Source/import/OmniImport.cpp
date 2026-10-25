@@ -264,6 +264,34 @@ int modDestFor (String t, const String& engA, const String& engB)
     if (t == "hrdsnc") return dstFeedback;
     return -1;
 }
+
+// first descendant (or self) with this tag
+const XmlElement* findByTag (const XmlElement* e, const char* tag)
+{
+    if (e == nullptr) return nullptr;
+    if (e->hasTagName (tag)) return e;
+    for (auto* c : e->getChildIterator())
+        if (auto* r = findByTag (c, tag)) return r;
+    return nullptr;
+}
+
+// Omnisphere's ENTRYDESCR carries the author plus Type / Genre / Mood tags in a
+// ';'-separated key=value blob (ATTRIB_VALUE_DATA). We use it for real author and tags.
+void parseEntryDescr (const XmlElement& root, String& author, StringArray& tags, String& descr)
+{
+    auto* ed = findByTag (&root, "ENTRYDESCR");
+    if (ed == nullptr) return;
+    for (auto& kv : StringArray::fromTokens (ed->getStringAttribute ("ATTRIB_VALUE_DATA"), ";", ""))
+    {
+        const String key = kv.upToFirstOccurrenceOf ("=", false, false).trim();
+        const String v   = kv.fromFirstOccurrenceOf ("=", false, false).trim();
+        if (v.isEmpty()) continue;
+        if (key == "Author")            author = v;
+        else if (key == "Description")  descr = v;
+        else if (key == "Type" || key == "Genre" || key == "Mood" || key == "Keyword" || key == "Keywords")
+            tags.addIfNotAlreadyThere (v.toLowerCase());
+    }
+}
 } // namespace
 
 bool convertOmniPatch (const XmlElement& root, const String& name, const String& bank,
@@ -278,7 +306,9 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
             break;
         }
     if (synth == nullptr) return false;
-    const XmlElement* arpEl = root.getChildByName ("SynthEngine") != nullptr ? root.getChildByName ("SynthEngine")->getChildByName ("ARP") : nullptr;
+    const XmlElement* seRoot = root.getChildByName ("SynthEngine");
+    const XmlElement* arpEl = seRoot != nullptr ? seRoot->getChildByName ("ARP")
+                                                : root.getChildByName ("ARP");
 
     Builder b;
     out = {};
@@ -478,7 +508,12 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
         tags.addIfNotAlreadyThere ("arp");
     }
 
-    // ---- tags from the name / folder words Omnisphere banks tend to use ----
+    // ---- real metadata the patch carries (author, Type/Genre/Mood tags, description) ----
+    String descAuthor, description;
+    parseEntryDescr (root, descAuthor, tags, description);
+    if (descAuthor.isNotEmpty()) out.author = descAuthor;
+
+    // ---- extra tags from the name / folder words Omnisphere banks tend to use ----
     const String lower = (name + " " + bank).toLowerCase();
     for (auto [word, tag] : { std::pair<const char*, const char*> { "pad", "pad" }, { "bass", "bass" }, { "lead", "lead" }, { " led ", "lead" },
                               { "arp", "arp" }, { "pluck", "pluck" }, { "keys", "keys" }, { "key ", "keys" }, { "bell", "bell" },
@@ -489,6 +524,7 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     out.tags = "omnisphere, " + tags.joinIntoString (", ");
     out.notes = "Imported from Omnisphere. Original soundsources: " + srcNames.joinIntoString (" + ")
               + ". Rebuilt with OZ-mosys engines (" + (engA + (engB.isNotEmpty() ? " + " + engB : String())) + ").";
+    if (description.isNotEmpty()) out.notes << " " << description;
 
     // keep only values that differ from Init (sparse preset)
     for (auto& [id, x] : b.v)
@@ -527,9 +563,21 @@ namespace
 struct Item
 {
     String bank, sub, name;
-    File file;                       // a loose .prt_omn ...
+    File file;                       // a loose .prt_omn (or .mlt_omn) ...
     File bundle; int64 pos = 0; int size = 0;   // ... or a patch inside a .omnisphere bundle
+    bool multi = false;              // a .mlt_omn: convert each of its parts
 };
+
+// top-most descendants with this tag (does not recurse into a match)
+void collectByTag (const XmlElement* e, const char* tag, std::vector<const XmlElement*>& out)
+{
+    if (e == nullptr) return;
+    for (auto* c : e->getChildIterator())
+    {
+        if (c->hasTagName (tag)) out.push_back (c);
+        else collectByTag (c, tag, out);
+    }
+}
 
 // .omnisphere bundles: an XML table of contents (<FileSystem> with DIR / FILE offset size),
 // then the files back to back. Only the patch files are read; soundsource data is skipped.
@@ -602,14 +650,15 @@ int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& 
     for (auto& src : sources)
     {
         if (src.hasFileExtension ("omnisphere")) { listBundle (src, items); continue; }
-        if (src.hasFileExtension ("prt_omn"))
+        if (src.hasFileExtension ("prt_omn") || src.hasFileExtension ("mlt_omn"))
         {
             Item it; it.bank = src.getParentDirectory().getFileName(); it.name = src.getFileNameWithoutExtension(); it.file = src;
+            it.multi = src.hasFileExtension ("mlt_omn");
             items.push_back (it);
             continue;
         }
         if (! src.isDirectory()) continue;
-        auto loose = src.findChildFiles (File::findFiles, true, "*.prt_omn");
+        auto loose = src.findChildFiles (File::findFiles, true, "*.prt_omn;*.mlt_omn");
         loose.sort();
         for (auto& f : loose)
         {
@@ -621,6 +670,7 @@ int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& 
             if (afterBank.containsChar ('/')) it.sub = afterBank.upToLastOccurrenceOf ("/", false, false);
             it.name = f.getFileNameWithoutExtension();
             it.file = f;
+            it.multi = f.hasFileExtension ("mlt_omn");
             items.push_back (it);
         }
         auto bundles = src.findChildFiles (File::findFiles, true, "*.omnisphere");
@@ -645,9 +695,8 @@ int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& 
         if (! seen.insert (packName + "/" + it.sub + "/" + it.name).second) continue;
 
         auto xml = loadItem (it);
-        Converted c;
-        if (xml == nullptr || ! convertOmniPatch (*xml, it.name, packName, apvts, c)) { ++failed; continue; }
-        if (it.sub.isNotEmpty()) c.tags << ", " << it.sub.replaceCharacter ('/', ' ').toLowerCase();
+        if (xml == nullptr) { ++failed; continue; }
+
         auto packDir = expansions.getChildFile (packName);
         if (! packDir.getChildFile ("pack.xml").existsAsFile())
         {
@@ -661,7 +710,44 @@ int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& 
         }
         auto dir = packDir.getChildFile ("Presets");
         if (it.sub.isNotEmpty()) dir = dir.getChildFile (File::createLegalFileName (it.sub.replaceCharacter ('/', ' ')));
-        if (writePreset (c, dir.getChildFile (File::createLegalFileName (c.name) + ".ozpreset"))) { ++written; ++perBank[packName]; } else ++failed;
+
+        auto writeOne = [&] (Converted& c)
+        {
+            if (it.sub.isNotEmpty()) c.tags << ", " << it.sub.replaceCharacter ('/', ' ').toLowerCase();
+            if (writePreset (c, dir.getChildFile (File::createLegalFileName (c.name) + ".ozpreset"))) { ++written; ++perBank[packName]; }
+            else ++failed;
+        };
+
+        if (it.multi)
+        {
+            // a multi holds several parts; bring each playable part across as its own preset
+            std::vector<const XmlElement*> parts;
+            collectByTag (xml.get(), "SynthEngine", parts);
+            int partN = 0, got = 0;
+            for (auto* se : parts)
+            {
+                ++partN;
+                String pName = it.name + " P" + String (partN);
+                if (auto* ed = findByTag (se, "ENTRYDESCR"))
+                {
+                    const auto nm = ed->getStringAttribute ("name").trim();
+                    if (nm.equalsIgnoreCase ("Empty")) continue;   // Omnisphere's name for an unused part
+                    if (nm.isNotEmpty() && nm != it.name) pName = nm;
+                }
+                Converted c;
+                if (! convertOmniPatch (*se, pName, packName, apvts, c)) continue;
+                if (c.values.size() < 3) continue;                 // skip empty / unused parts
+                if (! seen.insert (packName + "/" + it.sub + "/" + pName).second) continue;
+                writeOne (c);
+                ++got;
+            }
+            if (got == 0) ++failed;
+            continue;
+        }
+
+        Converted c;
+        if (! convertOmniPatch (*xml, it.name, packName, apvts, c)) { ++failed; continue; }
+        writeOne (c);
     }
     summary = String (written) + " presets imported into " + String ((int) perBank.size()) + " collection" + (perBank.size() == 1 ? "" : "s");
     if (failed > 0) summary << " (" << failed << " couldn't be read)";
