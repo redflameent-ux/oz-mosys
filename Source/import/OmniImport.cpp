@@ -336,17 +336,21 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     if (descAuthor.isNotEmpty()) out.author = descAuthor;
     const String brief = name + " " + bank + " " + tags.joinIntoString (" ");
 
-    for (int layer = 0; layer < (int) std::min<size_t> (2, voices.size()); ++layer)
+    // Omnisphere has up to four layers; bring each active one across onto its own OZ engine
+    // (OZ has five, all mixed), not just the first two.
+    static const char* dsiFlag[4] = { "dsia", "dsib", "dsic", "dsid" };
+    for (int layer = 0; layer < (int) std::min<size_t> (4, voices.size()); ++layer)
     {
-        if ((layer == 0 && layerAOff) || (layer == 1 && layerBOff)) continue;
+        if (on (synth, dsiFlag[layer])) continue;              // layer disabled (C/D flags absent -> false)
         auto* osc = child (voices[(size_t) layer], "OSC");
         if (osc == nullptr || val01 (osc, "level", 0.75f) < 0.01f) continue;
         const Src s = classify (osc, brief);
         String eng;
         for (auto& e : enginesFor (s)) if (! used.count (e)) { eng = e; break; }
         if (eng.isEmpty()) for (auto* e : { "wt", "an", "gr", "res", "fm" }) if (! used.count (e)) { eng = e; break; }
+        if (eng.isEmpty()) continue;                           // all five engines already used
         used.insert (eng);
-        (layer == 0 ? engA : engB) = eng;
+        if (layer == 0) engA = eng; else if (layer == 1) engB = eng;
         setupEngine (b, eng, s, osc, 1.0f);
         tags.addIfNotAlreadyThere (srcTag (s));
         srcNames.add (osc->getStringAttribute ("name", "synth waveform"));
@@ -392,6 +396,36 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     if (const float d = wsDrive (main); d > 0.02f) b.set ("flt_drive", d);
     if (voices.size() > 1 && ! layerBOff && ! layerAOff && engB.isNotEmpty())
         if (const float d = wsDrive (voices[1]); d > 0.02f) b.set ("flt2_drive", d);
+
+    // ---- tonewheel / drawbar organ -> the FM engine run additive (no new DSP) ----
+    // Hammond footages 16' / 5 1/3' / 8' / 4' / 2 2/3' / 2' map to these harmonic ratios on the
+    // first six operators; with the matrix zeroed, every operator is a carrier, i.e. additive sines.
+    // gate on the patch actually being a tonewheel organ: a TONEWHEEL module sits at default drawbars
+    // in many non-organ patches, and the Timbre tag "Organic" contains "organ", so we require an
+    // unambiguous tonewheel term (not a bare "organ", which also matches "organic").
+    const bool organBrief = any (brief, { "hammond", "tonewheel", "tone wheel", "drawbar", "draw bar", "farfisa" });
+    if (auto* tw = organBrief ? findByTag (synth, "TONEWHEEL") : nullptr)
+    {
+        static const float footRatio[6] = { 0.5f, 1.5f, 1.0f, 2.0f, 3.0f, 4.0f };
+        float draw[6]; float sum = 0.0f;
+        for (int i = 0; i < 6; ++i) { draw[i] = val01 (tw, (String ("drw") + String (i + 1)).toRawUTF8()); sum += draw[i]; }
+        if (sum > 0.1f)
+        {
+            if (engA.isNotEmpty() && engA != "fm") b.set (engA + "_on", 0.0f);   // free the organ substitute
+            b.set ("fm_on", 1.0f);
+            b.set ("fm_level", 0.5f);        // headroom: six summed sines
+            b.set ("fm_m21", 0.0f);          // kill the default modulation -> pure additive
+            engA = "fm";
+            for (int i = 0; i < 6; ++i)
+            {
+                const String p = "fm" + String (i + 1);
+                b.set (p + "_ratio", footRatio[i]);
+                b.set (p + "_level", draw[i]);
+                b.set (p + "_wave", 0.0f);                       // sine
+                b.set (p + "_a", 0.003f); b.set (p + "_s", 1.0f); b.set (p + "_r", 0.12f);
+            }
+        }
+    }
 
     // ---- envelopes ----
     if (auto* ae = child (main, "AENVPARAMS"))
