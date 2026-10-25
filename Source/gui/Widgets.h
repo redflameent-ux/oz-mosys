@@ -7,21 +7,23 @@ namespace ff::gui
 {
 namespace col
 {
-    const juce::Colour bg        { 0xff0d0e12 };
-    const juce::Colour panel     { 0xff16181f };
-    const juce::Colour panelHi   { 0xff1c1f28 };
-    const juce::Colour border    { 0xff272b36 };
-    const juce::Colour text      { 0xffd3d7e0 };
-    const juce::Colour dim       { 0xff7b8291 };
-    const juce::Colour track     { 0xff2a2e3a };
-    const juce::Colour wavetable { 0xff3ad1e8 };
-    const juce::Colour analog    { 0xfff2a541 };
-    const juce::Colour granular  { 0xffa77bf3 };
-    const juce::Colour resonator { 0xffe07a4f };
-    const juce::Colour sampler   { 0xfff5c542 };
-    const juce::Colour mod       { 0xff5fe08c };
-    const juce::Colour filter    { 0xffef5d8d };
-    const juce::Colour fx        { 0xff6d9bff };
+    // "Primordial Witch" palette: violet-black backgrounds, moonlight-lavender text,
+    // amethyst / magenta / candle-gold accents. Engine colours stay distinct (jewel tones).
+    const juce::Colour bg        { 0xff0a0612 };   // deep violet-black
+    const juce::Colour panel     { 0xff150f22 };   // dark aubergine
+    const juce::Colour panelHi   { 0xff1f1733 };   // raised violet
+    const juce::Colour border    { 0xff352848 };   // muted amethyst edge
+    const juce::Colour text      { 0xffe9e3f6 };   // moonlight lavender-white
+    const juce::Colour dim       { 0xff988bb5 };   // muted lavender
+    const juce::Colour track     { 0xff271d3f };   // violet track
+    const juce::Colour wavetable { 0xffb57cff };   // amethyst
+    const juce::Colour analog    { 0xffe6a84e };   // candle gold
+    const juce::Colour granular  { 0xffd862e6 };   // magenta smoke
+    const juce::Colour resonator { 0xffd0607a };   // deep rose
+    const juce::Colour sampler   { 0xfff2d05a };   // candlelight amber
+    const juce::Colour mod       { 0xff7ae0c4 };   // spectral teal glow
+    const juce::Colour filter    { 0xffef5d9d };   // hot magenta
+    const juce::Colour fx        { 0xff9d8bff };   // moonlit periwinkle
 }
 
 inline juce::Font font (float h, bool bold = false)

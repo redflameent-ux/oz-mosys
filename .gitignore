@@ -12,3 +12,5 @@ probe_err.log
 build-plugin.log
 build-spire-*.log
 build-importlib*.log
+reconfigure.log
+build-render.log
