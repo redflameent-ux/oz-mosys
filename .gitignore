@@ -9,3 +9,4 @@ build-tools/
 build-tools-*.log
 oz_convert*.log
 probe_err.log
+build-plugin.log
