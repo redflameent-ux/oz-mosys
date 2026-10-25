@@ -53,13 +53,17 @@ bool any (const String& s, std::initializer_list<const char*> words)
     return false;
 }
 
-Src classify (const XmlElement* osc, const String& patchName)
+// `brief` is the preset's described intent: its name plus the metadata words Omnisphere stores
+// (Type / Keywords / Timbre / Mood). For a sampled soundsource we cannot copy, this is how we
+// "lift our own": the name/folder of the soundsource AND the brief together choose the engine
+// and character, so a generically-named soundsource still lands on what the preset is meant to be.
+Src classify (const XmlElement* osc, const String& brief)
 {
     if (osc == nullptr) return Src::Saw;
     const String name = osc->getStringAttribute ("name"), folder = osc->getStringAttribute ("folder");
     if (! osc->hasAttribute ("name") || osc->getIntAttribute ("kind") == 0)
     {
-        // DSP waveform mode: the waveform index sits in "type"
+        // DSP waveform mode: the waveform index sits in "type" (the real oscillator, so trust it)
         const float t = val01 (osc, "type");
         if (t < 0.01f) return Src::Saw;
         if (t < 0.03f) return Src::Square;
@@ -67,22 +71,22 @@ Src classify (const XmlElement* osc, const String& patchName)
         if (t < 0.07f) return Src::Sine;
         return Src::Digital;
     }
-    const String s = name + " " + folder;
+    const String s = name + " " + folder + " " + brief;
     if (any (s, { "supersaw", "super saw", "hypersaw", "JP-8000", "JP8000" })) return Src::SuperSaw;
     if (any (s, { "choir", "vox", "vocal", "voice", "angel", "chant", "aah", "ooh", "sing" })) return Src::Vocal;
     if (any (s, { "water", "rain", "ocean", "cave", "drip", "river", "liquid", "stalact" })) return Src::Water;
     if (any (s, { "wind", "breath", "air", "whisper", "blow" })) return Src::Wind;
     if (any (s, { "sitar", "tanpura", "oud", "koto" })) return Src::Sitar;
     if (any (s, { "bowl", "singing", "crystal" })) return Src::Bowl;
-    if (any (s, { "bell", "chime", "glock", "celest", "music box", "tine", "glass" })) return Src::Bell;
-    if (any (s, { "marimba", "vibra", "mallet", "xylo", "kalimba", "steel drum" })) return Src::Mallet;
+    if (any (s, { "bell", "chime", "glock", "celest", "music box", "tine", "glass", "carillon", "ringing" })) return Src::Bell;
+    if (any (s, { "marimba", "vibra", "vibes", "mallet", "xylo", "kalimba", "steel drum" })) return Src::Mallet;
     if (any (s, { "rhodes", "wurli", "piano", "e-piano", "epiano", "clav", "keys", "harpsi" })) return Src::Keys;
     if (any (s, { "guitar", "pluck", "harp", "string pluck", "pizz", "banjo", "dulcimer" })) return Src::Pluck;
     if (any (s, { "organ", "b3", "hammond", "farfisa", "harmonium" })) return Src::Organ;
     if (any (s, { "brass", "horn", "trumpet", "trombone", "sax" })) return Src::Brass;
     if (any (s, { "string", "violin", "cello", "viola", "orchestra" })) return Src::Strings;
     if (any (s, { "noise", "hiss", "static", "crackle", "vinyl" })) return Src::Noise;
-    if (any (s, { "metal", "tesla", "coil", "anvil", "scrap", "industrial", "psychoacoustic" })) return Src::Metal;
+    if (any (s, { "metal", "tesla", "coil", "anvil", "scrap", "industrial", "psychoacoustic", "gamelan" })) return Src::Metal;
     if (any (s, { "kick", "snare", "drum", "perc", "hat", "tom" })) return Src::Drum;
     if (any (s, { "ppg", "wavetable", "digital", "bit", "fm ", "dx", "d-50", "d50", "wave " })) return Src::Digital;
     if (any (s, { "sine", "sines", "flute", "whistle" })) return Src::Sine;
@@ -92,8 +96,6 @@ Src classify (const XmlElement* osc, const String& patchName)
     if (any (s, { "saw", "juno", "virus", "moog", "jupiter", "jp-8", "monopoly", "prophet", "oberheim", "analog",
                   "synthesizer", "minimoog", "ob-" })) return Src::Saw;
     if (any (s, { "pad", "evolv", "texture", "atmos", "drone", "ambien", "scape", "granul", "motion" })) return Src::Pad;
-    if (any (patchName, { "bass", "sub" })) return Src::Bass;
-    if (any (patchName, { "pad", "atmo" })) return Src::Pad;
     return Src::Saw;
 }
 
@@ -326,12 +328,20 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     std::set<String> used;
     String engA, engB;
     StringArray tags, srcNames;
+
+    // the preset's described intent: its name plus the metadata Omnisphere stores (author,
+    // Type / Keywords / Timbre / Mood). Read it up front so it can steer engine + character choice.
+    String descAuthor, description;
+    parseEntryDescr (root, descAuthor, tags, description);
+    if (descAuthor.isNotEmpty()) out.author = descAuthor;
+    const String brief = name + " " + bank + " " + tags.joinIntoString (" ");
+
     for (int layer = 0; layer < (int) std::min<size_t> (2, voices.size()); ++layer)
     {
         if ((layer == 0 && layerAOff) || (layer == 1 && layerBOff)) continue;
         auto* osc = child (voices[(size_t) layer], "OSC");
         if (osc == nullptr || val01 (osc, "level", 0.75f) < 0.01f) continue;
-        const Src s = classify (osc, name);
+        const Src s = classify (osc, brief);
         String eng;
         for (auto& e : enginesFor (s)) if (! used.count (e)) { eng = e; break; }
         if (eng.isEmpty()) for (auto* e : { "wt", "an", "gr", "res", "fm" }) if (! used.count (e)) { eng = e; break; }
@@ -468,6 +478,10 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     for (auto* v : voices) scanRack (child (v, "EFFRACK"), false);
     for (auto* r : synth->getChildWithTagNameIterator ("EFFRACK")) scanRack (r, false);
     for (auto* r : synth->getChildWithTagNameIterator ("AUXEFFRACK")) scanRack (r, true);
+    // design-brief character: if the metadata calls the patch ambient / reverberant / cinematic,
+    // give it a reverb floor even when its own FX rack is sparse, matching what the name promises
+    if (rev < 0.15f && any (brief, { "reverberant", "ambient", "cinematic", "spacey", "spacious", "distant", "soundtrack", "atmos", "evolv", "drone" }))
+    { rev = 0.18f; revSize = jmax (revSize, 0.7f); }
     b.set ("rev_mix", rev);
     b.set ("rev_size", revSize);
     b.set ("dly_mix", dly);
@@ -508,12 +522,8 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
         tags.addIfNotAlreadyThere ("arp");
     }
 
-    // ---- real metadata the patch carries (author, Type/Genre/Mood tags, description) ----
-    String descAuthor, description;
-    parseEntryDescr (root, descAuthor, tags, description);
-    if (descAuthor.isNotEmpty()) out.author = descAuthor;
-
     // ---- extra tags from the name / folder words Omnisphere banks tend to use ----
+    // (author / Type / Genre / Mood / description were already read up front into tags)
     const String lower = (name + " " + bank).toLowerCase();
     for (auto [word, tag] : { std::pair<const char*, const char*> { "pad", "pad" }, { "bass", "bass" }, { "lead", "lead" }, { " led ", "lead" },
                               { "arp", "arp" }, { "pluck", "pluck" }, { "keys", "keys" }, { "key ", "keys" }, { "bell", "bell" },
