@@ -328,14 +328,39 @@ void refinePigments (Builder& b, const Archive& ar)
     if (cho > 0) b.set ("cho_mix", cho);
 }
 
-// ---- Analog Lab / V Collection: grab whatever shared knobs we can find ----
-void refineGeneric (Builder& b, const Archive& ar)
+// ---- Analog Lab / V Collection: read the real parameters the .labx actually stores ----
+// Analog Lab prefixes every parameter with "_Slot1_". Some are a universal wrapper (the arp),
+// others are the underlying engine's own knobs and vary by engine. We map the ones that are
+// safe across engines: the arp, the FX sends (additive - a missing one just means no FX), and
+// the amp envelope. We deliberately do NOT force a filter cutoff here: a cutoff knob that belongs
+// to a different engine can read 0 and would silence the preset, so the per-category default stands.
+void refineAnalogLab (Builder& b, const Archive& ar)
 {
-    // filter cutoff / resonance appear under many different names across the V engines
-    for (auto* cut : { "Cutoff", "VCFCutoff", "VCF_Cutoff", "Filter_Cutoff", "FilterCutoff", "CutoffFrequency" })
-        if (auto v = ar.getF (cut)) { b.set ("flt_on", 1.0f); b.set ("flt_cutoff", jlimit (0.0f, 1.0f, *v)); break; }
-    for (auto* rez : { "Resonance", "VCFResonance", "VCF_Resonance", "Filter_Resonance", "Emphasis", "Q" })
-        if (auto v = ar.getF (rez)) { b.set ("flt_res", jlimit (0.0f, 0.95f, *v)); break; }
+    // amp envelope (Env1 is the VCA envelope on the VA-style engines)
+    if (auto a = ar.getF ("_Slot1_Env1_Attack"))
+    {
+        b.set ("amp_a", arcTime (*a));
+        b.set ("amp_d", jmax (0.001f, arcTime (ar.get ("_Slot1_Env1_Decay", 0.3f))));
+        b.set ("amp_s", jlimit (0.0f, 1.0f, ar.get ("_Slot1_Env1_Sustain", 0.8f)));
+        b.set ("amp_r", jmax (0.005f, arcTime (ar.get ("_Slot1_Env1_Release", 0.2f))));
+    }
+
+    // FX sends (additive and safe: absent / zero simply means no effect)
+    if (auto rl = ar.getF ("_Slot1_AMOUNT_LEFT_REVERB"))
+    {
+        const float r = (*rl + ar.get ("_Slot1_AMOUNT_RIGHT_REVERB", *rl)) * 0.5f;
+        if (r > 0.02f) b.set ("rev_mix", jlimit (0.0f, 0.5f, r));
+    }
+    if (auto ch = ar.getF ("_Slot1_Chorus Amount"))
+        if (*ch > 0.02f) b.set ("cho_mix", jlimit (0.0f, 0.5f, *ch));
+
+    // arpeggiator - the one truly universal Analog Lab wrapper, the same across every engine
+    if (ar.get ("_Slot1_ArpSeq_On", 0.0f) > 0.5f)
+    {
+        b.set ("arp_on", 1.0f);
+        if (auto rate = ar.getF ("_Slot1_ArpSeq_RateUnSynced"))
+            b.set ("arp_rate", (float) jlimit (0, 5, roundToInt (jlimit (0.0f, 1.0f, *rate) * 5.0f)));
+    }
 }
 
 // The sound "type" is a string field in the header. We find it the robust way (as a
@@ -377,7 +402,7 @@ bool convertArturiaPreset (const MemoryBlock& mb, const String& name, const Stri
     bool arpOn = false;
     setupCategory (b, c, arpOn);
     if (pigments) refinePigments (b, ar);
-    else          refineGeneric (b, ar);
+    else          refineAnalogLab (b, ar);
     if (arpOn) b.set ("arp_on", 1.0f);
 
     // --- write it up ---
@@ -391,7 +416,8 @@ bool convertArturiaPreset (const MemoryBlock& mb, const String& name, const Stri
     out.tags = tags.joinIntoString (", ");
     out.notes = String ("Imported from ") + (pigments ? "Arturia Pigments" : "Arturia (Analog Lab / V Collection)")
               + ". Rebuilt with OZ-mosys engines"
-              + (pigments ? String (" from the patch's own parameters.") : String (" from its \"") + (type.isEmpty() ? String ("synth") : type) + "\" sound type.")
+              + (pigments ? String (" from the patch's own parameters.")
+                          : String (" from its \"") + (type.isEmpty() ? String ("synth") : type) + "\" sound type, plus its real amp envelope, FX sends and arpeggiator.")
               + (comment.isNotEmpty() ? " Original note: " + comment : String());
 
     // keep only values that differ from Init (sparse preset)
