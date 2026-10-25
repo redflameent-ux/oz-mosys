@@ -1,5 +1,7 @@
 #include "ExpansionsPage.h"
 #include "../import/OmniImport.h"
+#include "../import/ArturiaImport.h"
+#include "../import/NIImport.h"
 #include "../PluginProcessor.h"
 
 using namespace juce;
@@ -276,12 +278,12 @@ struct ExpansionsPage::MakePackPanel : public Component
 // ============================================================================ page
 struct ExpansionsPage::ImportThread : public Thread
 {
-    ImportThread (ExpansionsPage& o, Array<File> f) : Thread ("OZ Omnisphere import"), owner (o), sources (std::move (f)) {}
+    ImportThread (ExpansionsPage& o, int k, Array<File> f) : Thread ("OZ preset import"), owner (o), kind (k), sources (std::move (f)) {}
     void run() override
     {
         SafePointer<ExpansionsPage> sp (&owner);
         String summary;
-        ff::import::importOmnisphere (sources, owner.proc.apvts, [this, sp] (int done, int total, const String& name)
+        auto progress = [this, sp] (int done, int total, const String& name)
         {
             if (done % 25 == 0)
                 MessageManager::callAsync ([sp, done, total, name]
@@ -289,12 +291,19 @@ struct ExpansionsPage::ImportThread : public Thread
                     if (sp != nullptr) sp->status.setText ("Importing " + String (done) + " / " + String (total) + "  -  " + name, dontSendNotification);
                 });
             return ! threadShouldExit();
-        }, summary);
+        };
+        switch (kind)
+        {
+            case 1:  ff::import::importArturia (sources, owner.proc.apvts, progress, summary); break;
+            case 2:  ff::import::importNI (ff::import::NIKind::FM8, sources, owner.proc.apvts, progress, summary); break;
+            case 3:  ff::import::importNI (ff::import::NIKind::Absynth, sources, owner.proc.apvts, progress, summary); break;
+            default: ff::import::importOmnisphere (sources, owner.proc.apvts, progress, summary); break;
+        }
         MessageManager::callAsync ([sp, summary]
         {
             if (sp == nullptr) return;
             sp->status.setText (summary + ". Find them under BROWSE, or as packs here.", dontSendNotification);
-            sp->omniBtn.setButtonText ("Import Omnisphere...");
+            sp->importBtn.setButtonText ("Import presets...");
             sp->refresh();
             if (sp->onPacksChanged) sp->onPacksChanged();
             sp->importer->stopThread (2000);
@@ -302,6 +311,7 @@ struct ExpansionsPage::ImportThread : public Thread
         });
     }
     ExpansionsPage& owner;
+    int kind = 0;
     Array<File> sources;
 };
 
@@ -321,29 +331,55 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
     search.setFont (font (13.0f));
     search.onTextChange = [this] { layoutTiles(); };
     addAndMakeVisible (search);
-    for (auto* b : { &backBtn, &installBtn, &makeBtn, &omniBtn }) addAndMakeVisible (b);
-    omniBtn.setColour (TextButton::buttonColourId, Colour (0xff7ee0c3).withAlpha (0.25f));
-    omniBtn.setTooltip ("Rebuild Omnisphere patches (.prt_omn) and banks (.omnisphere) as OZ-mosys presets. You can also drag bank files onto this page. They stay private on this computer.");
-    omniBtn.onClick = [this]
+    for (auto* b : { &backBtn, &installBtn, &makeBtn, &importBtn }) addAndMakeVisible (b);
+    importBtn.setColour (TextButton::buttonColourId, Colour (0xff7ee0c3).withAlpha (0.25f));
+    importBtn.setTooltip ("Rebuild patches from Omnisphere, Arturia (Pigments / Analog Lab / V Collection), FM8 or Absynth as OZ-mosys presets. Each sound is swapped for the closest OZ engine. You can also drag preset files onto this page. They stay private on this computer.");
+    importBtn.onClick = [this]
     {
         if (importer != nullptr) { importer->signalThreadShouldExit(); return; }
-        PopupMenu m;
-        m.addSectionHeader ("Import Omnisphere patches");
-        m.addItem (1, "A whole folder (patches + .omnisphere banks inside it)...");
-        m.addItem (2, "Bank files (.omnisphere or .prt_omn)...");
-        m.showMenuAsync (PopupMenu::Options().withTargetComponent (&omniBtn), [this] (int r)
+
+        // a good place to start browsing per synth (falls back to Documents)
+        auto startDir = [] (int kind) -> File
         {
-            if (r == 1)
+            const auto common = File::getSpecialLocation (File::commonApplicationDataDirectory);
+            const auto docs = File::getSpecialLocation (File::userDocumentsDirectory);
+            if (kind == 1) { auto a = common.getChildFile ("Arturia").getChildFile ("Presets"); if (a.isDirectory()) return a; }
+            return docs;
+        };
+        auto pickFolder = [this, startDir] (int kind, const String& title)
+        {
+            chooser = std::make_unique<FileChooser> (title, startDir (kind));
+            chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectDirectories,
+                                  [this, kind] (const FileChooser& fc) { if (fc.getResult().isDirectory()) startImport (kind, { fc.getResult() }); });
+        };
+        auto pickFiles = [this, startDir] (int kind, const String& title, const String& filter)
+        {
+            chooser = std::make_unique<FileChooser> (title, startDir (kind), filter);
+            chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::canSelectMultipleItems,
+                                  [this, kind] (const FileChooser& fc) { if (! fc.getResults().isEmpty()) startImport (kind, fc.getResults()); });
+        };
+
+        PopupMenu m;
+        m.addSectionHeader ("Omnisphere");
+        m.addItem (1, "A whole folder (patches + .omnisphere banks)...");
+        m.addItem (2, "Bank files (.omnisphere / .prt_omn)...");
+        m.addSectionHeader ("Arturia - Pigments, Analog Lab, V Collection");
+        m.addItem (10, "A whole folder of presets...");
+        m.addItem (11, "Bank files (.pgtx / .labx)...");
+        m.addSectionHeader ("Native Instruments");
+        m.addItem (20, "FM8 folder (.fm8 / .nfm8)...");
+        m.addItem (21, "Absynth folder (.nabs / .ksd)...");
+        m.showMenuAsync (PopupMenu::Options().withTargetComponent (&importBtn), [=] (int r)
+        {
+            switch (r)
             {
-                chooser = std::make_unique<FileChooser> ("Choose a folder of Omnisphere patches / banks", File::getSpecialLocation (File::userDocumentsDirectory));
-                chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectDirectories,
-                                      [this] (const FileChooser& fc) { if (fc.getResult().isDirectory()) startOmniImport ({ fc.getResult() }); });
-            }
-            else if (r == 2)
-            {
-                chooser = std::make_unique<FileChooser> ("Choose Omnisphere banks", File::getSpecialLocation (File::userDocumentsDirectory), "*.omnisphere;*.prt_omn");
-                chooser->launchAsync (FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::canSelectMultipleItems,
-                                      [this] (const FileChooser& fc) { if (! fc.getResults().isEmpty()) startOmniImport (fc.getResults()); });
+                case 1:  pickFolder (0, "Choose a folder of Omnisphere patches / banks"); break;
+                case 2:  pickFiles  (0, "Choose Omnisphere banks", "*.omnisphere;*.prt_omn"); break;
+                case 10: pickFolder (1, "Choose a folder of Arturia presets"); break;
+                case 11: pickFiles  (1, "Choose Arturia banks", "*.pgtx;*.labx"); break;
+                case 20: pickFolder (2, "Choose a folder of FM8 presets"); break;
+                case 21: pickFolder (3, "Choose a folder of Absynth presets"); break;
+                default: break;
             }
         });
     };
@@ -405,20 +441,43 @@ void ExpansionsPage::installFile (const File& f)
 
 bool ExpansionsPage::isInterestedInFileDrag (const StringArray& files)
 {
-    for (auto& f : files) if (f.endsWithIgnoreCase (".ozpack") || f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")) return true;
+    for (auto& f : files)
+    {
+        if (File (f).isDirectory()) return true;
+        if (f.endsWithIgnoreCase (".ozpack") || f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")
+            || f.endsWithIgnoreCase (".pgtx") || f.endsWithIgnoreCase (".labx")
+            || f.endsWithIgnoreCase (".fm8") || f.endsWithIgnoreCase (".nfm8")
+            || f.endsWithIgnoreCase (".nabs") || f.endsWithIgnoreCase (".ksd")) return true;
+    }
     return false;
 }
 
 void ExpansionsPage::filesDropped (const StringArray& files, int, int)
 {
     dragOver = false;
-    Array<File> omni;
+    Array<File> omni, arturia, fm8, absynth;
     for (auto& f : files)
     {
-        if (f.endsWithIgnoreCase (".ozpack")) installFile (File (f));
-        else if (f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")) omni.add (File (f));
+        const File file (f);
+        if (f.endsWithIgnoreCase (".ozpack")) installFile (file);
+        else if (f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")) omni.add (file);
+        else if (f.endsWithIgnoreCase (".pgtx") || f.endsWithIgnoreCase (".labx")) arturia.add (file);
+        else if (f.endsWithIgnoreCase (".fm8") || f.endsWithIgnoreCase (".nfm8")) fm8.add (file);
+        else if (f.endsWithIgnoreCase (".nabs") || f.endsWithIgnoreCase (".ksd")) absynth.add (file);
+        else if (file.isDirectory())
+        {
+            // guess the synth from what the folder holds
+            if (! file.findChildFiles (File::findFiles, true, "*.fm8;*.nfm8").isEmpty())       fm8.add (file);
+            else if (! file.findChildFiles (File::findFiles, true, "*.nabs;*.ksd").isEmpty())  absynth.add (file);
+            else if (! file.findChildFiles (File::findFiles, true, "*.omnisphere;*.prt_omn").isEmpty()) omni.add (file);
+            else                                                                               arturia.add (file);  // Arturia presets are extensionless
+        }
     }
-    if (! omni.isEmpty()) startOmniImport (omni);
+    // one importer runs at a time; start the first non-empty group (drop the rest separately)
+    if      (! omni.isEmpty())    startImport (0, omni);
+    else if (! arturia.isEmpty()) startImport (1, arturia);
+    else if (! fm8.isEmpty())     startImport (2, fm8);
+    else if (! absynth.isEmpty()) startImport (3, absynth);
     repaint();
 }
 
@@ -466,13 +525,13 @@ void ExpansionsPage::layoutTiles()
     grid->repaint();
 }
 
-// ---------------------------------------------------------------------------- Omnisphere import
-void ExpansionsPage::startOmniImport (const Array<File>& sources)
+// ---------------------------------------------------------------------------- preset import
+void ExpansionsPage::startImport (int kind, const Array<File>& sources)
 {
     if (importer != nullptr) return;
     status.setText ("Reading " + (sources.size() == 1 ? sources[0].getFileName() : String (sources.size()) + " items") + "...", dontSendNotification);
-    omniBtn.setButtonText ("Stop import");
-    importer = std::make_unique<ImportThread> (*this, sources);
+    importBtn.setButtonText ("Stop import");
+    importer = std::make_unique<ImportThread> (*this, kind, sources);
     importer->startThread();
 }
 
@@ -484,7 +543,7 @@ void ExpansionsPage::resized()
     top.removeFromLeft (16);
     makeBtn.setBounds (top.removeFromRight (120));
     top.removeFromRight (8);
-    omniBtn.setBounds (top.removeFromRight (150));
+    importBtn.setBounds (top.removeFromRight (140));
     top.removeFromRight (8);
     installBtn.setBounds (top.removeFromRight (120));
     top.removeFromRight (16);

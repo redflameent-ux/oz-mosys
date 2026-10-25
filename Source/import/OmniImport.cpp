@@ -506,7 +506,7 @@ bool writePreset (const Converted& c, const File& file)
     XmlElement root ("FourfoldState");
     root.setAttribute ("presetName", c.name);
     root.setAttribute ("bank", c.bank);
-    root.setAttribute ("author", "Imported (Omnisphere)");
+    root.setAttribute ("author", c.author.isNotEmpty() ? c.author : "Imported (Omnisphere)");
     root.setAttribute ("tags", c.tags);
     root.setAttribute ("notes", c.notes);
     root.setAttribute ("sparse", 1);

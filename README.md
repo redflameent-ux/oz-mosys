@@ -120,10 +120,13 @@ Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or t
 ### Coloured keyboard
 - Keys with sampler recordings get a gold strip. When Chords is on "In key", the notes of the key get a purple dot (bigger on the root).
 
-## Importing Omnisphere patches
-- On the BROWSE page open **Expansions**, press **Import Omnisphere...** and pick a folder, or pick bank files (.omnisphere or .prt_omn). You can also drag .omnisphere bank files straight onto the Expansions page. Folders are searched for both loose patches and .omnisphere banks.
-- Every patch is rebuilt as an OZ-mosys preset: filters, envelopes, LFOs, mod wheel routings, arpeggiator, effects, layer pitch / level / pan. Each Omnisphere soundsource is replaced by the closest OZ-mosys engine (picked from its name), so the result is a close cousin, not a copy. No Omnisphere audio is read or copied.
-- Each top-level folder becomes a private collection ("Omni - Plughugger" etc.) on this computer only.
+## Importing presets from other synths
+On the BROWSE page open **Expansions**, press **Import presets...** and pick the synth, then a folder (or bank files). You can also drag preset files straight onto the Expansions page. Each soundsource is replaced by the closest OZ-mosys engine, so the result is a close cousin, not a copy. Nothing is read but the preset files themselves - no audio, wavetable or sample data - and the collections stay private on this computer. Each top-level folder becomes a collection ("Omni - Plughugger", "Arturia - Pigments", "FM8 - Factory" etc.).
+
+- **Omnisphere** (`.prt_omn` patches, `.omnisphere` banks): rebuilt in full - filters, envelopes, LFOs, mod wheel routings, arpeggiator, effects, layer pitch / level / pan. Each soundsource is matched to the closest OZ engine by name.
+- **Arturia - Pigments**: Pigments stores its patches as readable parameter lists, so these come across with real detail - oscillator, filter cutoff / resonance, the three envelopes, LFO rate, and the effects (reverb / delay / chorus) from each FX slot's dry/wet.
+- **Arturia - Analog Lab and the V Collection** (Mini, DX7, CS-80, Jup-8, Prophet...): every V engine names its parameters differently, so these are rebuilt from the patch's sound type (Bass, Pad, Keys, Organ, Lead...) plus the filter settings Arturia shares across engines. Point the importer at `C:\ProgramData\Arturia\Presets` (or any product / bank folder inside it); on Mac, `/Library/Arturia/Presets`.
+- **FM8** (`.fm8` / `.nfm8`) and **Absynth 5** (`.nabs` / `.ksd`): these are closed binary formats with no published layout, so their synthesis parameters are **not** read. Each patch is rebuilt from its name and sound type - FM8 patches on the OZ FM engine with a starting six-operator feel for the category, Absynth patches on the engine that best fits the sound.
 
 ## Installing
 **Mac:** download **OZ-mosys-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.
