@@ -361,8 +361,8 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
 
         PopupMenu m;
         m.addSectionHeader ("Omnisphere");
-        m.addItem (1, "A whole folder (patches + .omnisphere banks)...");
-        m.addItem (2, "Bank files (.omnisphere / .prt_omn)...");
+        m.addItem (1, "A whole folder (patches, multis + .omnisphere banks)...");
+        m.addItem (2, "Bank files (.omnisphere / .prt_omn / .mlt_omn)...");
         m.addSectionHeader ("Arturia - Pigments, Analog Lab, V Collection");
         m.addItem (10, "A whole folder of presets...");
         m.addItem (11, "Bank files (.pgtx / .labx)...");
@@ -374,7 +374,7 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
             switch (r)
             {
                 case 1:  pickFolder (0, "Choose a folder of Omnisphere patches / banks"); break;
-                case 2:  pickFiles  (0, "Choose Omnisphere banks", "*.omnisphere;*.prt_omn"); break;
+                case 2:  pickFiles  (0, "Choose Omnisphere banks", "*.omnisphere;*.prt_omn;*.mlt_omn"); break;
                 case 10: pickFolder (1, "Choose a folder of Arturia presets"); break;
                 case 11: pickFiles  (1, "Choose Arturia banks", "*.pgtx;*.labx"); break;
                 case 20: pickFolder (2, "Choose a folder of FM8 presets"); break;
@@ -445,6 +445,7 @@ bool ExpansionsPage::isInterestedInFileDrag (const StringArray& files)
     {
         if (File (f).isDirectory()) return true;
         if (f.endsWithIgnoreCase (".ozpack") || f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")
+            || f.endsWithIgnoreCase (".mlt_omn")
             || f.endsWithIgnoreCase (".pgtx") || f.endsWithIgnoreCase (".labx")
             || f.endsWithIgnoreCase (".fm8") || f.endsWithIgnoreCase (".nfm8")
             || f.endsWithIgnoreCase (".nabs") || f.endsWithIgnoreCase (".ksd")) return true;
@@ -460,7 +461,7 @@ void ExpansionsPage::filesDropped (const StringArray& files, int, int)
     {
         const File file (f);
         if (f.endsWithIgnoreCase (".ozpack")) installFile (file);
-        else if (f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn")) omni.add (file);
+        else if (f.endsWithIgnoreCase (".omnisphere") || f.endsWithIgnoreCase (".prt_omn") || f.endsWithIgnoreCase (".mlt_omn")) omni.add (file);
         else if (f.endsWithIgnoreCase (".pgtx") || f.endsWithIgnoreCase (".labx")) arturia.add (file);
         else if (f.endsWithIgnoreCase (".fm8") || f.endsWithIgnoreCase (".nfm8")) fm8.add (file);
         else if (f.endsWithIgnoreCase (".nabs") || f.endsWithIgnoreCase (".ksd")) absynth.add (file);
@@ -469,7 +470,7 @@ void ExpansionsPage::filesDropped (const StringArray& files, int, int)
             // guess the synth from what the folder holds
             if (! file.findChildFiles (File::findFiles, true, "*.fm8;*.nfm8").isEmpty())       fm8.add (file);
             else if (! file.findChildFiles (File::findFiles, true, "*.nabs;*.ksd").isEmpty())  absynth.add (file);
-            else if (! file.findChildFiles (File::findFiles, true, "*.omnisphere;*.prt_omn").isEmpty()) omni.add (file);
+            else if (! file.findChildFiles (File::findFiles, true, "*.omnisphere;*.prt_omn;*.mlt_omn").isEmpty()) omni.add (file);
             else                                                                               arturia.add (file);  // Arturia presets are extensionless
         }
     }
