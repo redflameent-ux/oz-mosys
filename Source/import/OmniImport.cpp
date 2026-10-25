@@ -370,6 +370,19 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
     else b.set ("flt2_on", 0.0f);
     if (! f1) { b.set ("flt_on", 1.0f); b.set ("flt_type", 1.0f); b.set ("flt_cutoff", 1.0f); b.set ("flt_env", 0.0f); }
 
+    // ---- waveshaper -> per-voice drive into the filter ----
+    // OZ already saturates (filter drive); Omnisphere's per-layer waveshaper maps onto it rather
+    // than needing a separate stage. Depth x wet gives the amount; the curve type is approximated.
+    auto wsDrive = [&] (const XmlElement* voice) -> float
+    {
+        auto* ws = voice != nullptr ? findByTag (voice, "WAVESHAPER") : nullptr;
+        if (ws == nullptr || ! on (ws, "act")) return 0.0f;
+        return jlimit (0.0f, 0.75f, val01 (ws, "dpth") * val01 (ws, "mix", 1.0f) * 1.6f);
+    };
+    if (const float d = wsDrive (main); d > 0.02f) b.set ("flt_drive", d);
+    if (voices.size() > 1 && ! layerBOff && ! layerAOff && engB.isNotEmpty())
+        if (const float d = wsDrive (voices[1]); d > 0.02f) b.set ("flt2_drive", d);
+
     // ---- envelopes ----
     if (auto* ae = child (main, "AENVPARAMS"))
     {
