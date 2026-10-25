@@ -14,3 +14,4 @@ build-spire-*.log
 build-importlib*.log
 reconfigure.log
 build-render.log
+build-render*.log
