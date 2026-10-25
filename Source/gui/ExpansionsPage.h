@@ -41,10 +41,11 @@ private:
     juce::OwnedArray<juce::TextButton> styleChips;
     juce::String styleFilter { "All" };
     juce::TextEditor search;
-    juce::TextButton backBtn { "< Presets" }, installBtn { "Install Pack..." }, makeBtn { "Make a Pack..." }, omniBtn { "Import Omnisphere..." };
+    juce::TextButton backBtn { "< Presets" }, installBtn { "Install Pack..." }, makeBtn { "Make a Pack..." }, importBtn { "Import presets..." };
     struct ImportThread;
     std::unique_ptr<ImportThread> importer;
-    void startOmniImport (const juce::Array<juce::File>& sources);
+    // kind: 0 = Omnisphere, 1 = Arturia (Pigments / Analog Lab / V Collection), 2 = FM8, 3 = Absynth
+    void startImport (int kind, const juce::Array<juce::File>& sources);
     juce::Viewport viewport;
     std::unique_ptr<Grid> grid;
     std::unique_ptr<MakePackPanel> makePanel;

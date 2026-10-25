@@ -17,6 +17,7 @@ struct Converted
     juce::String name, bank, tags, notes;
     std::map<juce::String, float> values;   // param id -> real value (only what differs from Init)
     juce::String arpPattern;                // ArpPattern::toString(), empty = default
+    juce::String author;                    // preset author line; empty = "Imported (Omnisphere)"
 };
 
 // one patch. `apvts` supplies parameter ranges and defaults.
