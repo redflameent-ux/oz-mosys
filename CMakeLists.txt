@@ -108,4 +108,10 @@ if(FOURFOLD_BUILD_TOOLS)
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
     target_link_libraries(PluginProbe PRIVATE
         juce::juce_audio_processors juce::juce_audio_utils juce::juce_recommended_config_flags)
+
+    # ---- ImportLib: run any in-plugin importer headlessly over a folder (library conversion) ----
+    juce_add_console_app(ImportLib PRODUCT_NAME "ImportLib")
+    target_sources(ImportLib PRIVATE ${FOURFOLD_SOURCES} tools/ImportLib.cpp)
+    target_compile_definitions(ImportLib PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
+    target_link_libraries(ImportLib PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
 endif()
