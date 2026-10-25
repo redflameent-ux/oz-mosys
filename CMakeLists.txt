@@ -46,6 +46,7 @@ set(FOURFOLD_SOURCES
     Source/import/OmniImport.cpp
     Source/import/ArturiaImport.cpp
     Source/import/NIImport.cpp
+    Source/import/HiveImport.cpp
     Source/gui/ExpansionsPage.cpp
     Source/design/Packs.cpp
     Source/roll/RollEngine.cpp
