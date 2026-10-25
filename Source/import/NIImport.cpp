@@ -2,6 +2,7 @@
 #include "../Params.h"
 #include <set>
 #include <algorithm>
+#include <cstring>
 
 using namespace juce;
 
@@ -15,17 +16,21 @@ bool any (const String& s, std::initializer_list<const char*> words)
     return false;
 }
 
-// Pull readable ASCII runs (length >= 4) out of the file head. NI files carry the preset name
-// and sometimes category words as plain text; we only use these as hints for classification.
-String scrapeText (const File& f)
+// Collect readable ASCII runs (length >= 4) from a byte range. We keep only word-like runs
+// (something with a vowel or a space) so binary noise doesn't trip the classifier.
+void appendAsciiRuns (const unsigned char* d, size_t n, String& out)
 {
-    MemoryBlock mb;
-    { FileInputStream in (f); if (! in.openedOk()) return {}; in.readIntoMemoryBlock (mb, 128 * 1024); }
-    const auto* d = static_cast<const unsigned char*> (mb.getData());
-    const size_t n = mb.getSize();
-    String out;
     int run = 0; size_t start = 0;
-    auto flush = [&] { if (run >= 4) out << String (CharPointer_UTF8 ((const char*) (d + start)), (size_t) run) << " "; run = 0; };
+    auto flush = [&]
+    {
+        if (run >= 4)
+        {
+            String s (CharPointer_UTF8 ((const char*) (d + start)), (size_t) run);
+            if (s.containsAnyOf ("aeiouAEIOU "))   // skip tag/hex-looking junk like "DSINv", "taPsC"
+                out << s << " ";
+        }
+        run = 0;
+    };
     for (size_t i = 0; i < n; ++i)
     {
         const unsigned char c = d[i];
@@ -33,7 +38,101 @@ String scrapeText (const File& f)
         else flush();
     }
     flush();
-    return out;
+}
+
+// What we can learn about a preset from the file itself.
+struct NIMeta
+{
+    String name;        // real name, when the file carries one (.ksd); else empty -> use filename
+    String author;      // real author (+ vendor), when present
+    String hint;        // text fed to the classifier (name, labels, NI category tags, sample refs)
+    bool sampleBased = false;   // references a sample (Absynth sample patches)
+};
+
+// Parse the XML metadata document NI's SoundShell (.ksd) stores, zlib-compressed, inside the file.
+// It carries the real name, author/vendor/bank and a rich tag taxonomy (Instrument/Type/Timbre/
+// Articulation/Genre + user attributes), all of which make for far better classification than a
+// filename guess.
+void parseKsdXml (const String& xml, NIMeta& m)
+{
+    auto doc = XmlDocument::parse (xml);
+    if (doc == nullptr) return;
+
+    auto sub = [] (XmlElement* e, const char* tag) -> String
+    { if (e != nullptr) if (auto* c = e->getChildByName (tag)) return c->getAllSubText().trim(); return {}; };
+
+    m.name = sub (doc.get(), "doc_name");
+
+    String authors;
+    if (auto* info = doc->getChildByName ("info"))
+    {
+        if (auto* ca = info->getChildByName ("commonAttr"))
+        {
+            const String a = sub (ca, "Author"), v = sub (ca, "Vendor"), bank = sub (ca, "Bankname");
+            if (a.isNotEmpty()) authors = a;
+            if (v.isNotEmpty()) authors = authors.isNotEmpty() ? authors + " / " + v : v;
+            m.hint << " " << bank << " " << sub (ca, "Comment");
+        }
+        // NI's musical tag taxonomy -> gather every attribute value.
+        if (auto* mus = info->getChildByName ("MusicalAttr"))
+            for (auto* a = mus->getFirstChildElement(); a != nullptr; a = a->getNextElement())
+                for (int ai = 0; ai < a->getNumAttributes(); ++ai)
+                    m.hint << " " << a->getAttributeValue (ai);
+    }
+    // Free-text category tags live in <info><attribute><value> blocks (often several values).
+    for (auto* child = doc->getFirstChildElement(); child != nullptr; child = child->getNextElement())
+        if (child->hasTagName ("info"))
+            for (auto* attr = child->getFirstChildElement(); attr != nullptr; attr = attr->getNextElement())
+                if (attr->hasTagName ("attribute"))
+                    for (auto* val = attr->getFirstChildElement(); val != nullptr; val = val->getNextElement())
+                        if (val->hasTagName ("value"))
+                            m.hint << " " << val->getAllSubText();
+
+    m.author = authors;
+}
+
+// Read what the file can tell us. .nfm8 / .nabs carry readable labels and sample references as
+// plain text; .ksd (NI SoundShell) carries a zlib-compressed XML metadata document.
+NIMeta readMeta (const File& f, bool fm)
+{
+    NIMeta m;
+    MemoryBlock mb;
+    { FileInputStream in (f); if (! in.openedOk()) return m; in.readIntoMemoryBlock (mb, 1024 * 1024); }
+    const auto* d = static_cast<const unsigned char*> (mb.getData());
+    const size_t n = mb.getSize();
+
+    appendAsciiRuns (d, n, m.hint);
+    m.sampleBased = ! fm && (m.hint.containsIgnoreCase (".wav") || m.hint.containsIgnoreCase (".aif"));
+
+    if (f.hasFileExtension ("ksd"))
+    {
+        // Inflate zlib blocks (0x78 0x01/0x9C/0xDA) until we find the one holding the XML document.
+        for (size_t i = 0, tries = 0; i + 1 < n && tries < 24; ++i)
+        {
+            if (d[i] != 0x78) continue;
+            const unsigned char f2 = d[i + 1];
+            if (f2 != 0x01 && f2 != 0x9C && f2 != 0xDA) continue;
+            ++tries;
+            MemoryBlock comp (d + i, n - i);
+            MemoryInputStream mis (comp, false);
+            GZIPDecompressorInputStream z (&mis, false, GZIPDecompressorInputStream::zlibFormat);
+            MemoryBlock dec;
+            if (z.readIntoMemoryBlock (dec, 2 * 1024 * 1024) == 0 || dec.getSize() < 64) continue;
+
+            const auto* dd = static_cast<const char*> (dec.getData());
+            const int dn = (int) dec.getSize();
+            int xs = -1;
+            for (int k = 0; k + 5 < dn; ++k)
+                if (dd[k] == '<' && dd[k+1] == '?' && dd[k+2] == 'x' && dd[k+3] == 'm' && dd[k+4] == 'l') { xs = k; break; }
+            if (xs < 0) continue;                          // not the XML block; keep scanning
+            int xe = dn;
+            for (int k = xs; k + 16 <= dn; ++k)
+                if (std::memcmp (dd + k, "</NI_DOC_HEADER>", 16) == 0) { xe = k + 16; break; }
+            parseKsdXml (String (CharPointer_UTF8 (dd + xs), CharPointer_UTF8 (dd + xe)), m);
+            break;
+        }
+    }
+    return m;
 }
 
 enum class Cat { Bass, Lead, Pad, Keys, Organ, Brass, Strings, Pluck, Bell, Mallet, Seq, Perc, Vocal, Wind, SFX };
@@ -42,17 +141,17 @@ Cat classify (const String& s)
 {
     if (any (s, { "bass", "808", "sub " }))                       return Cat::Bass;
     if (any (s, { "lead", "solo" }))                              return Cat::Lead;
-    if (any (s, { "pad", "atmos", "drone", "texture", "ambient", "evolv", "string" })) return Cat::Pad;
+    if (any (s, { "pad", "atmos", "drone", "texture", "ambient", "evolv", "soundscape", "string" })) return Cat::Pad;
     if (any (s, { "bell", "chime", "glass", "music box", "glock", "celesta" })) return Cat::Bell;
     if (any (s, { "mallet", "marimba", "vibra", "xylo", "kalimba" })) return Cat::Mallet;
-    if (any (s, { "rhodes", "wurli", "e-piano", "epiano", "piano", "key", "clav", "dx" })) return Cat::Keys;
+    if (any (s, { "rhodes", "wurli", "e-piano", "epiano", "piano", "keyboard", "key", "clav", "dx" })) return Cat::Keys;
     if (any (s, { "organ", "b3", "hammond" }))                    return Cat::Organ;
     if (any (s, { "brass", "horn", "trumpet", "trombone", "sax" })) return Cat::Brass;
     if (any (s, { "pluck", "harp", "guitar", "pizz", "stab" }))   return Cat::Pluck;
     if (any (s, { "seq", "arp" }))                                return Cat::Seq;
     if (any (s, { "perc", "drum", "kick", "snare", "hat", "tom", "clap" })) return Cat::Perc;
     if (any (s, { "choir", "vox", "vocal", "voice", "chant" }))   return Cat::Vocal;
-    if (any (s, { "wind", "breath", "flute", "air" }))            return Cat::Wind;
+    if (any (s, { "wind", "breath", "flute", "woodwind", "air" }))  return Cat::Wind;
     if (any (s, { "fx", "noise", "riser", "impact", "hit", "sfx", "scape" })) return Cat::SFX;
     return Cat::Keys;
 }
@@ -98,8 +197,9 @@ void buildFM (Builder& b, Cat c)
     b.set ("amp_a", a); b.set ("amp_d", d); b.set ("amp_s", s); b.set ("amp_r", r);
 }
 
-// Absynth -> whichever OZ engine best fits the sound type.
-void buildAbsynth (Builder& b, Cat c)
+// Absynth -> whichever OZ engine best fits the sound type. A patch that references a sample
+// (sampleBased) is rebuilt on OZ's granular engine, since those Absynth sounds are sample-driven.
+void buildAbsynth (Builder& b, Cat c, bool sampleBased)
 {
     for (auto* e : { "wt", "an", "gr", "res", "fm" }) b.set (String (e) + "_on", 0.0f);
     b.set ("flt_on", 1.0f);
@@ -124,6 +224,13 @@ void buildAbsynth (Builder& b, Cat c)
         case Cat::Vocal:   gr (0); a = 0.3f; r = 1.0f; break;
         case Cat::Wind:    gr (2); a = 0.15f; r = 0.6f; break;
         case Cat::SFX:     gr (3); a = 0.4f; r = 1.8f; b.set ("rev_mix", 0.25f); break;
+    }
+    if (sampleBased)
+    {
+        for (auto* e : { "wt", "an", "res", "fm" }) b.set (String (e) + "_on", 0.0f);
+        int src = 0;                                 // granular source by character
+        switch (c) { case Cat::Wind: src = 2; break; case Cat::SFX: src = 3; break; default: src = 0; break; }
+        gr (src);
     }
     b.set ("amp_a", a); b.set ("amp_d", d); b.set ("amp_s", s); b.set ("amp_r", r);
 }
@@ -169,21 +276,30 @@ int importNI (NIKind kind, const Array<File>& sources, AudioProcessorValueTreeSt
         const auto& it = items[(size_t) i];
         if (progress && ! progress (i, (int) items.size(), it.name)) break;
 
-        const String hint = it.name + " " + it.folder + " " + scrapeText (it.file);
+        const NIMeta meta = readMeta (it.file, fm);
+        const String displayName = meta.name.isNotEmpty() ? meta.name : it.name;
+        const String hint = displayName + " " + it.folder + " " + meta.hint;
         const Cat c = classify (hint);
+        const bool sampleBased = meta.sampleBased;   // Absynth sample patches -> OZ granular engine
 
         Builder b;
-        if (fm) buildFM (b, c); else buildAbsynth (b, c);
+        if (fm) buildFM (b, c); else buildAbsynth (b, c, sampleBased);
 
         Converted cv;
-        cv.name = it.name;
+        cv.name = displayName;
         const String packName = label + " - " + File::createLegalFileName (it.folder);
         cv.bank = packName;
-        cv.author = String ("Imported (") + label + ")";
-        cv.tags = String (fm ? "fm8" : "absynth") + ", " + catTag (c);
-        cv.notes = String ("Imported from ") + (fm ? "Native Instruments FM8" : "Native Instruments Absynth")
-                 + ". Rebuilt from the preset's name and sound type (the " + label
-                 + " format is closed, so its parameters are not read).";
+        cv.author = meta.author.isNotEmpty() ? String ("Imported (") + label + ") - " + meta.author
+                                             : String ("Imported (") + label + ")";
+        cv.tags = String (fm ? "fm8" : "absynth") + ", " + catTag (c) + (sampleBased ? ", sampled" : "");
+        if (fm)
+            cv.notes = "Imported from Native Instruments FM8. Rebuilt from the preset's name and sound type "
+                       "(the FM8 format stores no readable parameters, so they are not read).";
+        else
+            cv.notes = String ("Imported from Native Instruments Absynth. Rebuilt from the preset's name, "
+                       "sound type and embedded text (labels and sample references)")
+                     + (sampleBased ? ", on OZ's granular engine because this patch is sample-based" : "")
+                     + ". The Absynth format is closed, so its synth parameters themselves are not read.";
 
         for (auto& [id, x] : b.v)
             if (auto* p = apvts.getParameter (id))
