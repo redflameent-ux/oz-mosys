@@ -483,6 +483,23 @@ bool looksLikeArturia (const File& f)
 }
 
 struct Item { String product, sub, name; File file; };
+
+// A short, clean bank label for sequential preset names. Analog Lab .labx buries the real preset
+// name deep in its archive and simple heuristics grab internal object strings, so bank presets are
+// named "<bank> NNN" instead. The label is the word before "Analog"/"Lab" in the folder name
+// (e.g. "...Providence.ANALOG.LAB..." -> "Providence"), falling back to the last meaningful token.
+String bankLabel (const String& product)
+{
+    auto toks = StringArray::fromTokens (product.replaceCharacters (".", " "), " ", "");
+    toks.removeEmptyStrings();
+    for (int i = 1; i < toks.size(); ++i)
+        if (toks[i].equalsIgnoreCase ("analog") || toks[i].equalsIgnoreCase ("lab"))
+            return toks[i - 1];
+    for (int i = toks.size() - 1; i >= 0; --i)
+        if (! toks[i].equalsIgnoreCase ("bank") && ! toks[i].equalsIgnoreCase ("preset") && ! toks[i].equalsIgnoreCase ("presets"))
+            return toks[i];
+    return product.isNotEmpty() ? product : String ("Preset");
+}
 } // namespace
 
 int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apvts,
@@ -546,8 +563,11 @@ int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apv
 
         for (size_t a = 0; a < archives.size(); ++a)
         {
-            const String pname = (bank && innerNames[(int) a].isNotEmpty()) ? innerNames[(int) a] : it.name;
-            if (! seen.insert (packName + "/" + it.sub + "/" + pname + "/" + String ((int) a)).second) continue;
+            // bank presets get a clean sequential name (the .labx name field isn't reliably
+            // recoverable); a single preset file keeps its own filename.
+            const String pname = bank ? (bankLabel (it.product) + " " + String ((int) a + 1).paddedLeft ('0', 3))
+                                      : it.name;
+            if (! seen.insert (packName + "/" + it.sub + "/" + pname).second) continue;
             Converted cv;
             if (! convertArturiaPreset (archives[a], pname, packName, apvts, cv)) { ++failed; continue; }
             if (it.sub.isNotEmpty()) cv.tags << ", " << it.sub.replaceCharacter ('/', ' ').toLowerCase();
