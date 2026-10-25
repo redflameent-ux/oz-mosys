@@ -4,6 +4,7 @@
 #include "../import/NIImport.h"
 #include "../import/HiveImport.h"
 #include "../import/DuneImport.h"
+#include "../import/SpireImport.h"
 #include "../PluginProcessor.h"
 
 using namespace juce;
@@ -301,6 +302,7 @@ struct ExpansionsPage::ImportThread : public Thread
             case 3:  ff::import::importNI (ff::import::NIKind::Absynth, sources, owner.proc.apvts, progress, summary); break;
             case 4:  ff::import::importHive (sources, owner.proc.apvts, progress, summary); break;
             case 5:  ff::import::importDune (sources, owner.proc.apvts, progress, summary); break;
+            case 6:  ff::import::importSpire (sources, owner.proc.apvts, progress, summary); break;
             default: ff::import::importOmnisphere (sources, owner.proc.apvts, progress, summary); break;
         }
         MessageManager::callAsync ([sp, summary]
@@ -377,6 +379,8 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
         m.addItem (30, "A whole folder of presets (.h2p)...");
         m.addSectionHeader ("Synapse DUNE 3");
         m.addItem (40, "A whole folder of presets (.fxp)...");
+        m.addSectionHeader ("Reveal Sound Spire");
+        m.addItem (50, "A whole folder of presets (.spf)...");
         m.showMenuAsync (PopupMenu::Options().withTargetComponent (&importBtn), [=] (int r)
         {
             switch (r)
@@ -389,6 +393,7 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
                 case 21: pickFolder (3, "Choose a folder of Absynth presets"); break;
                 case 30: pickFolder (4, "Choose a folder of Hive presets"); break;
                 case 40: pickFolder (5, "Choose a folder of DUNE 3 presets"); break;
+                case 50: pickFolder (6, "Choose a folder of Spire presets"); break;
                 default: break;
             }
         });
@@ -459,7 +464,8 @@ bool ExpansionsPage::isInterestedInFileDrag (const StringArray& files)
             || f.endsWithIgnoreCase (".pgtx") || f.endsWithIgnoreCase (".labx")
             || f.endsWithIgnoreCase (".fm8") || f.endsWithIgnoreCase (".nfm8")
             || f.endsWithIgnoreCase (".nabs") || f.endsWithIgnoreCase (".ksd")
-            || f.endsWithIgnoreCase (".h2p") || f.endsWithIgnoreCase (".fxp")) return true;
+            || f.endsWithIgnoreCase (".h2p") || f.endsWithIgnoreCase (".fxp")
+            || f.endsWithIgnoreCase (".spf")) return true;
     }
     return false;
 }
@@ -467,7 +473,7 @@ bool ExpansionsPage::isInterestedInFileDrag (const StringArray& files)
 void ExpansionsPage::filesDropped (const StringArray& files, int, int)
 {
     dragOver = false;
-    Array<File> omni, arturia, fm8, absynth, hive, dune;
+    Array<File> omni, arturia, fm8, absynth, hive, dune, spire;
     for (auto& f : files)
     {
         const File file (f);
@@ -478,10 +484,12 @@ void ExpansionsPage::filesDropped (const StringArray& files, int, int)
         else if (f.endsWithIgnoreCase (".nabs") || f.endsWithIgnoreCase (".ksd")) absynth.add (file);
         else if (f.endsWithIgnoreCase (".h2p")) hive.add (file);
         else if (f.endsWithIgnoreCase (".fxp")) dune.add (file);
+        else if (f.endsWithIgnoreCase (".spf")) spire.add (file);
         else if (file.isDirectory())
         {
             // guess the synth from what the folder holds
             if (! file.findChildFiles (File::findFiles, true, "*.h2p").isEmpty())           hive.add (file);
+            else if (! file.findChildFiles (File::findFiles, true, "*.spf").isEmpty())            spire.add (file);
             else if (! file.findChildFiles (File::findFiles, true, "*.fxp").isEmpty())            dune.add (file);
             else if (! file.findChildFiles (File::findFiles, true, "*.fm8;*.nfm8").isEmpty())       fm8.add (file);
             else if (! file.findChildFiles (File::findFiles, true, "*.nabs;*.ksd").isEmpty())  absynth.add (file);
@@ -496,6 +504,7 @@ void ExpansionsPage::filesDropped (const StringArray& files, int, int)
     else if (! absynth.isEmpty()) startImport (3, absynth);
     else if (! hive.isEmpty())    startImport (4, hive);
     else if (! dune.isEmpty())    startImport (5, dune);
+    else if (! spire.isEmpty())   startImport (6, spire);
     repaint();
 }
 
