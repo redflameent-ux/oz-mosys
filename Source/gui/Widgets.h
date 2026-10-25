@@ -12,10 +12,11 @@ namespace col
     const juce::Colour bg        { 0xff0a0612 };   // deep violet-black
     const juce::Colour panel     { 0xff150f22 };   // dark aubergine
     const juce::Colour panelHi   { 0xff1f1733 };   // raised violet
-    const juce::Colour border    { 0xff352848 };   // muted amethyst edge
-    const juce::Colour text      { 0xffe9e3f6 };   // moonlight lavender-white
-    const juce::Colour dim       { 0xff988bb5 };   // muted lavender
-    const juce::Colour track     { 0xff271d3f };   // violet track
+    const juce::Colour border    { 0xff3a3a54 };   // silvered amethyst edge
+    const juce::Colour text      { 0xffe2e4ee };   // moonlight silver
+    const juce::Colour dim       { 0xff9ba1b4 };   // silver-grey
+    const juce::Colour track     { 0xff2a2444 };   // violet track
+    const juce::Colour silver    { 0xffc7ccda };   // bright moonlight silver (glints / accents)
     const juce::Colour wavetable { 0xffb57cff };   // amethyst
     const juce::Colour analog    { 0xffe6a84e };   // candle gold
     const juce::Colour granular  { 0xffd862e6 };   // magenta smoke
@@ -43,7 +44,7 @@ public:
         setColour (juce::ComboBox::backgroundColourId, col::panelHi);
         setColour (juce::ComboBox::outlineColourId, col::border);
         setColour (juce::ComboBox::textColourId, col::text);
-        setColour (juce::ComboBox::arrowColourId, col::dim);
+        setColour (juce::ComboBox::arrowColourId, col::silver);
         setColour (juce::PopupMenu::backgroundColourId, col::panelHi);
         setColour (juce::PopupMenu::textColourId, col::text);
         setColour (juce::PopupMenu::highlightedBackgroundColourId, col::border);
