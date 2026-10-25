@@ -49,6 +49,7 @@ set(FOURFOLD_SOURCES
     Source/import/NIImport.cpp
     Source/import/HiveImport.cpp
     Source/import/DuneImport.cpp
+    Source/import/SpireImport.cpp
     Source/gui/ExpansionsPage.cpp
     Source/design/Packs.cpp
     Source/roll/RollEngine.cpp

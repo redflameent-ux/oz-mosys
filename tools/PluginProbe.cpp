@@ -29,6 +29,7 @@
 #include <cstdlib>
 #include <map>
 #include <cmath>
+#include "../Source/import/SpireConvert.h"   // shared Spire .spf parse + OZ mapping
 
 using namespace juce;
 
@@ -350,6 +351,57 @@ int main (int argc, char** argv)
             const String notes = "Imported from Synapse DUNE 3 by reading the preset file directly (no plugin). "
                                  "A close cousin: filters, oscillator levels, pan, envelopes and effect sends are "
                                  "carried from the preset's real values; tuning is approximated.";
+            if (writeOzPreset (dir.getChildFile (File::createLegalFileName (name) + ".ozpreset"), name, pack, notes, v))
+                ++written;
+            else ++skipped;
+        }
+        std::cerr << "wrote " << written << " presets into " << packDir.getFullPathName()
+                  << (skipped ? (" (" + String (skipped) + " skipped)") : String()) << "\n";
+        return 0;
+    }
+
+    // ---------- direct Reveal Sound Spire .spf -> OZ (no plugin hosted) ----------
+    if (std::strcmp (argv[1], "--spf2oz") == 0)
+    {
+        if (argc < 4) { std::cerr << "usage: --spf2oz <PackName> <preset.spf | folder>\n"; return 1; }
+        const String pack = CharPointer_UTF8 (argv[2]);
+        const String inPath = CharPointer_UTF8 (argv[3]);   // copy-init: avoids the most-vexing-parse
+        const File in (inPath);
+        Array<File> presets;
+        if (in.isDirectory()) presets = in.findChildFiles (File::findFiles, true, "*.spf");
+        else                  presets.add (in);
+
+        const auto packDir = File::getSpecialLocation (File::userDocumentsDirectory)
+                               .getChildFile ("OZ-mosys").getChildFile ("Expansions")
+                               .getChildFile (File::createLegalFileName (pack));
+        if (! packDir.getChildFile ("pack.xml").existsAsFile())
+        {
+            packDir.createDirectory();
+            XmlElement px ("Pack");
+            px.setAttribute ("name", pack);
+            px.setAttribute ("tagline", "Imported Spire presets, rebuilt as OZ-mosys cousins");
+            px.setAttribute ("author", "Imported");
+            px.setAttribute ("style", "imported");
+            px.writeTo (packDir.getChildFile ("pack.xml"));
+        }
+
+        int written = 0, skipped = 0;
+        for (auto& pf : presets)
+        {
+            std::map<String, float> P;
+            if (! ff::import::spire::parseSpf (pf, P)) { ++skipped; continue; }
+            std::map<String, float> v;
+            ff::import::spire::toOz (P, v);
+
+            String sub = in.isDirectory() ? pf.getParentDirectory().getRelativePathFrom (in).replaceCharacter ('\\', '/') : String();
+            if (sub == ".") sub = {};
+            auto dir = packDir.getChildFile ("Presets");
+            if (sub.isNotEmpty()) dir = dir.getChildFile (File::createLegalFileName (sub.replaceCharacter ('/', ' ')));
+
+            const String name = pf.getFileNameWithoutExtension();
+            const String notes = "Imported from Reveal Sound Spire by reading the preset file directly. A close "
+                                 "cousin: oscillators, filters, envelopes, pan and effect sends from the preset's "
+                                 "real values; tuning and times approximate.";
             if (writeOzPreset (dir.getChildFile (File::createLegalFileName (name) + ".ozpreset"), name, pack, notes, v))
                 ++written;
             else ++skipped;
