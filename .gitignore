@@ -11,3 +11,4 @@ oz_convert*.log
 probe_err.log
 build-plugin.log
 build-spire-*.log
+build-importlib*.log
