@@ -146,5 +146,34 @@ private:
     std::unique_ptr<juce::FileChooser> chooser;
     int midiTick = 0;
 
+    // Startup splash: the ViBRA-VII ChromaBed hero logo dims the UI, holds, then fades away.
+    struct SplashOverlay : juce::Component, private juce::Timer
+    {
+        juce::Image logo;
+        float alpha = 1.0f;
+        int elapsed = 0;
+        void start() { alpha = 1.0f; elapsed = 0; setVisible (true); toFront (false); startTimerHz (30); }
+        void mouseDown (const juce::MouseEvent&) override { if (elapsed < 1700) elapsed = 1700; }
+        void timerCallback() override
+        {
+            elapsed += 33;
+            if (elapsed > 1700) alpha = juce::jmax (0.0f, alpha - 0.07f);
+            if (alpha <= 0.0f) { stopTimer(); setVisible (false); }
+            repaint();
+        }
+        void paint (juce::Graphics& g) override
+        {
+            g.fillAll (juce::Colour (0xff0c0718).withAlpha (alpha * 0.96f));
+            if (logo.isValid())
+            {
+                auto area = getLocalBounds().reduced (getWidth() / 9, getHeight() / 7);
+                g.setOpacity (alpha);
+                g.drawImageWithin (logo, area.getX(), area.getY(), area.getWidth(), area.getHeight(),
+                                   juce::RectanglePlacement::centred | juce::RectanglePlacement::onlyReduceInSize);
+            }
+        }
+    };
+    SplashOverlay splash;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FourfoldEditor)
 };

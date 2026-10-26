@@ -85,17 +85,20 @@ juce_add_plugin(VibraVII
     VST3_CATEGORIES Instrument Synth
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
+# Embedded assets (the startup-splash logo). Linked to every target that compiles the editor.
+juce_add_binary_data(VibraVIIData SOURCES Resources/logo.png)
+
 target_sources(VibraVII PRIVATE ${FOURFOLD_SOURCES})
 target_compile_definitions(VibraVII PUBLIC ${FOURFOLD_DEFS})
 target_link_libraries(VibraVII
-    PRIVATE ${FOURFOLD_LIBS}
+    PRIVATE ${FOURFOLD_LIBS} VibraVIIData
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 
 if(FOURFOLD_BUILD_TESTS)
     juce_add_console_app(FourfoldRender PRODUCT_NAME "FourfoldRender")
     target_sources(FourfoldRender PRIVATE ${FOURFOLD_SOURCES} tools/RenderTest.cpp)
     target_compile_definitions(FourfoldRender PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
-    target_link_libraries(FourfoldRender PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
+    target_link_libraries(FourfoldRender PRIVATE ${FOURFOLD_LIBS} VibraVIIData juce::juce_recommended_config_flags)
 endif()
 
 # ---- PluginProbe: headless plugin-oracle that dumps a plugin's parameters by name ----
@@ -113,5 +116,5 @@ if(FOURFOLD_BUILD_TOOLS)
     juce_add_console_app(ImportLib PRODUCT_NAME "ImportLib")
     target_sources(ImportLib PRIVATE ${FOURFOLD_SOURCES} tools/ImportLib.cpp)
     target_compile_definitions(ImportLib PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
-    target_link_libraries(ImportLib PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
+    target_link_libraries(ImportLib PRIVATE ${FOURFOLD_LIBS} VibraVIIData juce::juce_recommended_config_flags)
 endif()

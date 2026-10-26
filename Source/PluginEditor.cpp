@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "Presets.h"
+#include "BinaryData.h"
 
 using namespace ff;
 using namespace ff::gui;
@@ -251,6 +252,10 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     setResizeLimits (editorW * 3 / 4, editorH * 3 / 4, editorW * 2, editorH * 2);
     getConstrainer()->setFixedAspectRatio ((double) editorW / editorH);
     showEngine (0);
+
+    splash.logo = juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize);
+    addAndMakeVisible (splash);
+    splash.start();
     timerCallback();
     startTimerHz (30);
 }
@@ -573,6 +578,7 @@ void FourfoldEditor::resized()
     waveDraw->setBounds (pageArea);
     browsePage->setBounds (pageArea);
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) keyboard.getWidth() / 50.0f));
+    splash.setBounds (0, 0, editorW, editorH);
 }
 
 // ---------------------------------------------------------------------------
