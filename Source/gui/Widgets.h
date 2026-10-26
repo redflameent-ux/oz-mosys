@@ -7,21 +7,25 @@ namespace ff::gui
 {
 namespace col
 {
-    const juce::Colour bg        { 0xff0d0e12 };
-    const juce::Colour panel     { 0xff16181f };
-    const juce::Colour panelHi   { 0xff1c1f28 };
-    const juce::Colour border    { 0xff272b36 };
-    const juce::Colour text      { 0xffd3d7e0 };
-    const juce::Colour dim       { 0xff7b8291 };
-    const juce::Colour track     { 0xff2a2e3a };
-    const juce::Colour wavetable { 0xff3ad1e8 };
-    const juce::Colour analog    { 0xfff2a541 };
-    const juce::Colour granular  { 0xffa77bf3 };
-    const juce::Colour resonator { 0xffe07a4f };
-    const juce::Colour sampler   { 0xfff5c542 };
-    const juce::Colour mod       { 0xff5fe08c };
-    const juce::Colour filter    { 0xffef5d8d };
-    const juce::Colour fx        { 0xff6d9bff };
+    // VIBRA-VII "chakra" palette: an amethyst base (dark purple + lavender = the crown chakra),
+    // with each section glowing its chakra colour - root red through crown violet, the white
+    // light of a preset split through the prism (Dark Side of the Moon).
+    const juce::Colour bg        { 0xff0c0718 };   // amethyst-black
+    const juce::Colour panel     { 0xff160f28 };   // dark amethyst
+    const juce::Colour panelHi   { 0xff211634 };   // raised amethyst
+    const juce::Colour border    { 0xff3f3560 };   // lavender-amethyst edge
+    const juce::Colour text      { 0xffece9f6 };   // lavender-white
+    const juce::Colour dim       { 0xffa79fc0 };   // muted lavender
+    const juce::Colour track     { 0xff2b2348 };   // amethyst track
+    const juce::Colour silver    { 0xffc9b8f0 };   // lavender sheen (glints / accents)
+    const juce::Colour wavetable { 0xffb57cff };   // crown - violet
+    const juce::Colour analog    { 0xfff38a2d };   // sacral - orange
+    const juce::Colour granular  { 0xff39abef };   // throat - blue
+    const juce::Colour resonator { 0xff3ed07e };   // heart - green
+    const juce::Colour sampler   { 0xfff5cb3a };   // solar plexus - yellow
+    const juce::Colour mod       { 0xff3ed07e };   // heart - green
+    const juce::Colour filter    { 0xffe8392e };   // root - red
+    const juce::Colour fx        { 0xffb57cff };   // crown - violet
 }
 
 inline juce::Font font (float h, bool bold = false)

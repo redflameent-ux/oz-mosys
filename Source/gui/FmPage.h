@@ -8,7 +8,7 @@ class FourfoldProcessor;
 
 namespace ff::gui
 {
-const juce::Colour fmCol { 0xff4fd6b0 };
+const juce::Colour fmCol { 0xff6f6cf0 };   // third eye - indigo
 
 // one cell of the matrix: drag up/down to set, double-click to clear
 class FmCell : public juce::Component, public juce::SettableTooltipClient

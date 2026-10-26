@@ -135,6 +135,11 @@ private:
     std::unique_ptr<ff::gui::RollPage> rollPage;
     void showPage (int page);   // 0 synth, 1 patch, 2 fm, 3 fx, 4 env, 5 browse, 6 sampler, 7 roll, 8 play
 
+    // engine tabs for the synth page's left "hero" zone (one engine at a time, Ultra-style)
+    juce::TextButton engWtTab { "WT" }, engAnTab { "AN" }, engGrTab { "GR" }, engResTab { "RES" };
+    int engTab = 0;
+    void showEngine (int e);
+
     std::vector<std::unique_ptr<APVTS::ComboBoxAttachment>> comboAttachments;
     std::vector<std::unique_ptr<APVTS::ButtonAttachment>> buttonAttachments;
     std::vector<Knob*> allKnobs;

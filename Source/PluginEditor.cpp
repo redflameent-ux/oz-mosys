@@ -219,6 +219,17 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     addChildComponent (*rollPage);
     synthTab.setToggleState (true, juce::dontSendNotification);
 
+    for (auto* t : { &engWtTab, &engAnTab, &engGrTab, &engResTab })
+    {
+        t->setClickingTogglesState (false);
+        t->setColour (juce::TextButton::buttonOnColourId, col::wavetable.withAlpha (0.28f));
+        addAndMakeVisible (t);
+    }
+    engWtTab.onClick  = [this] { showEngine (0); };
+    engAnTab.onClick  = [this] { showEngine (1); };
+    engGrTab.onClick  = [this] { showEngine (2); };
+    engResTab.onClick = [this] { showEngine (3); };
+
     // ---------------- keyboard ----------------
     keyboard.setAvailableRange (24, 108);
     keyboard.setLowestVisibleKey (36);
@@ -236,6 +247,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     setResizable (true, true);
     setResizeLimits (editorW * 3 / 4, editorH * 3 / 4, editorW * 2, editorH * 2);
     getConstrainer()->setFixedAspectRatio ((double) editorW / editorH);
+    showEngine (0);
     timerCallback();
     startTimerHz (30);
 }
@@ -300,7 +312,7 @@ void FourfoldEditor::paint (juce::Graphics& g)
     // logo
     g.setColour (col::text);
     g.setFont (font (22.0f, true));
-    const juce::String logo ("OZ-mosys");
+    const juce::String logo ("VIBRA-VII");
     g.drawText (logo, logoArea, juce::Justification::centredLeft);
     const float logoW = juce::GlyphArrangement::getStringWidth (font (22.0f, true), logo);
     const juce::Colour dots[6] = { col::wavetable, col::analog, col::granular, col::resonator, ff::gui::fmCol, col::mod };
@@ -380,159 +392,164 @@ void FourfoldEditor::resized()
     monoToggle.setBounds (top.removeFromRight (50).reduced (0, 11));
     area.removeFromTop (4);
 
-    // ---- engines row ----
-    auto row1 = area.removeFromTop (282);
-    const int engW = (row1.getWidth() - 3 * gap) / 4;
-    auto wtR = row1.removeFromLeft (engW); row1.removeFromLeft (gap);
-    auto anR = row1.removeFromLeft (engW); row1.removeFromLeft (gap);
-    auto grR = row1.removeFromLeft (engW); row1.removeFromLeft (gap);
-    auto rsR = row1;
-    panels.push_back ({ wtR, {}, col::wavetable });
-    panels.push_back ({ anR, {}, col::analog });
-    panels.push_back ({ grR, {}, col::granular });
-    panels.push_back ({ rsR, {}, col::resonator });
+    // ===== Ultra-style synth page: engine hero (left) | filter + envelopes (centre) | FX rack (right) =====
+    auto bottomBar = area.removeFromBottom (56);       // perform macros + keyboard
+    area.removeFromBottom (gap);
+    auto lowBand = area.removeFromBottom (180);         // LFOs + mod matrix
+    area.removeFromBottom (gap);
 
-    {
-        auto r = wtR.reduced (10, 8);
-        auto head = r.removeFromTop (24);
-        wtOn.setBounds (head.removeFromLeft (92));
-        head.removeFromLeft (6);
-        wtLoad.setBounds (head.removeFromRight (54));
-        head.removeFromRight (3);
-        wtDraw.setBounds (head.removeFromRight (46));
-        head.removeFromRight (4);
-        wtTable.setBounds (head);
-        r.removeFromTop (6);
-        auto disp = r.removeFromTop (92);
-        wtDisplay.setBounds (disp);
-        r.removeFromTop (4);
-        auto warpRow = r.removeFromTop (22);
-        wtWarp.setBounds (warpRow.removeFromLeft (110));
-        layoutGrid (wtKnobs, r, 5);
-    }
-    {
-        auto r = anR.reduced (10, 8);
-        auto head = r.removeFromTop (24);
-        anOn.setBounds (head.removeFromLeft (96));
-        r.removeFromTop (6);
-        anDisplay.setBounds (r.removeFromTop (92));
-        r.removeFromTop (26);
-        layoutGrid (anKnobs, r, 6);
-    }
-    {
-        auto r = grR.reduced (10, 8);
-        auto head = r.removeFromTop (24);
-        grOn.setBounds (head.removeFromLeft (92));
-        grLoad.setBounds (head.removeFromRight (90));
-        r.removeFromTop (6);
-        grDisplay.setBounds (r.removeFromTop (92));
-        r.removeFromTop (4);
-        grSource.setBounds (r.removeFromTop (22).removeFromLeft (150));
-        layoutGrid (grKnobs, r, 6);
-    }
-    {
-        auto r = rsR.reduced (10, 8);
-        auto head = r.removeFromTop (24);
-        resOn.setBounds (head.removeFromLeft (100));
-        head.removeFromLeft (6);
-        resType.setBounds (head);
-        r.removeFromTop (6);
-        resDisplay.setBounds (r.removeFromTop (92));
-        r.removeFromTop (4);
-        layoutGrid (resKnobs, r.withTrimmedTop (22), 6);
-    }
-    area.removeFromTop (gap);
+    const int fxW = 300, centreW = 300;
+    auto fxZone = area.removeFromRight (fxW); area.removeFromRight (gap);
+    auto centreZone = area.removeFromRight (centreW); area.removeFromRight (gap);
+    auto engZone = area;
 
-    // ---- filter / envelopes / LFOs ----
-    auto row2 = area.removeFromTop (150);
-    auto take = [&] (int w) { auto r = row2.removeFromLeft (w); row2.removeFromLeft (gap); return r; };
-    auto fR = take (280), aR = take (250), e2R = take (180), e3R = take (180);
-    const int lfoW = (row2.getWidth() - gap) / 2;
-    auto l1R = row2.removeFromLeft (lfoW); row2.removeFromLeft (gap);
-    auto l2R = row2;
-    panels.push_back ({ fR, {}, col::filter });
-    panels.push_back ({ aR, "AMP ENVELOPE", col::text });
-    panels.push_back ({ e2R, "ENVELOPE 2", col::mod });
-    panels.push_back ({ e3R, "ENVELOPE 3", col::mod });
-    panels.push_back ({ l1R, "LFO 1", col::mod });
-    panels.push_back ({ l2R, "LFO 2", col::mod });
+    // ---- left: the active engine (tabbed) ----
+    const juce::Colour engCols[4] = { col::wavetable, col::analog, col::granular, col::resonator };
+    panels.push_back ({ engZone, {}, engCols[engTab] });
     {
-        auto r = fR.reduced (10, 8);
+        auto r = engZone.reduced (10, 8);
+        auto tabRow = r.removeFromTop (22);
+        engWtTab.setBounds (tabRow.removeFromLeft (56)); tabRow.removeFromLeft (3);
+        engAnTab.setBounds (tabRow.removeFromLeft (56)); tabRow.removeFromLeft (3);
+        engGrTab.setBounds (tabRow.removeFromLeft (70)); tabRow.removeFromLeft (3);
+        engResTab.setBounds (tabRow.removeFromLeft (76));
+        r.removeFromTop (8);
         auto head = r.removeFromTop (24);
-        fltOn.setBounds (head.removeFromLeft (80));
-        head.removeFromLeft (8);
-        fltType.setBounds (head);
-        r.removeFromTop (14);
-        layoutGrid (fltKnobs, r.removeFromTop (78), 5);
-    }
-    auto envLayout = [] (std::vector<std::unique_ptr<Knob>>& k, juce::Rectangle<int> r, int cols)
-    {
-        r = r.reduced (8, 8);
-        r.removeFromTop (34);
-        layoutGrid (k, r.removeFromTop (78), cols);
-    };
-    envLayout (ampKnobs, aR, 5);
-    envLayout (e2Knobs, e2R, 4);
-    envLayout (e3Knobs, e3R, 4);
-    for (int i = 0; i < 2; ++i)
-    {
-        auto r = (i == 0 ? l1R : l2R).reduced (8, 8);
-        auto head = r.removeFromTop (18);
-        lfoRetrig[i].setBounds (head.removeFromRight (52));
-        r.removeFromTop (4);
-        lfoShape[i].setBounds (r.removeFromTop (22));
-        r.removeFromTop (4);
-        auto kr = r.removeFromTop (78);
-        lfoKnobs[(size_t) i]->setBounds (kr.removeFromLeft (kr.getWidth() / 2));
-        lfoFadeKnobs[(size_t) i]->setBounds (kr);
-    }
-    area.removeFromTop (gap);
-
-    // ---- macros / matrix / fx ----
-    auto row3 = area.removeFromTop (240);
-    auto fxR = row3.removeFromRight (440); row3.removeFromRight (gap);
-    auto mxR = row3;
-    panels.push_back ({ mxR, "MOD MATRIX  -  drag a source onto any knob", col::mod });
-    panels.push_back ({ fxR, "EFFECTS", col::fx });
-    {
-        auto r = mxR.reduced (10, 8);
-        r.removeFromTop (22);
-        modStrip->setBounds (r.removeFromTop (44));
-        r.removeFromTop (6);
-        const int colW = (r.getWidth() - 10) / 2;
-        const int rowH = r.getHeight() / 5;
-        for (int i = 0; i < numModSlots; ++i)
+        if (engTab == 0)
         {
-            auto cell = juce::Rectangle<int> (r.getX() + (i / 5) * (colW + 10), r.getY() + (i % 5) * rowH, colW, rowH).reduced (0, 3);
-            auto& row = rows[(size_t) i];
-            row.clear.setBounds (cell.removeFromRight (20));
-            cell.removeFromRight (2);
-            row.src.setBounds (cell.removeFromLeft (74));
-            cell.removeFromLeft (3);
-            row.dst.setBounds (cell.removeFromLeft (98));
-            cell.removeFromLeft (3);
-            row.amt.setBounds (cell);
+            wtOn.setBounds (head.removeFromLeft (92)); head.removeFromLeft (6);
+            wtLoad.setBounds (head.removeFromRight (54)); head.removeFromRight (3);
+            wtDraw.setBounds (head.removeFromRight (46)); head.removeFromRight (4);
+            wtTable.setBounds (head);
+            r.removeFromTop (6);
+            wtDisplay.setBounds (r.removeFromTop (230));
+            r.removeFromTop (6);
+            wtWarp.setBounds (r.removeFromTop (22).removeFromLeft (130));
+            r.removeFromTop (8);
+            layoutGrid (wtKnobs, r.removeFromTop (92), 5);
+        }
+        else if (engTab == 1)
+        {
+            anOn.setBounds (head.removeFromLeft (96));
+            r.removeFromTop (6);
+            anDisplay.setBounds (r.removeFromTop (252));
+            r.removeFromTop (12);
+            layoutGrid (anKnobs, r.removeFromTop (92), 6);
+        }
+        else if (engTab == 2)
+        {
+            grOn.setBounds (head.removeFromLeft (92));
+            grLoad.setBounds (head.removeFromRight (90));
+            r.removeFromTop (6);
+            grDisplay.setBounds (r.removeFromTop (230));
+            r.removeFromTop (6);
+            grSource.setBounds (r.removeFromTop (22).removeFromLeft (170));
+            r.removeFromTop (8);
+            layoutGrid (grKnobs, r.removeFromTop (92), 6);
+        }
+        else
+        {
+            resOn.setBounds (head.removeFromLeft (100)); head.removeFromLeft (6);
+            resType.setBounds (head);
+            r.removeFromTop (6);
+            resDisplay.setBounds (r.removeFromTop (252));
+            r.removeFromTop (12);
+            layoutGrid (resKnobs, r.removeFromTop (92), 6);
         }
     }
-    {
-        auto r = fxR.reduced (8, 8);
-        driveType.setBounds (r.removeFromTop (20).removeFromRight (90));
-        r.removeFromTop (2);
-        layoutGrid (fxKnobs, r, 6);
-    }
-    area.removeFromTop (gap);
 
-    macroBar->setBounds (area);
+    // ---- centre: filter + amp/env2/env3 ----
+    {
+        auto fRc = centreZone.removeFromTop (150); centreZone.removeFromTop (gap);
+        auto aRc = centreZone.removeFromTop (108); centreZone.removeFromTop (gap);
+        auto e2Rc = centreZone.removeFromTop (108); centreZone.removeFromTop (gap);
+        auto e3Rc = centreZone;
+        panels.push_back ({ fRc, {}, col::filter });
+        panels.push_back ({ aRc, "AMP ENVELOPE", col::text });
+        panels.push_back ({ e2Rc, "ENVELOPE 2", col::mod });
+        panels.push_back ({ e3Rc, "ENVELOPE 3", col::mod });
+        {
+            auto r = fRc.reduced (10, 8);
+            auto head = r.removeFromTop (22);
+            fltOn.setBounds (head.removeFromLeft (70)); head.removeFromLeft (6);
+            fltType.setBounds (head);
+            r.removeFromTop (10);
+            layoutGrid (fltKnobs, r.removeFromTop (78), 5);
+        }
+        auto envLayout = [] (std::vector<std::unique_ptr<Knob>>& k, juce::Rectangle<int> r, int cols)
+        {
+            r = r.reduced (8, 8); r.removeFromTop (22);
+            layoutGrid (k, r.removeFromTop (72), cols);
+        };
+        envLayout (ampKnobs, aRc, 5);
+        envLayout (e2Knobs, e2Rc, 4);
+        envLayout (e3Knobs, e3Rc, 4);
+    }
+
+    // ---- right: FX rack ----
+    {
+        panels.push_back ({ fxZone, "FX RACK", col::fx });
+        auto r = fxZone.reduced (10, 8);
+        r.removeFromTop (22);
+        driveType.setBounds (r.removeFromTop (22).removeFromRight (120));
+        r.removeFromTop (10);
+        layoutGrid (fxKnobs, r.removeFromTop (180), 3);
+    }
+
+    // ---- low band: LFO 1 | LFO 2 | mod matrix ----
+    {
+        auto l1R = lowBand.removeFromLeft (300); lowBand.removeFromLeft (gap);
+        auto l2R = lowBand.removeFromLeft (300); lowBand.removeFromLeft (gap);
+        auto mxR = lowBand;
+        panels.push_back ({ l1R, "LFO 1", col::mod });
+        panels.push_back ({ l2R, "LFO 2", col::mod });
+        panels.push_back ({ mxR, "MOD MATRIX  -  drag a source onto any knob", col::mod });
+        for (int i = 0; i < 2; ++i)
+        {
+            auto r = (i == 0 ? l1R : l2R).reduced (8, 8);
+            auto head = r.removeFromTop (18);
+            lfoRetrig[i].setBounds (head.removeFromRight (52));
+            r.removeFromTop (4);
+            lfoShape[i].setBounds (r.removeFromTop (22));
+            r.removeFromTop (4);
+            auto kr = r.removeFromTop (78);
+            lfoKnobs[(size_t) i]->setBounds (kr.removeFromLeft (kr.getWidth() / 2));
+            lfoFadeKnobs[(size_t) i]->setBounds (kr);
+        }
+        {
+            auto r = mxR.reduced (10, 8);
+            r.removeFromTop (22);
+            modStrip->setBounds (r.removeFromTop (44));
+            r.removeFromTop (6);
+            const int colW = (r.getWidth() - 10) / 2;
+            const int rowH = r.getHeight() / 5;
+            for (int i = 0; i < numModSlots; ++i)
+            {
+                auto cell = juce::Rectangle<int> (r.getX() + (i / 5) * (colW + 10), r.getY() + (i % 5) * rowH, colW, rowH).reduced (0, 3);
+                auto& row = rows[(size_t) i];
+                row.clear.setBounds (cell.removeFromRight (20));
+                cell.removeFromRight (2);
+                row.src.setBounds (cell.removeFromLeft (74));
+                cell.removeFromLeft (3);
+                row.dst.setBounds (cell.removeFromLeft (98));
+                cell.removeFromLeft (3);
+                row.amt.setBounds (cell);
+            }
+        }
+    }
+
+    macroBar->setBounds (bottomBar);
     keyboard.setBounds (macroBar->keyboardArea());
-    samplerPage->setBounds (juce::Rectangle<int> (gap, 46 + gap + 4, editorW - 2 * gap, area.getY() - gap - (46 + gap + 4)));
-    rollPage->setBounds (samplerPage->getBounds());
-    envPage->setBounds (samplerPage->getBounds());
-    fmPage->setBounds (samplerPage->getBounds());
-    patchPage->setBounds (samplerPage->getBounds());
-    fxPage->setBounds (samplerPage->getBounds());
-    playPage->setBounds (samplerPage->getBounds());
-    waveDraw->setBounds (samplerPage->getBounds());
-    browsePage->setBounds (samplerPage->getBounds());
+    const auto pageArea = juce::Rectangle<int> (gap, 58, editorW - 2 * gap, bottomBar.getY() - gap - 58);
+    samplerPage->setBounds (pageArea);
+    rollPage->setBounds (pageArea);
+    envPage->setBounds (pageArea);
+    fmPage->setBounds (pageArea);
+    patchPage->setBounds (pageArea);
+    fxPage->setBounds (pageArea);
+    playPage->setBounds (pageArea);
+    waveDraw->setBounds (pageArea);
+    browsePage->setBounds (pageArea);
     keyboard.setKeyWidth (juce::jmax (12.0f, (float) keyboard.getWidth() / 50.0f));
 }
 
@@ -759,4 +776,23 @@ void FourfoldEditor::showPage (int page)
         if (pages[i] != nullptr) { pages[i]->setVisible (i == page); if (i == page) pages[i]->toFront (true); }
         tabs[i]->setToggleState (i == page, juce::dontSendNotification);
     }
+}
+
+void FourfoldEditor::showEngine (int e)
+{
+    engTab = juce::jlimit (0, 3, e);
+    engWtTab.setToggleState (engTab == 0, juce::dontSendNotification);
+    engAnTab.setToggleState (engTab == 1, juce::dontSendNotification);
+    engGrTab.setToggleState (engTab == 2, juce::dontSendNotification);
+    engResTab.setToggleState (engTab == 3, juce::dontSendNotification);
+    auto set = [] (std::initializer_list<juce::Component*> cs, bool v) { for (auto* c : cs) if (c) c->setVisible (v); };
+    set ({ &wtOn, &wtTable, &wtWarp, &wtLoad, &wtDraw, &wtDisplay }, engTab == 0);
+    for (auto& k : wtKnobs)  k->setVisible (engTab == 0);
+    set ({ &anOn, &anDisplay }, engTab == 1);
+    for (auto& k : anKnobs)  k->setVisible (engTab == 1);
+    set ({ &grOn, &grLoad, &grSource, &grDisplay }, engTab == 2);
+    for (auto& k : grKnobs)  k->setVisible (engTab == 2);
+    set ({ &resOn, &resType, &resDisplay }, engTab == 3);
+    for (auto& k : resKnobs) k->setVisible (engTab == 3);
+    resized();
 }
