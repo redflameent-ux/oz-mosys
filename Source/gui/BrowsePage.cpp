@@ -549,18 +549,36 @@ void BrowsePage::paintListBoxItem (int row, Graphics& g, int w, int h, bool)
     if (! juce::isPositiveAndBelow (row, (int) visible.size())) return;
     const int idx = visible[(size_t) row];
     const auto& e = entries[(size_t) idx];
-    if (idx == selected) { g.setColour (col::panelHi); g.fillRect (0, 0, w, h); }
+    const auto accent = bankColour (e.bank);
+    if (idx == selected)
+    {
+        g.setColour (col::panelHi); g.fillRect (0, 0, w, h);
+        g.setColour (accent); g.fillRect (0, 0, 3, h);   // left accent bar, Ultra-style
+    }
     else if (row % 2) { g.setColour (Colour (0xff101218)); g.fillRect (0, 0, w, h); }
-    const int c1 = 26, c2 = (int) (w * 0.36), c3 = (int) (w * 0.58), c4 = (int) (w * 0.78);
+    const int c1 = 54, c2 = (int) (w * 0.38), c3 = (int) (w * 0.60), c4 = (int) (w * 0.80);
     // star
     g.setColour (favourites.count (e.name) ? col::sampler : col::border.brighter (0.3f));
     g.setFont (font (13.0f));
-    g.drawText (favourites.count (e.name) ? String::charToString (0x2605) : String::charToString (0x2606), 4, 0, 20, h, Justification::centred);
+    g.drawText (favourites.count (e.name) ? String::charToString (0x2605) : String::charToString (0x2606), 4, 0, 18, h, Justification::centred);
+    // a tiny waveform glyph in the preset's bank/chakra colour (Ultra preset-row look)
+    {
+        const float wx = 26.0f, ww = 22.0f, wy = h * 0.5f, amp = h * 0.24f;
+        Path wf; bool first = true;
+        for (int i = 0; i <= 12; ++i)
+        {
+            const float px = wx + ww * (float) i / 12.0f;
+            const float py = wy - std::sin ((float) i * 0.95f + (float) (idx % 7)) * amp * (0.45f + 0.55f * (float) ((idx * 5 + i) % 4) / 3.0f);
+            if (first) { wf.startNewSubPath (px, py); first = false; } else wf.lineTo (px, py);
+        }
+        g.setColour (accent.withAlpha (idx == selected ? 0.95f : 0.65f));
+        g.strokePath (wf, PathStrokeType (1.3f));
+    }
     g.setColour (idx == selected ? Colours::white : col::text);
     g.setFont (font (12.5f, idx == selected));
     g.drawText (e.name, c1, 0, c2 - c1 - 6, h, Justification::centredLeft, true);
     g.setFont (font (11.5f));
-    g.setColour (bankColour (e.bank).withAlpha (0.9f));
+    g.setColour (accent.withAlpha (0.9f));
     g.fillEllipse ((float) c2, h * 0.5f - 3.0f, 6.0f, 6.0f);
     g.setColour (col::dim);
     g.drawText (e.bank, c2 + 10, 0, c3 - c2 - 14, h, Justification::centredLeft, true);

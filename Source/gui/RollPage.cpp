@@ -19,6 +19,23 @@ static String pitchName (float p)
 
 static const Colour lineCol  = col::wavetable;
 static const Colour selCol   = col::sampler;
+
+// Chakra colour for a note, by pitch class: C->root red rising to B->crown violet,
+// so the notes make a rainbow up the keyboard like the seven chakras rising.
+static Colour chakraForPitch (int pitch)
+{
+    static const Colour ch[7] = {
+        Colour (0xffe8392e),  // root - red
+        Colour (0xfff38a2d),  // sacral - orange
+        Colour (0xfff5cb3a),  // solar plexus - yellow
+        Colour (0xff3ed07e),  // heart - green
+        Colour (0xff39abef),  // throat - blue
+        Colour (0xff6f6cf0),  // third eye - indigo
+        Colour (0xffb57cff)   // crown - violet
+    };
+    static const int deg[12] = { 0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6 }; // C C# D D# E F F# G G# A A# B
+    return ch[deg[(((pitch % 12) + 12) % 12)]];
+}
 static const Colour pressCol = Colour (0xff3a7bd5);
 static const Colour slideCol = col::mod;
 static const Colour velCol   = col::analog;
@@ -211,7 +228,7 @@ void RollCanvas::paint (Graphics& g)
         for (auto& l : m.lines)
         {
             const bool sel = page.selection.count (l.id) > 0;
-            const Colour c = sel ? selCol : lineCol;
+            const Colour c = sel ? selCol : chakraForPitch (l.startPitch());
 
             // pressure: shaded area above the line
             if (! l.pressure.empty())
