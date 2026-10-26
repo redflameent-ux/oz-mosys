@@ -174,6 +174,7 @@ private:
         }
     };
     SplashOverlay splash;
+    juce::Image cornerLogo;   // top-bar wordmark
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FourfoldEditor)
 };

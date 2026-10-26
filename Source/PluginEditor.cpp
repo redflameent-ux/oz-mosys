@@ -256,6 +256,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     splash.logo = juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize);
     addAndMakeVisible (splash);
     splash.start();
+    cornerLogo = juce::ImageCache::getFromMemory (BinaryData::logo_corner_png, BinaryData::logo_corner_pngSize);
     timerCallback();
     startTimerHz (30);
 }
@@ -317,17 +318,15 @@ void FourfoldEditor::paint (juce::Graphics& g)
     g.fillAll (col::bg);
     g.addTransform (juce::AffineTransform::scale (scale));
 
-    // logo
-    g.setColour (col::text);
-    g.setFont (font (22.0f, true));
-    const juce::String logo ("VIBRA-VII");
-    g.drawText (logo, logoArea, juce::Justification::centredLeft);
-    const float logoW = juce::GlyphArrangement::getStringWidth (font (22.0f, true), logo);
-    const juce::Colour dots[6] = { col::wavetable, col::analog, col::granular, col::resonator, ff::gui::fmCol, col::mod };
-    for (int i = 0; i < 6; ++i)
+    // logo wordmark (embedded ViBRA-VII ChromaBed image, text fallback)
+    if (cornerLogo.isValid())
+        g.drawImageWithin (cornerLogo, logoArea.getX(), logoArea.getY(), logoArea.getWidth(), logoArea.getHeight(),
+                           juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid | juce::RectanglePlacement::onlyReduceInSize);
+    else
     {
-        g.setColour (dots[i]);
-        g.fillEllipse ((float) logoArea.getX() + logoW + 6.0f + i * 7.0f, (float) logoArea.getCentreY() - 2.5f, 5.0f, 5.0f);
+        g.setColour (col::text);
+        g.setFont (font (22.0f, true));
+        g.drawText ("VIBRA-VII", logoArea, juce::Justification::centredLeft);
     }
 
     for (auto& pnl : panels)

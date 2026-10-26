@@ -86,7 +86,7 @@ juce_add_plugin(VibraVII
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
 # Embedded assets (the startup-splash logo). Linked to every target that compiles the editor.
-juce_add_binary_data(VibraVIIData SOURCES Resources/logo.png)
+juce_add_binary_data(VibraVIIData SOURCES Resources/logo.png Resources/logo_corner.png)
 
 target_sources(VibraVII PRIVATE ${FOURFOLD_SOURCES})
 target_compile_definitions(VibraVII PUBLIC ${FOURFOLD_DEFS})
@@ -117,4 +117,10 @@ if(FOURFOLD_BUILD_TOOLS)
     target_sources(ImportLib PRIVATE ${FOURFOLD_SOURCES} tools/ImportLib.cpp)
     target_compile_definitions(ImportLib PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
     target_link_libraries(ImportLib PRIVATE ${FOURFOLD_LIBS} VibraVIIData juce::juce_recommended_config_flags)
+
+    # ---- PresetForge: generate an original preset library from curated archetypes ----
+    juce_add_console_app(PresetForge PRODUCT_NAME "PresetForge")
+    target_sources(PresetForge PRIVATE ${FOURFOLD_SOURCES} tools/PresetForge.cpp)
+    target_compile_definitions(PresetForge PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
+    target_link_libraries(PresetForge PRIVATE ${FOURFOLD_LIBS} VibraVIIData juce::juce_recommended_config_flags)
 endif()
