@@ -86,7 +86,7 @@ juce_add_plugin(VibraVII
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
 # Embedded assets (the startup-splash logo). Linked to every target that compiles the editor.
-juce_add_binary_data(VibraVIIData SOURCES Resources/logo.png)
+juce_add_binary_data(VibraVIIData SOURCES Resources/logo.png Resources/factory_vol1.ozpack Resources/factory_vol2.ozpack)
 
 target_sources(VibraVII PRIVATE ${FOURFOLD_SOURCES})
 target_compile_definitions(VibraVII PUBLIC ${FOURFOLD_DEFS})

@@ -3,6 +3,9 @@
 #include "PluginEditor.h"
 #include "Presets.h"
 #include "design/SoundFeatures.h"
+#include "design/Packs.h"
+#include "BinaryData.h"
+#include <thread>
 
 FourfoldProcessor::FourfoldProcessor()
     : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
@@ -49,6 +52,21 @@ FourfoldProcessor::FourfoldProcessor()
     rackTimer.owner = this;
     rackTimer.startTimerHz (15);
     morph = std::make_unique<ff::perf::MorphEngine> (*this, apvts);
+
+    // First run on a fresh install: deploy the bundled factory libraries. Skips any pack already
+    // in the Expansions folder, so your own tweaks are never overwritten. On a background thread
+    // so it never blocks plugin load.
+    std::thread ([]
+    {
+        auto deploy = [] (const void* data, int size, const juce::String& name)
+        {
+            if (ff::packs::expansionsFolder().getChildFile (juce::File::createLegalFileName (name)).isDirectory()) return;
+            auto tmp = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile (name + ".ozpack");
+            if (tmp.replaceWithData (data, (size_t) size)) { juce::String n, e; ff::packs::install (tmp, n, e); tmp.deleteFile(); }
+        };
+        deploy (BinaryData::factory_vol1_ozpack, BinaryData::factory_vol1_ozpackSize, "TRANCE-6 Essentials Vol 1");
+        deploy (BinaryData::factory_vol2_ozpack, BinaryData::factory_vol2_ozpackSize, "TRANCE-6 Essentials Vol 2");
+    }).detach();
 }
 
 bool FourfoldProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const

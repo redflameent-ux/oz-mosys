@@ -488,6 +488,16 @@ static const char* const kMoods[] = {
     "Lesion", "Glitch", "Dredge", "Pylon", "Reactor", "Vise", "Carrion", "Sulfur", "Tether", "Corrode" };
 constexpr int kNumMoods = (int) (sizeof (kMoods) / sizeof (kMoods[0]));
 
+// Vol 2 name roots: warm / vintage / roadhouse / psych / roots-reggae, to fit the band palette.
+static const char* const kMoodsVol2[] = {
+    "Velvet", "Amber", "Dusty", "Smoky", "Copper", "Hazel", "Bourbon", "Rust", "Gilded", "Sepia",
+    "Ember", "Mojave", "Canyon", "Delta", "Bayou", "Harvest", "Tweed", "Denim", "Willow", "Cedar",
+    "Sage", "Mesa", "Saffron", "Ochre", "Sienna", "Honey", "Tobacco", "Whiskey", "Juniper", "Marigold",
+    "Paisley", "Prism", "Satori", "Mantra", "Lotus", "Irie", "Zion", "Rockers", "Dubwise", "Roots",
+    "Sunset", "Moonshine", "Lantern", "Driftwood", "Ramble", "Hollow", "Heartland", "Chrome", "Mirage", "Oasis",
+    "Thunder", "Reverb", "Patchouli", "Incense", "Caravan", "Woodsmoke" };
+constexpr int kNumMoodsVol2 = (int) (sizeof (kMoodsVol2) / sizeof (kMoodsVol2[0]));
+
 static String instrumentNoun (const String& archName)
 {
     const String w = archName.fromLastOccurrenceOf (" ", false, false);
@@ -504,6 +514,180 @@ static String describe (const String& archName, const ff::design::SoundFeatures&
     return archName + " - " + c.joinIntoString (", ") + ".";
 }
 
+// =====================================================================================
+//  Vol 2 palette: grunge, heartland/classic rock, 60s-70s psychedelia, blues and reggae.
+//  Band-oriented analog/overdrive/organ/Rhodes voices, kept apart from Vol 1's dark core.
+// =====================================================================================
+static std::vector<Archetype> archetypesVol2()
+{
+    std::vector<Archetype> a;
+    auto res = [] (const char* name, const char* folder, const char* tags, int type,
+                   float decay, float bright, float ampD, float ampR, float rev,
+                   std::vector<Vary> extra = {}) -> Archetype
+    {
+        Archetype x; x.name = name; x.folder = folder; x.tags = tags;
+        x.base = { { "res_on", 1 }, { "res_type", (float) type }, { "res_decay", decay }, { "res_bright", bright },
+                   { "res_damp", 0.5f }, { "res_strike", 0.6f }, { "res_level", 0.82f },
+                   { "amp_a", 0.001f }, { "amp_d", ampD }, { "amp_s", 0.0f }, { "amp_r", ampR } };
+        if (rev > 0) { x.base["rev_mix"] = rev; x.base["rev_size"] = 0.7f; }
+        x.vary = { { "res_decay", decay * 0.6f, decay * 1.5f }, { "res_bright", jmax (0.08f, bright - 0.25f), jmin (1.0f, bright + 0.25f) },
+                   { "res_strike", 0.3f, 0.85f }, { "res_damp", 0.3f, 0.7f } };
+        for (auto& v : extra) x.vary.push_back (v);
+        return x;
+    };
+
+    // ---- Grunge ----
+    a.push_back ({ "Grunge Fuzz Lead", "Grunge", "lead, grunge, fuzz, distorted, aggressive, 90s, guitar",
+        { { "an_on", 1 }, { "an_shape", 1.0f }, { "an_level", 0.82f }, { "an_oct", 0 },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.6f }, { "flt_res", 0.2f }, { "flt_drive", 0.5f },
+          { "amp_a", 0.008f }, { "amp_d", 0.3f }, { "amp_s", 0.92f }, { "amp_r", 0.3f }, { "voice_mode", 1 },
+          { "fx_drive", 0.7f }, { "drive_type", 1 }, { "rev_mix", 0.18f } },
+        { { "flt_cutoff", 0.45f, 0.8f }, { "fx_drive", 0.5f, 0.92f }, { "drive_type", { 0, 1, 2 } }, { "an_oct", { 0, 1 } }, { "flt_res", 0.1f, 0.35f } } });
+    a.push_back ({ "Sludge Power Chord", "Grunge", "chord, grunge, sludge, distorted, dark, heavy, guitar",
+        { { "an_on", 1 }, { "an_shape", 0.9f }, { "an_oct", -1 }, { "an_level", 0.55f },
+          { "wt_on", 1 }, { "wt_table", 0 }, { "wt_unison", 3 }, { "wt_detune", 0.3f }, { "wt_level", 0.55f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.45f }, { "flt_res", 0.15f }, { "flt_drive", 0.6f },
+          { "amp_a", 0.01f }, { "amp_d", 0.4f }, { "amp_s", 0.9f }, { "amp_r", 0.4f }, { "fx_drive", 0.65f }, { "drive_type", 2 }, { "rev_mix", 0.2f } },
+        { { "flt_cutoff", 0.35f, 0.6f }, { "fx_drive", 0.5f, 0.85f }, { "wt_detune", 0.15f, 0.45f }, { "drive_type", { 1, 2 } } } });
+    a.push_back ({ "Dirt Bass", "Bass", "bass, grunge, overdriven, dirty, fuzz, rock",
+        { { "an_on", 1 }, { "an_shape", 0.6f }, { "an_oct", -1 }, { "an_sub", 0.3f }, { "an_level", 0.85f },
+          { "flt_on", 1 }, { "flt_type", 0 }, { "flt_cutoff", 0.42f }, { "flt_res", 0.2f }, { "flt_drive", 0.45f },
+          { "amp_a", 0.004f }, { "amp_d", 0.4f }, { "amp_s", 0.88f }, { "amp_r", 0.25f }, { "voice_mode", 1 }, { "fx_drive", 0.5f }, { "drive_type", 1 } },
+        { { "flt_cutoff", 0.3f, 0.6f }, { "fx_drive", 0.3f, 0.75f }, { "an_sub", 0.15f, 0.5f }, { "drive_type", { 0, 1 } } } });
+
+    // ---- Classic / Heartland Rock ----
+    a.push_back ({ "Tube Overdrive Lead", "Classic Rock", "lead, rock, overdrive, tube, warm, guitar, heartland",
+        { { "an_on", 1 }, { "an_shape", 0.85f }, { "an_oct", 0 }, { "an_level", 0.8f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.68f }, { "flt_res", 0.18f }, { "flt_drive", 0.35f },
+          { "amp_a", 0.012f }, { "amp_d", 0.3f }, { "amp_s", 0.92f }, { "amp_r", 0.35f }, { "voice_mode", 1 }, { "glide", 0.04f },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 5.5f }, { "lfo2_fade", 0.5f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.02f },
+          { "fx_drive", 0.45f }, { "drive_type", 0 }, { "rev_mix", 0.22f } },
+        { { "flt_cutoff", 0.55f, 0.85f }, { "fx_drive", 0.3f, 0.6f }, { "an_oct", { 0, 1 } }, { "mod1_amt", 0.01f, 0.04f }, { "glide", 0.02f, 0.1f } } });
+    a.push_back ({ "Jangle 12-String", "Classic Rock", "guitar, jangle, 12-string, bright, chorus, clean, heartland",
+        { { "wt_on", 1 }, { "wt_table", 1 }, { "wt_unison", 2 }, { "wt_detune", 0.12f }, { "wt_level", 0.78f },
+          { "an_on", 1 }, { "an_shape", 1.0f }, { "an_level", 0.35f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.8f },
+          { "amp_a", 0.002f }, { "amp_d", 0.9f }, { "amp_s", 0.3f }, { "amp_r", 0.5f }, { "cho_mix", 0.35f }, { "rev_mix", 0.25f }, { "dly_mix", 0.1f } },
+        { { "wt_detune", 0.06f, 0.2f }, { "flt_cutoff", 0.65f, 0.95f }, { "cho_mix", 0.2f, 0.5f }, { "amp_d", 0.6f, 1.4f } } });
+    a.push_back ({ "Rock Organ", "Organs", "organ, hammond, rock, rotary, warm, heartland",
+        { { "an_on", 1 }, { "an_shape", 0.0f }, { "an_level", 0.5f },
+          { "fm_on", 1 }, { "fm_index", 0.9f }, { "fm_level", 0.55f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.75f },
+          { "amp_a", 0.01f }, { "amp_d", 0.3f }, { "amp_s", 0.95f }, { "amp_r", 0.2f },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 6.0f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.025f }, { "cho_mix", 0.3f }, { "rev_mix", 0.2f } },
+        { { "fm_index", 0.5f, 1.4f }, { "flt_cutoff", 0.6f, 0.9f }, { "lfo2_rate", 4.0f, 8.0f }, { "cho_mix", 0.15f, 0.45f } } });
+    a.push_back (res ("Rock Rhodes", "Keys", "keys, rhodes, e-piano, rock, warm, chorus", 18, 2.4f, 0.55f, 2.0f, 0.7f, 0.25f,
+        { { "cho_mix", 0.1f, 0.4f }, { "res_oct", { 0, 1 } } }));
+    a.push_back ({ "Clean Chime Guitar", "Classic Rock", "guitar, clean, chime, chorus, spring, bright, heartland",
+        { { "an_on", 1 }, { "an_shape", 0.9f }, { "an_level", 0.75f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.78f }, { "flt_res", 0.1f },
+          { "amp_a", 0.003f }, { "amp_d", 0.8f }, { "amp_s", 0.4f }, { "amp_r", 0.5f }, { "voice_mode", 1 }, { "cho_mix", 0.3f }, { "rev_mix", 0.3f }, { "rev_size", 0.6f } },
+        { { "flt_cutoff", 0.6f, 0.9f }, { "cho_mix", 0.15f, 0.45f }, { "rev_mix", 0.15f, 0.45f } } });
+
+    // ---- Blues ----
+    a.push_back ({ "Bending Blues Lead", "Blues", "lead, blues, bending, expressive, overdrive, guitar, warm",
+        { { "an_on", 1 }, { "an_shape", 0.9f }, { "an_level", 0.8f }, { "an_oct", 0 },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.62f }, { "flt_res", 0.2f }, { "flt_drive", 0.35f },
+          { "amp_a", 0.02f }, { "amp_d", 0.3f }, { "amp_s", 0.9f }, { "amp_r", 0.35f }, { "voice_mode", 1 }, { "glide", 0.12f },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 5.0f }, { "lfo2_fade", 0.55f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.03f },
+          { "fx_drive", 0.4f }, { "drive_type", 0 }, { "rev_mix", 0.25f }, { "dly_mix", 0.12f } },
+        { { "flt_cutoff", 0.5f, 0.8f }, { "glide", 0.06f, 0.2f }, { "fx_drive", 0.25f, 0.6f }, { "mod1_amt", 0.015f, 0.05f } } });
+    a.push_back ({ "Slow Hand", "Blues", "lead, blues, creamy, sustain, woman-tone, overdrive, guitar",
+        { { "an_on", 1 }, { "an_shape", 0.6f }, { "an_level", 0.8f },
+          { "flt_on", 1 }, { "flt_type", 0 }, { "flt_cutoff", 0.5f }, { "flt_res", 0.15f }, { "flt_drive", 0.4f },
+          { "amp_a", 0.03f }, { "amp_d", 0.4f }, { "amp_s", 0.92f }, { "amp_r", 0.5f }, { "voice_mode", 1 }, { "glide", 0.08f }, { "fx_drive", 0.5f }, { "drive_type", 0 }, { "rev_mix", 0.28f } },
+        { { "flt_cutoff", 0.38f, 0.65f }, { "fx_drive", 0.35f, 0.7f }, { "glide", 0.04f, 0.15f } } });
+    a.push_back ({ "Blues Harp", "Blues", "harmonica, blues, reedy, breath, lead",
+        { { "an_on", 1 }, { "an_shape", 1.2f }, { "an_pw", 0.4f }, { "an_level", 0.72f }, { "an_noise", 0.12f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.6f }, { "flt_drive", 0.3f },
+          { "amp_a", 0.02f }, { "amp_d", 0.3f }, { "amp_s", 0.85f }, { "amp_r", 0.3f }, { "voice_mode", 1 },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 5.5f }, { "lfo2_fade", 0.3f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.03f }, { "rev_mix", 0.25f }, { "fx_drive", 0.3f } },
+        { { "flt_cutoff", 0.45f, 0.78f }, { "an_noise", 0.05f, 0.2f }, { "an_pw", 0.3f, 0.5f }, { "fx_drive", 0.15f, 0.5f } } });
+    a.push_back ({ "Blues Organ", "Organs", "organ, blues, hammond, warm, gospel, soul",
+        { { "an_on", 1 }, { "an_shape", 0.0f }, { "an_level", 0.55f },
+          { "fm_on", 1 }, { "fm_index", 0.7f }, { "fm_level", 0.5f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.7f },
+          { "amp_a", 0.012f }, { "amp_d", 0.3f }, { "amp_s", 0.95f }, { "amp_r", 0.25f },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 6.5f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.03f }, { "cho_mix", 0.3f }, { "rev_mix", 0.25f } },
+        { { "fm_index", 0.4f, 1.1f }, { "flt_cutoff", 0.55f, 0.85f }, { "lfo2_rate", 4.0f, 8.5f } } });
+    a.push_back (res ("Juke Joint Piano", "Keys", "keys, piano, blues, dusty, tape, barrelhouse", 18, 2.0f, 0.5f, 1.8f, 0.6f, 0.25f,
+        { { "tape_age", 0.2f, 0.5f } }));
+
+    // ---- Psychedelic ----
+    a.push_back ({ "Mellotron Flute", "Psychedelic", "pad, mellotron, flute, psych, 60s, tape, lush",
+        { { "gr_on", 1 }, { "gr_source", 2 }, { "gr_level", 0.65f }, { "gr_stereo", 0.7f },
+          { "wt_on", 1 }, { "wt_table", 2 }, { "wt_level", 0.3f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.6f },
+          { "amp_a", 0.25f }, { "amp_d", 0.8f }, { "amp_s", 0.8f }, { "amp_r", 1.2f }, { "tape_age", 0.4f }, { "tape_hiss", 0.2f }, { "rev_mix", 0.35f } },
+        { { "flt_cutoff", 0.45f, 0.75f }, { "tape_age", 0.2f, 0.55f }, { "amp_a", 0.1f, 0.5f } } });
+    a.push_back ({ "Mellotron Choir", "Psychedelic", "pad, mellotron, choir, psych, 60s, tape, lush",
+        { { "gr_on", 1 }, { "gr_source", 0 }, { "gr_level", 0.7f }, { "gr_stereo", 0.75f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.55f },
+          { "amp_a", 0.4f }, { "amp_d", 1.0f }, { "amp_s", 0.82f }, { "amp_r", 1.5f }, { "tape_age", 0.4f }, { "tape_hiss", 0.18f }, { "rev_mix", 0.4f }, { "rev_size", 0.8f } },
+        { { "flt_cutoff", 0.4f, 0.7f }, { "tape_age", 0.2f, 0.55f }, { "amp_a", 0.2f, 0.7f }, { "rev_mix", 0.25f, 0.55f } } });
+    a.push_back ({ "Fuzz Face Lead", "Psychedelic", "lead, fuzz, psych, 60s, distorted, guitar",
+        { { "an_on", 1 }, { "an_shape", 1.0f }, { "an_level", 0.82f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.6f }, { "flt_res", 0.25f }, { "flt_drive", 0.5f },
+          { "amp_a", 0.01f }, { "amp_d", 0.3f }, { "amp_s", 0.9f }, { "amp_r", 0.3f }, { "voice_mode", 1 }, { "fx_drive", 0.65f }, { "drive_type", 1 }, { "rev_mix", 0.22f } },
+        { { "flt_cutoff", 0.45f, 0.82f }, { "fx_drive", 0.45f, 0.85f }, { "drive_type", { 0, 1, 2 } } } });
+    a.push_back ({ "Phaser Pad", "Pads & Textures", "pad, phaser, psych, swirling, evolving, warm",
+        { { "wt_on", 1 }, { "wt_table", 1 }, { "wt_pos", 0.4f }, { "wt_unison", 4 }, { "wt_detune", 0.25f }, { "wt_spread", 0.7f }, { "wt_level", 0.7f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.55f }, { "flt_res", 0.25f },
+          { "amp_a", 0.6f }, { "amp_d", 1.2f }, { "amp_s", 0.85f }, { "amp_r", 1.8f },
+          { "lfo1_shape", 0 }, { "lfo1_rate", 0.25f }, { "mod1_src", 3 }, { "mod1_dst", 16 }, { "mod1_amt", 0.35f }, { "cho_mix", 0.35f }, { "rev_mix", 0.4f } },
+        { { "flt_cutoff", 0.4f, 0.7f }, { "mod1_amt", 0.2f, 0.5f }, { "lfo1_rate", 0.12f, 0.5f }, { "cho_mix", 0.2f, 0.5f } } });
+    a.push_back ({ "Farfisa Psych Organ", "Organs", "organ, farfisa, psych, 60s, vox, bright, vibrato",
+        { { "an_on", 1 }, { "an_shape", 2.0f }, { "an_level", 0.55f },
+          { "wt_on", 1 }, { "wt_table", 1 }, { "wt_level", 0.45f }, { "wt_oct", 1 },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.8f },
+          { "amp_a", 0.01f }, { "amp_d", 0.3f }, { "amp_s", 0.95f }, { "amp_r", 0.2f },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 6.5f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.03f }, { "rev_mix", 0.25f } },
+        { { "flt_cutoff", 0.65f, 0.95f }, { "lfo2_rate", 4.5f, 8.0f }, { "mod1_amt", 0.015f, 0.05f } } });
+    a.push_back (res ("Sitar Drone", "Psychedelic", "sitar, psych, raga, drone, buzz, world", 1, 2.6f, 0.6f, 2.1f, 0.9f, 0.3f,
+        { { "res_buzz", 0.2f, 0.7f } }));
+
+    // ---- Reggae ----
+    a.push_back ({ "Skank Organ", "Reggae", "organ, reggae, skank, stab, offbeat, bright",
+        { { "an_on", 1 }, { "an_shape", 1.6f }, { "an_level", 0.6f },
+          { "wt_on", 1 }, { "wt_table", 1 }, { "wt_level", 0.4f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.7f }, { "flt_res", 0.2f },
+          { "amp_a", 0.002f }, { "amp_d", 0.18f }, { "amp_s", 0.0f }, { "amp_r", 0.12f }, { "dly_mix", 0.18f }, { "rev_mix", 0.2f } },
+        { { "flt_cutoff", 0.55f, 0.85f }, { "amp_d", 0.1f, 0.3f }, { "dly_mix", 0.05f, 0.35f } } });
+    a.push_back ({ "One-Drop Bass", "Bass", "bass, reggae, one-drop, round, deep, dub",
+        { { "an_on", 1 }, { "an_shape", 0.0f }, { "an_oct", -2 }, { "an_sub", 0.35f }, { "an_tone", 0.8f }, { "an_level", 0.9f },
+          { "flt_on", 1 }, { "flt_type", 0 }, { "flt_cutoff", 0.3f }, { "flt_res", 0.1f },
+          { "amp_a", 0.01f }, { "amp_d", 0.5f }, { "amp_s", 0.8f }, { "amp_r", 0.3f }, { "voice_mode", 1 }, { "glide", 0.07f } },
+        { { "flt_cutoff", 0.22f, 0.4f }, { "an_sub", 0.2f, 0.5f }, { "glide", 0.03f, 0.14f } } });
+    a.push_back ({ "Dub Melodica", "Reggae", "lead, melodica, reggae, dub, reedy, breath",
+        { { "an_on", 1 }, { "an_shape", 1.3f }, { "an_pw", 0.4f }, { "an_level", 0.7f }, { "an_noise", 0.08f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.7f },
+          { "amp_a", 0.03f }, { "amp_d", 0.3f }, { "amp_s", 0.85f }, { "amp_r", 0.3f }, { "voice_mode", 1 },
+          { "lfo2_shape", 0 }, { "lfo2_rate", 5.5f }, { "lfo2_fade", 0.4f }, { "mod1_src", 4 }, { "mod1_dst", 21 }, { "mod1_amt", 0.02f }, { "dly_mix", 0.28f }, { "rev_mix", 0.25f } },
+        { { "flt_cutoff", 0.55f, 0.85f }, { "dly_mix", 0.15f, 0.45f }, { "an_noise", 0.03f, 0.15f } } });
+    a.push_back ({ "Spring Chord Stab", "Reggae", "chord, reggae, dub, stab, spring, delay, cinematic",
+        { { "wt_on", 1 }, { "wt_table", 1 }, { "wt_unison", 2 }, { "wt_detune", 0.15f }, { "wt_level", 0.7f },
+          { "an_on", 1 }, { "an_shape", 1.0f }, { "an_level", 0.4f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.55f }, { "flt_res", 0.2f },
+          { "amp_a", 0.003f }, { "amp_d", 0.3f }, { "amp_s", 0.0f }, { "amp_r", 0.2f }, { "dly_mix", 0.35f }, { "rev_mix", 0.45f }, { "rev_size", 0.8f } },
+        { { "flt_cutoff", 0.4f, 0.7f }, { "dly_mix", 0.2f, 0.5f }, { "rev_mix", 0.3f, 0.6f } } });
+
+    // ---- Keys & Textures ----
+    a.push_back (res ("Wurli E-Piano", "Keys", "keys, wurlitzer, e-piano, warm, tremolo, soul", 18, 1.8f, 0.6f, 1.5f, 0.6f, 0.2f,
+        { { "cho_mix", 0.1f, 0.35f } }));
+    a.push_back ({ "Vintage Strings", "Pads & Textures", "pad, strings, vintage, warm, chorus, tape, orchestral",
+        { { "wt_on", 1 }, { "wt_table", 2 }, { "wt_unison", 5 }, { "wt_detune", 0.2f }, { "wt_spread", 0.8f }, { "wt_level", 0.72f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.6f },
+          { "amp_a", 0.4f }, { "amp_d", 1.0f }, { "amp_s", 0.85f }, { "amp_r", 1.4f }, { "cho_mix", 0.35f }, { "tape_age", 0.25f }, { "rev_mix", 0.35f } },
+        { { "flt_cutoff", 0.45f, 0.8f }, { "wt_detune", 0.1f, 0.35f }, { "cho_mix", 0.2f, 0.5f }, { "amp_a", 0.2f, 0.7f } } });
+    a.push_back ({ "Tape Delay Pluck", "Pads & Textures", "pluck, tape, delay, dub, echo, ambient",
+        { { "an_on", 1 }, { "an_shape", 0.9f }, { "an_level", 0.7f },
+          { "flt_on", 1 }, { "flt_type", 1 }, { "flt_cutoff", 0.65f },
+          { "amp_a", 0.002f }, { "amp_d", 0.4f }, { "amp_s", 0.1f }, { "amp_r", 0.3f }, { "dly_mix", 0.4f }, { "tape_age", 0.3f }, { "rev_mix", 0.3f } },
+        { { "flt_cutoff", 0.5f, 0.85f }, { "dly_mix", 0.25f, 0.55f }, { "tape_age", 0.15f, 0.45f } } });
+
+    return a;
+}
+
 int main (int argc, char** argv)
 {
     ScopedJuceInitialiser_GUI gui;
@@ -511,8 +695,9 @@ int main (int argc, char** argv)
     const String packName = CharPointer_UTF8 (argv[1]);
     const int target = argc > 2 ? jmax (6, std::atoi (argv[2])) : 60;
     const double sr = 48000.0;
+    const bool vol2 = packName.containsIgnoreCase ("Vol 2");
 
-    auto archs = archetypes();
+    auto archs = vol2 ? archetypesVol2() : archetypes();
 
     // Weighting pass: lean hard into the Trance-6 palette - dark horrorcore Memphis + NIN
     // industrial + Aphex/Squarepusher IDM - while keeping the meditative/world side alive and
@@ -524,20 +709,32 @@ int main (int argc, char** argv)
     {
         const String t = (x.name + " " + x.tags).toLowerCase();
         float w = 1.0f;
-        // dark/industrial/IDM core - weighted hardest
-        if (has (t, { "dark", "horror", "memphis", "grim", "eerie", "crypt" }))                w = jmax (w, 2.4f);
-        if (has (t, { "industrial", "nin", "scrap", "metal", "mechanical", "machine" }))       w = jmax (w, 2.2f);
-        if (has (t, { "idm", "glitch", "braindance", "acid", "drill", "aphex", "squarepusher", "bitcrush" })) w = jmax (w, 2.2f);
-        if (has (t, { "reese", "growl", "808", "distorted", "aggressive", "crunk" }))          w = jmax (w, 1.7f);
-        // the broadened Trance-6 built-in palette - well represented, below the dark core
-        if (has (t, { "reggae", "dub", "skank", "melodica" }))                                 w = jmax (w, 1.6f);
-        if (has (t, { "psych", "fuzz", "krautrock", "zamrock", "mellotron", "motorik" }))      w = jmax (w, 1.5f);
-        if (has (t, { "chip", "8-bit", "lo-fi", "bleep" }))                                    w = jmax (w, 1.5f);
-        if (has (t, { "jazz", "noir", "upright", "vibes", "trumpet" }))                        w = jmax (w, 1.4f);
-        if (has (t, { "sacred", "temple", "ritual", "chant", "monk", "drone", "meditative", "bowl", "handpan", "tibetan" })) w = jmax (w, 1.3f);
-        if (has (t, { "fusion", "tabla", "conga", "frame drum", "hand drum", "clay" }))        w = jmax (w, 1.3f);
-        // clean/anthemic outliers pulled back to accents (Vol-2-leaning material)
-        if (has (t, { "gospel", "supersaw", "anthemic", "pan flute", "warm funk" }))           w *= 0.5f;
+        if (vol2)
+        {
+            // Vol 2: grunge / heartland rock / psych / blues / reggae - evenly weighted, signature genres up top
+            if (has (t, { "grunge", "fuzz", "sludge", "distorted" }))                              w = jmax (w, 1.6f);
+            if (has (t, { "blues", "overdrive", "bending", "slow hand", "harmonica" }))            w = jmax (w, 1.6f);
+            if (has (t, { "rock", "heartland", "hammond", "organ", "rhodes", "jangle", "guitar" })) w = jmax (w, 1.5f);
+            if (has (t, { "psych", "mellotron", "farfisa", "phaser", "sitar" }))                   w = jmax (w, 1.4f);
+            if (has (t, { "reggae", "dub", "skank", "melodica" }))                                 w = jmax (w, 1.3f);
+        }
+        else
+        {
+            // dark/industrial/IDM core - weighted hardest
+            if (has (t, { "dark", "horror", "memphis", "grim", "eerie", "crypt" }))                w = jmax (w, 2.4f);
+            if (has (t, { "industrial", "nin", "scrap", "metal", "mechanical", "machine" }))       w = jmax (w, 2.2f);
+            if (has (t, { "idm", "glitch", "braindance", "acid", "drill", "aphex", "squarepusher", "bitcrush" })) w = jmax (w, 2.2f);
+            if (has (t, { "reese", "growl", "808", "distorted", "aggressive", "crunk" }))          w = jmax (w, 1.7f);
+            // the broadened Trance-6 built-in palette - well represented, below the dark core
+            if (has (t, { "reggae", "dub", "skank", "melodica" }))                                 w = jmax (w, 1.6f);
+            if (has (t, { "psych", "fuzz", "krautrock", "zamrock", "mellotron", "motorik" }))      w = jmax (w, 1.5f);
+            if (has (t, { "chip", "8-bit", "lo-fi", "bleep" }))                                    w = jmax (w, 1.5f);
+            if (has (t, { "jazz", "noir", "upright", "vibes", "trumpet" }))                        w = jmax (w, 1.4f);
+            if (has (t, { "sacred", "temple", "ritual", "chant", "monk", "drone", "meditative", "bowl", "handpan", "tibetan" })) w = jmax (w, 1.3f);
+            if (has (t, { "fusion", "tabla", "conga", "frame drum", "hand drum", "clay" }))        w = jmax (w, 1.3f);
+            // clean/anthemic outliers pulled back to accents
+            if (has (t, { "gospel", "supersaw", "anthemic", "pan flute", "warm funk" }))           w *= 0.5f;
+        }
         x.weight = w;
         sumW += w;
     }
@@ -547,9 +744,10 @@ int main (int argc, char** argv)
     packDir.createDirectory();
     { XmlElement px ("Pack");
       px.setAttribute ("name", packName);
-      px.setAttribute ("tagline", "Dark horrorcore Memphis + NIN industrial + Aphex/Squarepusher IDM, with a meditative world undertow - original VIBRA-VII sounds");
+      px.setAttribute ("tagline", vol2 ? "Grunge, heartland rock, 60s-70s psychedelia, blues and reggae - original VIBRA-VII sounds"
+                                       : "Dark horrorcore Memphis + NIN industrial + Aphex/Squarepusher IDM, with a meditative world undertow - original VIBRA-VII sounds");
       px.setAttribute ("author", "TRANCE-6");
-      px.setAttribute ("style", "Urban");
+      px.setAttribute ("style", vol2 ? "Vintage" : "Urban");
       px.writeTo (packDir.getChildFile ("pack.xml")); }
     const auto sampleDir = packDir.getChildFile ("_samples");
 
@@ -592,7 +790,7 @@ int main (int argc, char** argv)
 
             ff::import::Converted cv;
             // evocative "<mood> <instrument>" name, unique across the pack
-            String nm = String (kMoods[(archIdx * 7 + kept) % kNumMoods]) + " " + noun;
+            String nm = String ((vol2 ? kMoodsVol2 : kMoods)[(archIdx * 7 + kept) % (vol2 ? kNumMoodsVol2 : kNumMoods)]) + " " + noun;
             { const String b = nm; int d = 2; while (! usedNames.insert (nm.toLowerCase()).second) nm = b + " " + String (d++); }
             cv.name = nm;
             cv.bank = packName;
