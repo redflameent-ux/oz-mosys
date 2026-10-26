@@ -18,6 +18,7 @@ else()
 endif()
 
 option(FOURFOLD_BUILD_TESTS "Build the offline render test" OFF)
+option(FOURFOLD_BUILD_TOOLS "Build local tools (PluginProbe; needs plugins installed to run)" OFF)
 
 set(FOURFOLD_SOURCES
     Source/PluginProcessor.cpp
@@ -47,6 +48,8 @@ set(FOURFOLD_SOURCES
     Source/import/ArturiaImport.cpp
     Source/import/NIImport.cpp
     Source/import/HiveImport.cpp
+    Source/import/DuneImport.cpp
+    Source/import/SpireImport.cpp
     Source/gui/ExpansionsPage.cpp
     Source/design/Packs.cpp
     Source/roll/RollEngine.cpp
@@ -93,4 +96,22 @@ if(FOURFOLD_BUILD_TESTS)
     target_sources(FourfoldRender PRIVATE ${FOURFOLD_SOURCES} tools/RenderTest.cpp)
     target_compile_definitions(FourfoldRender PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
     target_link_libraries(FourfoldRender PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
+endif()
+
+# ---- PluginProbe: headless plugin-oracle that dumps a plugin's parameters by name ----
+# Opt-in and local only (it hosts real plugins): cmake -S . -B build -DFOURFOLD_BUILD_TOOLS=ON
+if(FOURFOLD_BUILD_TOOLS)
+    juce_add_console_app(PluginProbe PRODUCT_NAME "PluginProbe")
+    target_sources(PluginProbe PRIVATE tools/PluginProbe.cpp)
+    target_compile_definitions(PluginProbe PRIVATE
+        JUCE_PLUGINHOST_VST3=1 JUCE_PLUGINHOST_AU=1 JUCE_MODAL_LOOPS_PERMITTED=1
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(PluginProbe PRIVATE
+        juce::juce_audio_processors juce::juce_audio_utils juce::juce_recommended_config_flags)
+
+    # ---- ImportLib: run any in-plugin importer headlessly over a folder (library conversion) ----
+    juce_add_console_app(ImportLib PRODUCT_NAME "ImportLib")
+    target_sources(ImportLib PRIVATE ${FOURFOLD_SOURCES} tools/ImportLib.cpp)
+    target_compile_definitions(ImportLib PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
+    target_link_libraries(ImportLib PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
 endif()

@@ -45,7 +45,7 @@ public:
         setColour (juce::ComboBox::backgroundColourId, col::panelHi);
         setColour (juce::ComboBox::outlineColourId, col::border);
         setColour (juce::ComboBox::textColourId, col::text);
-        setColour (juce::ComboBox::arrowColourId, col::dim);
+        setColour (juce::ComboBox::arrowColourId, col::silver);
         setColour (juce::PopupMenu::backgroundColourId, col::panelHi);
         setColour (juce::PopupMenu::textColourId, col::text);
         setColour (juce::PopupMenu::highlightedBackgroundColourId, col::border);

@@ -112,6 +112,63 @@ struct Archive
         }
         return out;
     }
+
+    // The preset's display name. In the .labx it is serialized as "<len> <name> <len> <bank> ...",
+    // right after the archive header integers (e.g. "...archive 10 0 7 0 7 19 A Sound from Saturn
+    // 10 PROVIDENCE"). Those header ints create false length-prefixed fragments, so we take the
+    // first length-prefixed letter-string that is IMMEDIATELY followed by another one (the bank
+    // name) - the integer fragments are never followed by a second valid string.
+    String presetName() const
+    {
+        static const char sig[] = "serialization::archive";
+        const char* const dend = data + size;
+        const char* p = std::search (data, dend, sig, sig + 22);
+        if (p == dend) return {};
+        p += 22;
+        const char* const win = data + (size_t) jmin (size, (size_t) 2000);
+
+        // read a length-prefixed letter-string at `at`; set `after` to where parsing should resume
+        auto readLP = [&] (const char* at, String& str, const char*& after) -> bool
+        {
+            while (at < win && *at == ' ') ++at;
+            after = at < win ? at + 1 : win;
+            if (at >= win || ! CharacterFunctions::isDigit (*at)) return false;
+            int64 len = 0; const char* q = at;
+            while (q < win && CharacterFunctions::isDigit (*q)) { len = len * 10 + (*q - '0'); ++q; }
+            after = q;                                           // past the integer token
+            if (q >= win || *q != ' ' || len < 2 || len > 100 || (const char*) (q + 1 + len) > dend) return false;
+            const char* s = q + 1;
+            bool hasLetter = false;
+            for (int k = 0; k < (int) len; ++k)
+            {
+                const unsigned char c = (unsigned char) s[k];
+                if (c < 32 || c > 126) return false;
+                if (CharacterFunctions::isLetter ((juce_wchar) c)) hasLetter = true;
+            }
+            if (! hasLetter) return false;
+            str = String (CharPointer_UTF8 (s), (size_t) len);
+            after = s + len;
+            return true;
+        };
+
+        // scan every offset so a header integer can't consume the name's length prefix; the name is
+        // the first letter-string immediately followed by a second one (the bank).
+        for (const char* pos = p; pos < win; ++pos)
+        {
+            String s1; const char* a1;
+            if (! readLP (pos, s1, a1) || s1.startsWith ("serialization")) continue;
+            String s2; const char* a2;
+            if (! readLP (a1, s2, a2)) continue;
+            // strip an extra "<len> " wrapper when the leading number IS the remainder's length
+            // (e.g. "4 Beno" -> "Beno"), but keep real names that just start with a number.
+            const String head = s1.upToFirstOccurrenceOf (" ", false, false);
+            const String rest = s1.fromFirstOccurrenceOf (" ", false, false).trim();
+            if (head.containsOnly ("0123456789") && head.getIntValue() == rest.length())
+                return rest;
+            return s1.trim();
+        }
+        return {};
+    }
 };
 
 // Arturia envelope / time knobs (0..1) -> seconds. A few banks store seconds directly; anything
@@ -447,29 +504,40 @@ void sliceArchives (const File& file, std::vector<MemoryBlock>& out, StringArray
     const char* d = static_cast<const char*> (whole.getData());
     const size_t n = whole.getSize();
 
-    std::vector<size_t> starts;
+    // Every "serialization::archive" is an archive boundary, but a preset CONTAINS nested
+    // sub-archives (sample objects, keyboard zones). So collect all boundaries first, then keep
+    // only the ones that begin a real preset - the ones whose segment carries the preset metadata
+    // ("Characteristics,<tags>") - and fold the sub-archives into the preset they belong to.
+    std::vector<size_t> marks;
     for (const char* q = d; ; )
     {
         const char* m = std::search (q, d + n, archiveSig, archiveSig + sigLen);
         if (m == d + n) break;
-        // back up over the length prefix ("22 ") that precedes the signature
         size_t s = (size_t) (m - d);
-        while (s > 0 && (CharacterFunctions::isDigit (d[s - 1]) || d[s - 1] == ' ')) --s;
-        starts.push_back (s);
+        while (s > 0 && (CharacterFunctions::isDigit (d[s - 1]) || d[s - 1] == ' ')) --s;   // back up over the length prefix
+        marks.push_back (s);
         q = m + sigLen;
     }
+
+    static const char metaSig[] = "Characteristics,";
+    constexpr size_t metaLen = sizeof (metaSig) - 1;
+    std::vector<size_t> starts;                            // boundaries that begin a real preset
+    for (size_t i = 0; i < marks.size(); ++i)
+    {
+        const size_t from = marks[i];
+        const size_t to = (i + 1 < marks.size()) ? marks[i + 1] : n;
+        if (std::search (d + from, d + to, metaSig, metaSig + metaLen) != d + to)
+            starts.push_back (from);
+    }
+    if (starts.empty() && ! marks.empty()) starts.push_back (marks.front());   // single non-bank preset
+
     for (size_t i = 0; i < starts.size(); ++i)
     {
         const size_t from = starts[i];
-        const size_t to = (i + 1 < starts.size()) ? starts[i + 1] : n;
+        const size_t to = (i + 1 < starts.size()) ? starts[i + 1] : n;   // includes this preset's sub-archives
         if (to <= from) continue;
         MemoryBlock slice (d + from, to - from);
-        // inner name = first plausible header string (used only for bank files)
-        String nm;
-        Archive a (slice);
-        for (auto& s : a.headStrings (400))
-            if (! s.startsWith ("serialization") && s.length() >= 2 && ! CharacterFunctions::isDigit (s[0])) { nm = s; break; }
-        innerNames.add (nm);
+        innerNames.add (Archive (slice).presetName());   // the preset's real display name
         out.push_back (std::move (slice));
     }
 }
@@ -483,6 +551,23 @@ bool looksLikeArturia (const File& f)
 }
 
 struct Item { String product, sub, name; File file; };
+
+// A short, clean bank label for sequential preset names. Analog Lab .labx buries the real preset
+// name deep in its archive and simple heuristics grab internal object strings, so bank presets are
+// named "<bank> NNN" instead. The label is the word before "Analog"/"Lab" in the folder name
+// (e.g. "...Providence.ANALOG.LAB..." -> "Providence"), falling back to the last meaningful token.
+String bankLabel (const String& product)
+{
+    auto toks = StringArray::fromTokens (product.replaceCharacters (".", " "), " ", "");
+    toks.removeEmptyStrings();
+    for (int i = 1; i < toks.size(); ++i)
+        if (toks[i].equalsIgnoreCase ("analog") || toks[i].equalsIgnoreCase ("lab"))
+            return toks[i - 1];
+    for (int i = toks.size() - 1; i >= 0; --i)
+        if (! toks[i].equalsIgnoreCase ("bank") && ! toks[i].equalsIgnoreCase ("preset") && ! toks[i].equalsIgnoreCase ("presets"))
+            return toks[i];
+    return product.isNotEmpty() ? product : String ("Preset");
+}
 } // namespace
 
 int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apvts,
@@ -520,7 +605,7 @@ int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apv
     const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Expansions");
     int written = 0, failed = 0;
     std::map<String, int> perPack;
-    std::set<String> seen;
+    std::set<String> usedFiles;   // output .ozpreset paths already taken, so same-named presets don't overwrite
     for (int i = 0; i < (int) items.size(); ++i)
     {
         const auto& it = items[(size_t) i];
@@ -546,14 +631,23 @@ int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apv
 
         for (size_t a = 0; a < archives.size(); ++a)
         {
-            const String pname = (bank && innerNames[(int) a].isNotEmpty()) ? innerNames[(int) a] : it.name;
-            if (! seen.insert (packName + "/" + it.sub + "/" + pname + "/" + String ((int) a)).second) continue;
+            // use the preset's real name; fall back to a sequential "<bank> NNN" only if the .labx
+            // didn't yield one. A single preset file keeps its own filename.
+            String pname;
+            if (bank && innerNames[(int) a].isNotEmpty()) pname = innerNames[(int) a];
+            else if (bank)                                pname = bankLabel (it.product) + " " + String ((int) a + 1).paddedLeft ('0', 3);
+            else                                          pname = it.name;
             Converted cv;
             if (! convertArturiaPreset (archives[a], pname, packName, apvts, cv)) { ++failed; continue; }
             if (it.sub.isNotEmpty()) cv.tags << ", " << it.sub.replaceCharacter ('/', ' ').toLowerCase();
             auto dir = packDir.getChildFile ("Presets");
             if (it.sub.isNotEmpty()) dir = dir.getChildFile (File::createLegalFileName (it.sub.replaceCharacter ('/', ' ')));
-            if (writePreset (cv, dir.getChildFile (File::createLegalFileName (pname) + ".ozpreset"))) { ++written; ++perPack[packName]; }
+            // unique filename so presets that share a name are not overwritten
+            const String base = File::createLegalFileName (pname);
+            File outFile = dir.getChildFile (base + ".ozpreset");
+            for (int dup = 2; ! usedFiles.insert (outFile.getFullPathName().toLowerCase()).second; ++dup)
+                outFile = dir.getChildFile (base + " " + String (dup) + ".ozpreset");
+            if (writePreset (cv, outFile)) { ++written; ++perPack[packName]; }
             else ++failed;
         }
     }

@@ -3,3 +3,15 @@ build/
 .vs/
 installer/Output/
 build-clang/
+
+# local tools build + logs
+build-tools/
+build-tools-*.log
+oz_convert*.log
+probe_err.log
+build-plugin.log
+build-spire-*.log
+build-importlib*.log
+reconfigure.log
+build-render.log
+build-render*.log
