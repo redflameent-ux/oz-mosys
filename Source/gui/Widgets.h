@@ -35,6 +35,20 @@ inline juce::Font font (float h, bool bold = false)
     return juce::Font (o);
 }
 
+// A dark "screen" background for engine displays: a soft radial glow in the engine's chakra
+// colour over near-black, with a crisp border (the Ultra-style hero display look).
+inline void paintScreen (juce::Graphics& g, juce::Rectangle<float> r, juce::Colour glow)
+{
+    g.setColour (col::bg.darker (0.45f));
+    g.fillRoundedRectangle (r, 7.0f);
+    juce::ColourGradient grad (glow.withAlpha (0.15f), r.getCentreX(), r.getCentreY(),
+                               juce::Colours::transparentBlack, r.getX(), r.getBottom(), true);
+    g.setGradientFill (grad);
+    g.fillRoundedRectangle (r, 7.0f);
+    g.setColour (col::border);
+    g.drawRoundedRectangle (r.reduced (0.5f), 7.0f, 1.0f);
+}
+
 // ---------------------------------------------------------------------------
 class LookAndFeel : public juce::LookAndFeel_V4
 {
@@ -179,6 +193,27 @@ public:
         g.setColour (on ? accent : col::dim);
         g.setFont (font (11.0f, true));
         g.drawFittedText (b.getButtonText(), r.toNearestInt(), juce::Justification::centred, 1);
+    }
+
+    void drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&,
+                               bool hover, bool down) override
+    {
+        auto r = b.getLocalBounds().toFloat().reduced (0.5f);
+        const bool on = b.getToggleState();
+        const auto accent = b.findColour (juce::TextButton::buttonOnColourId).withAlpha (1.0f);
+        g.setColour (on ? col::panelHi.brighter (0.07f)
+                        : down ? col::panelHi.darker (0.12f)
+                        : hover ? col::panelHi.brighter (0.04f) : col::panel);
+        g.fillRoundedRectangle (r, 5.0f);
+        g.setColour (on ? accent.withAlpha (0.55f) : col::border);
+        g.drawRoundedRectangle (r, 5.0f, 1.0f);
+        if (on)   // bright chakra underline = active tab
+        {
+            g.setColour (accent.withAlpha (0.3f));
+            g.fillRoundedRectangle (r, 5.0f);
+            g.setColour (accent);
+            g.fillRoundedRectangle (r.getX() + 6.0f, r.getBottom() - 2.6f, r.getWidth() - 12.0f, 2.0f, 1.0f);
+        }
     }
 
     juce::Font getComboBoxFont (juce::ComboBox&) override { return font (12.0f); }

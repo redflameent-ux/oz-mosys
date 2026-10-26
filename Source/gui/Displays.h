@@ -28,8 +28,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto r = getLocalBounds().toFloat();
-        g.setColour (col::bg);
-        g.fillRoundedRectangle (r, 6.0f);
+        paintScreen (g, r, col::wavetable);
         if (table == nullptr) return;
 
         const int frames = table->getNumFrames();
@@ -118,8 +117,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto r = getLocalBounds().toFloat();
-        g.setColour (col::bg);
-        g.fillRoundedRectangle (r, 6.0f);
+        paintScreen (g, r, col::granular);
         auto area = r.reduced (6.0f, 14.0f);
 
         // spray zone
@@ -190,8 +188,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto r = getLocalBounds().toFloat();
-        g.setColour (col::bg);
-        g.fillRoundedRectangle (r, 6.0f);
+        paintScreen (g, r, col::analog);
         auto area = r.reduced (12.0f, 14.0f);
         juce::Path p;
         const int pts = 300;
@@ -242,8 +239,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto r = getLocalBounds().toFloat();
-        g.setColour (col::bg);
-        g.fillRoundedRectangle (r, 6.0f);
+        paintScreen (g, r, col::resonator);
         auto area = r.reduced (12.0f, 16.0f);
 
         if (type <= 1)

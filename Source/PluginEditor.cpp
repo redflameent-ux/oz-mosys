@@ -219,10 +219,13 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     addChildComponent (*rollPage);
     synthTab.setToggleState (true, juce::dontSendNotification);
 
+    engWtTab.setColour  (juce::TextButton::buttonOnColourId, col::wavetable);
+    engAnTab.setColour  (juce::TextButton::buttonOnColourId, col::analog);
+    engGrTab.setColour  (juce::TextButton::buttonOnColourId, col::granular);
+    engResTab.setColour (juce::TextButton::buttonOnColourId, col::resonator);
     for (auto* t : { &engWtTab, &engAnTab, &engGrTab, &engResTab })
     {
         t->setClickingTogglesState (false);
-        t->setColour (juce::TextButton::buttonOnColourId, col::wavetable.withAlpha (0.28f));
         addAndMakeVisible (t);
     }
     engWtTab.onClick  = [this] { showEngine (0); };
@@ -233,8 +236,8 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     // ---------------- keyboard ----------------
     keyboard.setAvailableRange (24, 108);
     keyboard.setLowestVisibleKey (36);
-    keyboard.setColour (juce::MidiKeyboardComponent::whiteNoteColourId, juce::Colour (0xffd9dde6));
-    keyboard.setColour (juce::MidiKeyboardComponent::blackNoteColourId, juce::Colour (0xff1a1c22));
+    keyboard.setColour (juce::MidiKeyboardComponent::whiteNoteColourId, juce::Colour (0xff2b2442));
+    keyboard.setColour (juce::MidiKeyboardComponent::blackNoteColourId, juce::Colour (0xff0c0916));
     keyboard.setColour (juce::MidiKeyboardComponent::keySeparatorLineColourId, col::border);
     keyboard.setColour (juce::MidiKeyboardComponent::keyDownOverlayColourId, col::wavetable.withAlpha (0.6f));
     keyboard.setColour (juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, col::wavetable.withAlpha (0.25f));
