@@ -15,3 +15,5 @@ build-importlib*.log
 reconfigure.log
 build-render.log
 build-render*.log
+build-forge*.log
+forge-run.log

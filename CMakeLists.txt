@@ -114,4 +114,10 @@ if(FOURFOLD_BUILD_TOOLS)
     target_sources(ImportLib PRIVATE ${FOURFOLD_SOURCES} tools/ImportLib.cpp)
     target_compile_definitions(ImportLib PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
     target_link_libraries(ImportLib PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
+
+    # ---- PresetForge: generate an original preset library from curated archetypes ----
+    juce_add_console_app(PresetForge PRODUCT_NAME "PresetForge")
+    target_sources(PresetForge PRIVATE ${FOURFOLD_SOURCES} tools/PresetForge.cpp)
+    target_compile_definitions(PresetForge PRIVATE ${FOURFOLD_DEFS} JUCE_STANDALONE_APPLICATION=1)
+    target_link_libraries(PresetForge PRIVATE ${FOURFOLD_LIBS} juce::juce_recommended_config_flags)
 endif()
