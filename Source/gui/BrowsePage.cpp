@@ -221,7 +221,7 @@ BrowsePage::BrowsePage (FourfoldProcessor& p) : proc (p), fineTune (p.apvts)
     };
     makeChips (typeChips, design::typeNames(), typeFilter, col::sampler);
     makeChips (modeChips, design::modeNames(), modeFilter, col::mod);
-    list.setRowHeight (22);
+    list.setRowHeight (34);
     list.setColour (ListBox::backgroundColourId, col::bg);
     addAndMakeVisible (list);
     addChildComponent (map);
@@ -550,53 +550,73 @@ void BrowsePage::paintListBoxItem (int row, Graphics& g, int w, int h, bool)
     const int idx = visible[(size_t) row];
     const auto& e = entries[(size_t) idx];
     const auto accent = bankColour (e.bank);
-    if (idx == selected)
+    const bool sel = idx == selected;
+    if (sel)
     {
-        g.setColour (col::panelHi); g.fillRect (0, 0, w, h);
-        g.setColour (accent); g.fillRect (0, 0, 3, h);   // left accent bar, Ultra-style
+        g.setColour (accent.withAlpha (0.16f)); g.fillRect (0, 0, w, h);
+        g.setColour (accent); g.fillRect (0, 0, 3, h);   // left accent bar
     }
-    else if (row % 2) { g.setColour (Colour (0xff101218)); g.fillRect (0, 0, w, h); }
-    const int c1 = 54, c2 = (int) (w * 0.38), c3 = (int) (w * 0.60), c4 = (int) (w * 0.80);
-    // star
-    g.setColour (favourites.count (e.name) ? col::sampler : col::border.brighter (0.3f));
-    g.setFont (font (13.0f));
-    g.drawText (favourites.count (e.name) ? String::charToString (0x2605) : String::charToString (0x2606), 4, 0, 18, h, Justification::centred);
-    // a tiny waveform glyph in the preset's bank/chakra colour (Ultra preset-row look)
+    else if (row % 2) { g.setColour (Colour (0xff0f1118)); g.fillRect (0, 0, w, h); }
+
+    int x = 10;
+    // cover thumbnail: the bank's accent as a small gradient "cover" with its initial
+    const int cs = h - 10;
     {
-        const float wx = 26.0f, ww = 22.0f, wy = h * 0.5f, amp = h * 0.24f;
+        auto cov = juce::Rectangle<float> ((float) x, (h - cs) * 0.5f, (float) cs, (float) cs);
+        g.setGradientFill (ColourGradient (accent.brighter (0.12f), cov.getX(), cov.getY(), accent.darker (1.5f), cov.getRight(), cov.getBottom(), false));
+        g.fillRoundedRectangle (cov, 4.0f);
+        g.setColour (col::bg.withAlpha (0.3f)); g.drawRoundedRectangle (cov.reduced (0.5f), 4.0f, 1.0f);
+        g.setColour (Colours::white.withAlpha (0.9f));
+        g.setFont (font (cs * 0.5f, true));
+        g.drawText (e.bank.substring (0, 1).toUpperCase(), cov.toNearestInt(), Justification::centred);
+        x += cs + 8;
+    }
+    // waveform glyph in the bank/chakra colour
+    {
+        const float ww = 20.0f, wy = h * 0.5f, amp = h * 0.2f;
         Path wf; bool first = true;
         for (int i = 0; i <= 12; ++i)
         {
-            const float px = wx + ww * (float) i / 12.0f;
+            const float px = (float) x + ww * (float) i / 12.0f;
             const float py = wy - std::sin ((float) i * 0.95f + (float) (idx % 7)) * amp * (0.45f + 0.55f * (float) ((idx * 5 + i) % 4) / 3.0f);
             if (first) { wf.startNewSubPath (px, py); first = false; } else wf.lineTo (px, py);
         }
-        g.setColour (accent.withAlpha (idx == selected ? 0.95f : 0.65f));
+        g.setColour (accent.withAlpha (sel ? 0.95f : 0.7f));
         g.strokePath (wf, PathStrokeType (1.3f));
+        x += (int) ww + 10;
     }
-    g.setColour (idx == selected ? Colours::white : col::text);
-    g.setFont (font (12.5f, idx == selected));
-    g.drawText (e.name, c1, 0, c2 - c1 - 6, h, Justification::centredLeft, true);
-    g.setFont (font (11.5f));
-    g.setColour (accent.withAlpha (0.9f));
-    g.fillEllipse ((float) c2, h * 0.5f - 3.0f, 6.0f, 6.0f);
+    // name
+    const int nameRight = (int) (w * 0.44);
+    g.setColour (sel ? Colours::white : col::text);
+    g.setFont (font (13.0f, sel));
+    g.drawText (e.name, x, 0, nameRight - x - 8, h, Justification::centredLeft, true);
+    // category pill
+    {
+        String cat = e.types.isEmpty() ? e.bank : e.types[0];
+        if (cat.isEmpty()) cat = "Preset";
+        const float pw = GlyphArrangement::getStringWidth (font (10.5f, true), cat) + 16.0f;
+        auto pill = juce::Rectangle<float> ((float) nameRight, h * 0.5f - 9.0f, pw, 18.0f);
+        g.setColour (accent.withAlpha (0.16f)); g.fillRoundedRectangle (pill, 9.0f);
+        g.setColour (accent.brighter (0.2f)); g.setFont (font (10.5f, true));
+        g.drawText (cat, pill.toNearestInt(), Justification::centred);
+    }
+    // heart (far right) + author
+    const int heartX = w - 26;
+    const bool fav = favourites.count (e.name) > 0;
+    g.setColour (fav ? col::filter : col::border.brighter (0.3f));
+    g.setFont (font (14.0f));
+    g.drawText (fav ? String::charToString (0x2665) : String::charToString (0x2661), heartX, 0, 22, h, Justification::centred);
     g.setColour (col::dim);
-    g.drawText (e.bank, c2 + 10, 0, c3 - c2 - 14, h, Justification::centredLeft, true);
-    // character from the measurements
-    StringArray ch;
-    ch.add (e.types.joinIntoString (", "));
-    ch.add (e.x < 0.33f ? "Dark" : e.x > 0.66f ? "Bright" : "Warm");
-    ch.add (e.y < 0.33f ? "Soft" : e.y > 0.66f ? "Aggressive" : "Punchy");
-    if (e.movement > 0.66f) ch.add ("Evolving");
-    g.drawText (ch.joinIntoString (" | "), c3, 0, c4 - c3 - 6, h, Justification::centredLeft, true);
-    g.drawText (e.author, c4, 0, w - c4 - 4, h, Justification::centredLeft, true);
+    g.setFont (font (11.5f));
+    const int authX = (int) (w * 0.66);
+    g.drawText (e.author, authX, 0, heartX - authX - 8, h, Justification::centredRight, true);
 }
 
 void BrowsePage::listBoxItemClicked (int row, const MouseEvent& ev)
 {
     if (! juce::isPositiveAndBelow (row, (int) visible.size())) return;
     const int idx = visible[(size_t) row];
-    if (ev.x < 26)   // the star column
+    if (ev.x > list.getWidth() - 34)   // the heart column on the right
     {
         const auto& n = entries[(size_t) idx].name;
         if (favourites.count (n)) favourites.erase (n); else favourites.insert (n);

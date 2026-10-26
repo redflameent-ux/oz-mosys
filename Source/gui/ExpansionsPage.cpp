@@ -54,7 +54,7 @@ struct ExpansionsPage::Tile : public Component
         g.drawText (pack.name, r.removeFromTop (18).toNearestInt(), Justification::centredLeft, true);
         g.setColour (col::dim);
         g.setFont (font (11.5f));
-        g.drawText (pack.tagline, r.removeFromTop (16).toNearestInt(), Justification::centredLeft, true);
+        g.drawText (pack.author.isNotEmpty() ? "by " + pack.author : pack.tagline, r.removeFromTop (16).toNearestInt(), Justification::centredLeft, true);
         r.removeFromTop (4);
         auto badge = r.removeFromTop (18);
         const String b = pack.builtIn ? "BUILT IN" : "INSTALLED";
