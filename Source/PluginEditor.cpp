@@ -325,17 +325,36 @@ void FourfoldEditor::paint (juce::Graphics& g)
     for (auto& pnl : panels)
     {
         auto r = pnl.r.toFloat();
-        g.setColour (col::panel);
-        g.fillRoundedRectangle (r, 8.0f);
+        // body: a subtle top-lit gradient for depth
+        g.setGradientFill (juce::ColourGradient (col::panelHi.brighter (0.04f), r.getX(), r.getY(),
+                                                 col::panel, r.getX(), r.getBottom(), false));
+        g.fillRoundedRectangle (r, 9.0f);
+        // border + a faint bevel highlight along the top inner edge
         g.setColour (col::border);
-        g.drawRoundedRectangle (r.reduced (0.5f), 8.0f, 1.0f);
-        g.setColour (pnl.accent);
-        g.fillRoundedRectangle (r.getX() + 10.0f, r.getY(), 26.0f, 2.0f, 1.0f);
+        g.drawRoundedRectangle (r.reduced (0.5f), 9.0f, 1.0f);
+        g.setColour (col::silver.withAlpha (0.07f));
+        g.drawLine (r.getX() + 9.0f, r.getY() + 1.6f, r.getRight() - 9.0f, r.getY() + 1.6f, 1.0f);
+
         if (pnl.title.isNotEmpty())
         {
+            // header: a glowing chakra dot + the section label
+            auto head = pnl.r.reduced (12, 0).withTrimmedTop (7).removeFromTop (16);
+            const float dy = (float) head.getCentreY();
+            g.setColour (pnl.accent.withAlpha (0.40f));
+            g.fillEllipse ((float) head.getX() - 1.0f, dy - 5.0f, 10.0f, 10.0f);
+            g.setColour (pnl.accent);
+            g.fillEllipse ((float) head.getX() + 1.0f, dy - 3.0f, 6.0f, 6.0f);
             g.setColour (col::dim);
-            g.setFont (font (11.0f, true));
-            g.drawText (pnl.title, pnl.r.reduced (10, 6).removeFromTop (16), juce::Justification::centredLeft);
+            g.setFont (font (10.5f, true));
+            g.drawText (pnl.title, head.withTrimmedLeft (16), juce::Justification::centredLeft);
+        }
+        else
+        {
+            // no label (engine zone): a lit chakra accent tick at the top edge
+            g.setColour (pnl.accent.withAlpha (0.22f));
+            g.fillRoundedRectangle (r.getX() + 12.0f, r.getY() + 0.5f, 34.0f, 5.0f, 2.5f);
+            g.setColour (pnl.accent.withAlpha (0.95f));
+            g.fillRoundedRectangle (r.getX() + 12.0f, r.getY() + 1.0f, 34.0f, 2.2f, 1.1f);
         }
     }
 
