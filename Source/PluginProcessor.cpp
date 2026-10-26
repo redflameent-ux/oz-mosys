@@ -324,7 +324,7 @@ void FourfoldProcessor::setCurrentProgram (int index)
     if (fp.mseg2.isNotEmpty()) setMseg (1, ff::MsegShape::fromString (fp.mseg2));
     for (int i = 0; i < 8; ++i) macroNames.set (i, "Macro " + juce::String (i + 1));
     currentPresetName = getProgramName (index);
-    presetInfo = { "OZ-mosys", fp.category, fp.category.toLowerCase().replace (" & ", ", "), {}, fp.mapX, fp.mapY, fp.movement, true };
+    presetInfo = { "VIBRA-VII", fp.category, fp.category.toLowerCase().replace (" & ", ", "), {}, fp.mapX, fp.mapY, fp.movement, true };
     for (auto& f : rack.irFiles) f = juce::File();
     rack.sync();
     if (morph != nullptr) morph->clearCorners();
@@ -390,7 +390,7 @@ void FourfoldProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 juce::File FourfoldProcessor::getUserPresetFolder()
 {
-    auto dir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Presets");
+    auto dir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Presets");
     dir.createDirectory();
     return dir;
 }
@@ -437,7 +437,7 @@ void FourfoldProcessor::measureCurrentSound()
 juce::String FourfoldProcessor::getDefaultAuthor()
 {
     juce::PropertiesFile::Options o;
-    o.applicationName = "OZ-mosys"; o.folderName = "OZ-mosys"; o.filenameSuffix = ".settings";
+    o.applicationName = "VIBRA-VII"; o.folderName = "VIBRA-VII"; o.filenameSuffix = ".settings";
     o.osxLibrarySubFolder = "Application Support";
     juce::PropertiesFile f (o);
     return f.getValue ("defaultAuthor", juce::SystemStats::getFullUserName());
@@ -446,7 +446,7 @@ juce::String FourfoldProcessor::getDefaultAuthor()
 void FourfoldProcessor::setDefaultAuthor (const juce::String& a)
 {
     juce::PropertiesFile::Options o;
-    o.applicationName = "OZ-mosys"; o.folderName = "OZ-mosys"; o.filenameSuffix = ".settings";
+    o.applicationName = "VIBRA-VII"; o.folderName = "VIBRA-VII"; o.filenameSuffix = ".settings";
     o.osxLibrarySubFolder = "Application Support";
     juce::PropertiesFile f (o);
     f.setValue ("defaultAuthor", a);

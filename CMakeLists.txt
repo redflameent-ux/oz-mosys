@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(OZmosys VERSION 0.13.0)
+project(VibraVII VERSION 0.13.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,12 +71,12 @@ set(FOURFOLD_LIBS
     juce::juce_audio_formats
     juce::juce_dsp)
 
-juce_add_plugin(OZmosys
-    COMPANY_NAME "OZ-mosys"
-    PLUGIN_MANUFACTURER_CODE Ozmo
-    PLUGIN_CODE Ozms
+juce_add_plugin(VibraVII
+    COMPANY_NAME "TRANCE-6"
+    PLUGIN_MANUFACTURER_CODE Trc6
+    PLUGIN_CODE Vv7c
     FORMATS VST3 AU Standalone
-    PRODUCT_NAME "OZ-mosys"
+    PRODUCT_NAME "VIBRA-VII ChromaBed"
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
@@ -85,9 +85,9 @@ juce_add_plugin(OZmosys
     VST3_CATEGORIES Instrument Synth
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
-target_sources(OZmosys PRIVATE ${FOURFOLD_SOURCES})
-target_compile_definitions(OZmosys PUBLIC ${FOURFOLD_DEFS})
-target_link_libraries(OZmosys
+target_sources(VibraVII PRIVATE ${FOURFOLD_SOURCES})
+target_compile_definitions(VibraVII PUBLIC ${FOURFOLD_DEFS})
+target_link_libraries(VibraVII
     PRIVATE ${FOURFOLD_LIBS}
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 

@@ -1,11 +1,11 @@
 #pragma once
 // =====================================================================================
 //  Omnisphere importer: reads Omnisphere patch files (.prt_omn - plain XML) and rebuilds
-//  them as OZ-mosys presets. Everything that shapes the sound (filters, envelopes, LFOs,
+//  them as VIBRA-VII presets. Everything that shapes the sound (filters, envelopes, LFOs,
 //  arp, effects, mod wheel routings, layer pitch / level / pan) is carried across; each
-//  Omnisphere soundsource is swapped for the closest OZ-mosys engine, chosen from the
+//  Omnisphere soundsource is swapped for the closest VIBRA-VII engine, chosen from the
 //  soundsource's name and folder (no Omnisphere audio is read or copied).
-//  Results go into private expansions on this computer: Documents/OZ-mosys/Expansions.
+//  Results go into private expansions on this computer: Documents/VIBRA-VII/Expansions.
 // =====================================================================================
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <functional>

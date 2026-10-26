@@ -175,7 +175,7 @@ WaveDrawPage::WaveDrawPage (FourfoldProcessor& p) : proc (p)
     grabBtn.setTooltip ("Copy the wavetable frame you're hearing now into this wave, to edit it");
     grabBtn.onClick = [this] { grabCurrent(); };
     applyBtn.setColour (TextButton::buttonColourId, col::wavetable.withAlpha (0.3f));
-    applyBtn.setTooltip ("Turn the two waves into a wavetable and play it (saved in Documents/OZ-mosys/Wavetables)");
+    applyBtn.setTooltip ("Turn the two waves into a wavetable and play it (saved in Documents/VIBRA-VII/Wavetables)");
     applyBtn.onClick = [this] { apply(); };
     closeBtn.onClick = [this] { if (onClose) onClose(); };
     for (auto* b : { &sineBtn, &sawBtn, &squareBtn, &triBtn, &noiseBtn, &smoothBtn, &normBtn, &copyBtn, &grabBtn, &applyBtn, &closeBtn })
@@ -278,7 +278,7 @@ std::vector<std::vector<float>> WaveDrawPage::buildTable (int n) const
 void WaveDrawPage::apply()
 {
     auto table = buildTable (framesBox.getText().getIntValue());
-    auto dir = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Wavetables");
+    auto dir = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Wavetables");
     dir.createDirectory();
     auto name = File::createLegalFileName (nameEd.getText().trim());
     if (name.isEmpty()) name = "My Wave";

@@ -1,6 +1,6 @@
 #pragma once
 // Wave editor (Absynth 5 wave page / FM8 spectrum style): draw a start and an end waveform,
-// or set their harmonics with bars; OZ-mosys morphs between them and plays the result
+// or set their harmonics with bars; VIBRA-VII morphs between them and plays the result
 // as a wavetable (sweep it with the Position knob).
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "Widgets.h"

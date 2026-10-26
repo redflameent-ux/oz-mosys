@@ -1,4 +1,4 @@
-# OZ-mosys
+# VIBRA-VII
 
 A five-engine synth plugin: VST3 + stand-alone on Windows, AU + VST3 + stand-alone on Mac.
 
@@ -70,7 +70,7 @@ brush row and click steps to paint it, drag up/down for level, right-click a ste
 Press **Draw** on the wavetable engine. Draw a **start** and an **end** wave with the mouse, or switch to **Harmonics**
 and set 32 harmonic bars. Sine / Saw / Square / Triangle / Noise / Smooth / Normalize help, and **Grab current** copies
 the frame you're hearing. **Play it** builds a wavetable that morphs start > end (spectral morph or crossfade) - sweep
-**Position** to move through it. Your waves are saved in `Documents\OZ-mosys\Wavetables`.
+**Position** to move through it. Your waves are saved in `Documents\VIBRA-VII\Wavetables`.
 
 ## BROWSE page (Absynth-style)
 - **List or Explorer:** every preset in a list (star favourites, search, filter by bank) or on a **sound map** where
@@ -92,17 +92,17 @@ Links belong to your setup, so they stay the same across presets and projects.
 ## Expansions
 Press **Expansions** in the browser: every collection as a cover-art tile. Click one to browse it.
 **Install Pack...** (or drop an `.ozpack` file on the page) adds a collection; **Make a Pack...** bundles a bank of your
-own presets plus cover art into one `.ozpack` file you can share. Packs live in `Documents\OZ-mosys\Expansions`.
+own presets plus cover art into one `.ozpack` file you can share. Packs live in `Documents\VIBRA-VII\Expansions`.
 
 ## ROLL page (bend every note)
 Press **ROLL**. Notes are lines you can bend: click empty space for a note, click a line to add a bend point,
 drag points to glide, Alt-drag a line to curve it. Every note has its own **velocity, pressure and slide**
 (the *Edit* menu), plus **Pitch Mod** (wobble with amount, speed, fade-in and polarity), loop length, grid,
-quantise, record, undo/redo, copy/paste and save/open (`Documents\OZ-mosys\Rolls`).
+quantise, record, undo/redo, copy/paste and save/open (`Documents\VIBRA-VII\Rolls`).
 It follows your DAW's transport (or its own Play button), so it works in FL Studio too.
 **Export MIDI** writes an MPE file that keeps every bend for Logic, Ableton, Bitwig, Cubase or Studio One.
 
-OZ-mosys is also a full **MPE instrument**: per-note pitch bend, pressure (Aftertouch) and slide (CC74) from MPE
+VIBRA-VII is also a full **MPE instrument**: per-note pitch bend, pressure (Aftertouch) and slide (CC74) from MPE
 keyboards or DAWs that draw per-note bends. Channel 1 is the normal keyboard; channels 2-16 carry one note each (+/-48 st).
 
 ## Sampler page
@@ -110,7 +110,7 @@ Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or t
 - **Drop a folder** (or WAV files) on the left. It becomes an instrument; folders inside it become articulations.
 - The **mapper** on the right sets each recording's root note, key range and velocity range; changes save automatically.
 - Put note names in file names (`C3.wav`, `Kick F#2 rr2.wav`) and it maps itself. C3 = middle C.
-- Samples live in `Documents\OZ-mosys\Samples` (or point **Library...** at any folder, including your Sol Intent library).
+- Samples live in `Documents\VIBRA-VII\Samples` (or point **Library...** at any folder, including your Sol Intent library).
 
 ### Loop slicer
 - On the SAMPLER page press **Slice a loop...**, then drop a loop (WAV / AIFF / FLAC / MP3) on it.
@@ -121,7 +121,7 @@ Press **SAMPLER** at the top. Your own recordings, played from **4x4 pads** or t
 - Keys with sampler recordings get a gold strip. When Chords is on "In key", the notes of the key get a purple dot (bigger on the root).
 
 ## Importing presets from other synths
-On the BROWSE page open **Expansions**, press **Import presets...** and pick the synth, then a folder (or bank files). You can also drag preset files straight onto the Expansions page. Each soundsource is replaced by the closest OZ-mosys engine, so the result is a close cousin, not a copy. Nothing is read but the preset files themselves - no audio, wavetable or sample data - and the collections stay private on this computer. Each top-level folder becomes a collection ("Omni - Plughugger", "Arturia - Pigments", "FM8 - Factory" etc.).
+On the BROWSE page open **Expansions**, press **Import presets...** and pick the synth, then a folder (or bank files). You can also drag preset files straight onto the Expansions page. Each soundsource is replaced by the closest VIBRA-VII engine, so the result is a close cousin, not a copy. Nothing is read but the preset files themselves - no audio, wavetable or sample data - and the collections stay private on this computer. Each top-level folder becomes a collection ("Omni - Plughugger", "Arturia - Pigments", "FM8 - Factory" etc.).
 
 - **Omnisphere** (`.prt_omn` patches, `.mlt_omn` multis, `.omnisphere` banks): rebuilt in full - filters, envelopes, LFOs, mod wheel routings, arpeggiator, effects, layer pitch / level / pan - with no need to have Omnisphere installed. Each soundsource is matched to the closest OZ engine, chosen from the preset's name and its own metadata (Type / Keywords / Timbre), so sampled sounds land on what the patch is described to be. Up to **four layers** come across (onto OZ's five engines), the per-layer **waveshaper** maps to filter drive, and **tonewheel / drawbar organs** are rebuilt additively on the FM engine. Multis come across as one preset per playable part. Where a patch carries them, the real **author** and **Type / Genre / Mood** tags are read too.
 - **Arturia - Pigments**: Pigments stores its patches as readable parameter lists, so these come across with real detail - oscillator, filter cutoff / resonance, the three envelopes, LFO rate, and the effects (reverb / delay / chorus) from each FX slot's dry/wet.
@@ -131,14 +131,14 @@ On the BROWSE page open **Expansions**, press **Import presets...** and pick the
 - **Absynth 5** (`.nabs` / `.ksd`): the synthesis parameters are still **not** read, but the importer now reads the metadata NI embeds. Older `.ksd` (SoundShell) patches carry a full tag document, so these come across with their real **name, author and category** (Instrument / Type / Timbre / Articulation / Genre) instead of a filename guess. Patches built on a sample are rebuilt on OZ's granular engine; the rest go to the engine that best fits the sound.
 
 ## Installing
-**Mac:** download **OZ-mosys-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.
+**Mac:** download **VIBRA-VII-Mac.pkg** from the **Releases** page, right-click it and choose **Open**, then follow the steps.
 It installs the AU (Logic, GarageBand), the VST3 and a stand-alone app.
 
-**Windows:** download **OZ-mosys-Setup.exe** from this repo's **Releases** page and run it. It puts the plugin in
-`C:\Program Files\Common Files\VST3`. In FL Studio: *Options > Manage plugins > Find more plugins*, then look for OZ-mosys under Generators.
+**Windows:** download **VIBRA-VII-Setup.exe** from this repo's **Releases** page and run it. It puts the plugin in
+`C:\Program Files\Common Files\VST3`. In FL Studio: *Options > Manage plugins > Find more plugins*, then look for VIBRA-VII under Generators.
 
 ## Where things are saved
-Your presets: `Documents\OZ-mosys\Presets`.
+Your presets: `Documents\VIBRA-VII\Presets`.
 
 ## Building
 Every push to `main` builds the Windows and Mac installers automatically (GitHub Actions). Presets are generated from `tools/gen_presets.py`. All original code; no code or sounds from other products.

@@ -92,7 +92,7 @@ void applySection (FourfoldProcessor& proc, const juce::ValueTree& t, int onlySe
 
 juce::File subpresetFolder (int section)
 {
-    auto f = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("OZ-mosys")
+    auto f = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("VIBRA-VII")
                 .getChildFile ("Subpresets").getChildFile (sectionNames()[section]);
     f.createDirectory();
     return f;

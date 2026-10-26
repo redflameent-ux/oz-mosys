@@ -1,8 +1,8 @@
-# OZ-mosys roadmap
+# VIBRA-VII roadmap
 
 The idea: bring back the sound-design depth of the older plugins that are hard to find or no longer run
 (Absynth 5, FM8, Massive), plus favourite parts of Absynth 6, Omnisphere, Pigments, Analog Lab, Serum and Kontakt -
-each rebuilt in the OZ-mosys style. Priority goes to **making your own presets**: deep editing, routing and
+each rebuilt in the VIBRA-VII style. Priority goes to **making your own presets**: deep editing, routing and
 customisation come before performance extras.
 
 ## Done

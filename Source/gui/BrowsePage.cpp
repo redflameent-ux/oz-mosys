@@ -129,7 +129,7 @@ void BrowsePage::HistoryModel::listBoxItemClicked (int row, const MouseEvent&)
 // ============================================================================ page
 static File settingsFile()
 {
-    auto f = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("favourites.txt");
+    auto f = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("favourites.txt");
     f.getParentDirectory().createDirectory();
     return f;
 }
@@ -442,7 +442,7 @@ void BrowsePage::rebuild()
     {
         const auto& f = fl[(size_t) i];
         Entry e;
-        e.name = f.name; e.bank = f.category; e.author = "OZ-mosys";
+        e.name = f.name; e.bank = f.category; e.author = "VIBRA-VII";
         e.tags = f.category.toLowerCase().replace (" & ", ", ");
         e.x = f.mapX; e.y = f.mapY; e.movement = f.movement;
         e.factoryIndex = i;
@@ -635,7 +635,7 @@ void BrowsePage::showInfo (int)
 {
     shownPreset = proc.currentPresetName;
     nameEd.setText (proc.currentPresetName, dontSendNotification);
-    const bool factory = proc.presetInfo.author == "OZ-mosys";
+    const bool factory = proc.presetInfo.author == "VIBRA-VII";
     authorEd.setText (proc.presetInfo.author, dontSendNotification);
     bankEd.setText (proc.presetInfo.bank, dontSendNotification);
     tagsEd.setText (proc.presetInfo.tags, dontSendNotification);
@@ -651,7 +651,7 @@ void BrowsePage::saveCurrent (bool asNew)
     {
         name = File::createLegalFileName (name.trim());
         if (name.isEmpty()) return;
-        if (proc.presetInfo.author.isEmpty() || proc.presetInfo.author == "OZ-mosys") proc.presetInfo.author = FourfoldProcessor::getDefaultAuthor();
+        if (proc.presetInfo.author.isEmpty() || proc.presetInfo.author == "VIBRA-VII") proc.presetInfo.author = FourfoldProcessor::getDefaultAuthor();
         else FourfoldProcessor::setDefaultAuthor (proc.presetInfo.author);
         if (proc.presetInfo.bank.isEmpty() || factoryPresets().end() != std::find_if (factoryPresets().begin(), factoryPresets().end(),
                                                                                      [this] (auto& f) { return f.category == proc.presetInfo.bank; }))
@@ -670,7 +670,7 @@ void BrowsePage::saveCurrent (bool asNew)
         else statusL.setText ("Couldn't save", dontSendNotification);
     };
 
-    if (! asNew && proc.presetInfo.author != "OZ-mosys") { doSave (proc.currentPresetName); return; }
+    if (! asNew && proc.presetInfo.author != "VIBRA-VII") { doSave (proc.currentPresetName); return; }
     auto* w = new AlertWindow ("Save preset as", {}, MessageBoxIconType::NoIcon);
     w->addTextEditor ("name", proc.currentPresetName);
     w->addButton ("Save", 1, KeyPress (KeyPress::returnKey));

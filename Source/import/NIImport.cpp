@@ -267,7 +267,7 @@ int importNI (NIKind kind, const Array<File>& sources, AudioProcessorValueTreeSt
         { Item it; it.folder = src.getParentDirectory().getFileName(); it.name = src.getFileNameWithoutExtension(); it.file = src; items.push_back (it); }
     }
 
-    const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Expansions");
+    const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Expansions");
     int written = 0, failed = 0;
     std::map<String, int> perPack;
     std::set<String> seen;
@@ -316,7 +316,7 @@ int importNI (NIKind kind, const Array<File>& sources, AudioProcessorValueTreeSt
             packDir.createDirectory();
             XmlElement px ("Pack");
             px.setAttribute ("name", packName);
-            px.setAttribute ("tagline", "Your " + it.folder + " " + label + " patches, rebuilt in OZ-mosys");
+            px.setAttribute ("tagline", "Your " + it.folder + " " + label + " patches, rebuilt in VIBRA-VII");
             px.setAttribute ("author", "Imported");
             px.setAttribute ("style", "imported");
             px.writeTo (packDir.getChildFile ("pack.xml"));

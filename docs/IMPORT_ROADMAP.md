@@ -14,7 +14,7 @@ For each source synth:
    every module into every preset even when it is switched off, so "present" wildly overstates usage.
 3. **Classify each gap.** Every feature a preset uses is one of:
    - **Covered** - the importer already maps it.
-   - **Buildable** - OZ-mosys does not represent it, but a parameter / engine could be added, then mapped.
+   - **Buildable** - VIBRA-VII does not represent it, but a parameter / engine could be added, then mapped.
    - **Sample wall** - the sound depends on sample/audio data that lives only inside the source
      synth's library. No OZ parameter can recover it; the only routes are (a) substitute the closest
      OZ engine (what we do today) or (b) render the audio out of the source synth, which needs it installed.

@@ -20,7 +20,7 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     prevBtn.onClick = [this] { stepPreset (-1); };
     nextBtn.onClick = [this] { stepPreset (+1); };
     saveBtn.onClick = [this] { savePreset(); };
-    saveBtn.setTooltip ("Save the current sound as a preset (Documents/OZ-mosys/Presets)");
+    saveBtn.setTooltip ("Save the current sound as a preset (Documents/VIBRA-VII/Presets)");
     makeKnob (topKnobs, "master", "Master", col::text);
     makeKnob (topKnobs, "glide", "Glide", col::text);
     makeKnob (topKnobs, "bend", "Bend", col::text);

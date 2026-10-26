@@ -4,7 +4,7 @@
 #include "perform/Perform.h"
 
 // ============================================================================
-//  OZ-mosys - parameter definitions
+//  VIBRA-VII - parameter definitions
 //  Four engines in one synth: Wavetable, Analog, Granular + a deep mod system.
 // ============================================================================
 

@@ -188,7 +188,7 @@ struct ExpansionsPage::MakePackPanel : public Component
             info.setText ("You have no saved presets yet. Save some sounds first, and set their Bank (in the browser's Properties) "
                           "to your collection's name - then make the pack from that bank.", dontSendNotification);
         else
-            info.setText ("Every preset in the chosen bank goes into the pack. Send the .ozpack file to anyone with OZ-mosys: "
+            info.setText ("Every preset in the chosen bank goes into the pack. Send the .ozpack file to anyone with VIBRA-VII: "
                           "they drop it on the Expansions page to install it.", dontSendNotification);
         buildBtn.setEnabled (! byBank.empty());
     }
@@ -339,7 +339,7 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
     addAndMakeVisible (search);
     for (auto* b : { &backBtn, &installBtn, &makeBtn, &importBtn }) addAndMakeVisible (b);
     importBtn.setColour (TextButton::buttonColourId, Colour (0xff7ee0c3).withAlpha (0.25f));
-    importBtn.setTooltip ("Rebuild patches from Omnisphere, Arturia (Pigments / Analog Lab / V Collection), FM8 or Absynth as OZ-mosys presets. Each sound is swapped for the closest OZ engine. You can also drag preset files onto this page. They stay private on this computer.");
+    importBtn.setTooltip ("Rebuild patches from Omnisphere, Arturia (Pigments / Analog Lab / V Collection), FM8 or Absynth as VIBRA-VII presets. Each sound is swapped for the closest OZ engine. You can also drag preset files onto this page. They stay private on this computer.");
     importBtn.onClick = [this]
     {
         if (importer != nullptr) { importer->signalThreadShouldExit(); return; }
@@ -400,7 +400,7 @@ ExpansionsPage::ExpansionsPage (FourfoldProcessor& p) : proc (p)
     };
     installBtn.setColour (TextButton::buttonColourId, col::sampler.withAlpha (0.25f));
     backBtn.onClick = [this] { if (onClose) onClose(); };
-    installBtn.setTooltip ("Install an OZ-mosys pack (.ozpack). You can also drag the file onto this page.");
+    installBtn.setTooltip ("Install an VIBRA-VII pack (.ozpack). You can also drag the file onto this page.");
     installBtn.onClick = [this]
     {
         chooser = std::make_unique<FileChooser> ("Install a pack", File::getSpecialLocation (File::userDesktopDirectory), "*.ozpack");

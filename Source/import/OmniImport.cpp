@@ -580,7 +580,7 @@ bool convertOmniPatch (const XmlElement& root, const String& name, const String&
         if (lower.contains (word)) tags.addIfNotAlreadyThere (tag);
     out.tags = "omnisphere, " + tags.joinIntoString (", ");
     out.notes = "Imported from Omnisphere. Original soundsources: " + srcNames.joinIntoString (" + ")
-              + ". Rebuilt with OZ-mosys engines (" + (engA + (engB.isNotEmpty() ? " + " + engB : String())) + ").";
+              + ". Rebuilt with VIBRA-VII engines (" + (engA + (engB.isNotEmpty() ? " + " + engB : String())) + ").";
     if (description.isNotEmpty()) out.notes << " " << description;
 
     // keep only values that differ from Init (sparse preset)
@@ -735,7 +735,7 @@ int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& 
         for (auto& b : bundles) listBundle (b, items);
     }
 
-    const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Expansions");
+    const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Expansions");
     int written = 0, failed = 0;
     std::map<String, int> perBank;
     std::set<String> seen;
@@ -760,7 +760,7 @@ int importOmnisphere (const Array<File>& sources, AudioProcessorValueTreeState& 
             packDir.createDirectory();
             XmlElement px ("Pack");
             px.setAttribute ("name", packName);
-            px.setAttribute ("tagline", "Your " + bank + " Omnisphere patches, rebuilt in OZ-mosys");
+            px.setAttribute ("tagline", "Your " + bank + " Omnisphere patches, rebuilt in VIBRA-VII");
             px.setAttribute ("author", "Imported");
             px.setAttribute ("style", "imported");
             px.writeTo (packDir.getChildFile ("pack.xml"));

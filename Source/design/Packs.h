@@ -14,7 +14,7 @@ struct Pack
     bool builtIn = false;
 };
 
-juce::File expansionsFolder();                    // Documents/OZ-mosys/Expansions
+juce::File expansionsFolder();                    // Documents/VIBRA-VII/Expansions
 std::vector<Pack> builtInPacks();                 // one per factory bank
 std::vector<Pack> installedPacks();
 juce::Array<juce::File> presetsIn (const Pack&);

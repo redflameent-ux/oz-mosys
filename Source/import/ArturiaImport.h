@@ -1,6 +1,6 @@
 #pragma once
 // =====================================================================================
-//  Arturia importer: reads Arturia preset files and rebuilds them as OZ-mosys presets.
+//  Arturia importer: reads Arturia preset files and rebuilds them as VIBRA-VII presets.
 //  Arturia stores every preset (Pigments, Analog Lab and the whole V Collection) as a
 //  Boost "serialization::archive" text file: plain text, space-separated, with each
 //  parameter written as <length> <name> <value>. We read the metadata (name, bank, type,
@@ -8,9 +8,9 @@
 //  filter, envelopes, LFOs, effects). Analog Lab / V Collection patches use a different
 //  parameter name per engine, so those are rebuilt from the sound type plus the handful of
 //  parameters Arturia shares across engines. Each Arturia soundsource is swapped for the
-//  closest OZ-mosys engine, so the result is a close cousin, not a copy. No Arturia audio,
+//  closest VIBRA-VII engine, so the result is a close cousin, not a copy. No Arturia audio,
 //  wavetable or sample data is read or copied.
-//  Results go into private expansions on this computer: Documents/OZ-mosys/Expansions.
+//  Results go into private expansions on this computer: Documents/VIBRA-VII/Expansions.
 // =====================================================================================
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <functional>

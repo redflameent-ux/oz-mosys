@@ -166,7 +166,7 @@ void SlicerPanel::mouseUp (const MouseEvent&) { if (dragSlice > 0) std::sort (sl
 static String noteNameFor (int n)
 {
     static const char* names[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-    return String (names[n % 12]) + String (n / 12 - 2);   // C3 = middle C, like the rest of OZ-mosys
+    return String (names[n % 12]) + String (n / 12 - 2);   // C3 = middle C, like the rest of VIBRA-VII
 }
 
 void SlicerPanel::makePads()

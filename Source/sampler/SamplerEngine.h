@@ -7,8 +7,8 @@
 #include <mutex>
 
 // =====================================================================================
-//  OZ-mosys sampler: the multisample engine from Sol Intent, as one layer.
-//  Plays recordings from the sample library (Documents/OZ-mosys/Samples by default).
+//  VIBRA-VII sampler: the multisample engine from Sol Intent, as one layer.
+//  Plays recordings from the sample library (Documents/VIBRA-VII/Samples by default).
 //  The SAMPLER page drives it: browser, 4x4 pads and the mini mapper.
 // =====================================================================================
 namespace ff

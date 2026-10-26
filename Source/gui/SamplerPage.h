@@ -8,7 +8,7 @@
 
 namespace ui
 {
-    // Sol Intent's colour names, pointed at the OZ-mosys palette
+    // Sol Intent's colour names, pointed at the VIBRA-VII palette
     const juce::Colour bg       = ff::gui::col::bg;
     const juce::Colour panel    = ff::gui::col::panel;
     const juce::Colour panelHi  = ff::gui::col::panelHi;

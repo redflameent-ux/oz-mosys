@@ -1,4 +1,4 @@
-name: Build OZ-mosys (Windows + Mac)
+name: Build VIBRA-VII ChromaBed (Windows + Mac)
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Build plugin and standalone app
         shell: pwsh
         run: |
-          cmake --build build --config Release --target OZmosys_VST3 OZmosys_Standalone --parallel 2>&1 | Tee-Object -FilePath build.log
+          cmake --build build --config Release --target VibraVII_VST3 VibraVII_Standalone --parallel 2>&1 | Tee-Object -FilePath build.log
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Make the installer
@@ -32,22 +32,22 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\OZ-mosys.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\VIBRA-VII.iss
 
       - name: Zip the plain files too
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item -Recurse "build\OZmosys_artefacts\Release\VST3\OZ-mosys.vst3" dist\
-          Copy-Item "build\OZmosys_artefacts\Release\Standalone\OZ-mosys.exe" dist\
-          Compress-Archive -Path dist\* -DestinationPath OZ-mosys-Windows.zip -Force
+          Copy-Item -Recurse "build\VibraVII_artefacts\Release\VST3\VIBRA-VII ChromaBed.vst3" dist\
+          Copy-Item "build\VibraVII_artefacts\Release\Standalone\VIBRA-VII ChromaBed.exe" dist\
+          Compress-Archive -Path dist\* -DestinationPath VIBRA-VII-Windows.zip -Force
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows
           path: |
-            installer/Output/OZ-mosys-Setup.exe
-            OZ-mosys-Windows.zip
+            installer/Output/VIBRA-VII-Setup.exe
+            VIBRA-VII-Windows.zip
 
       - name: Show what went wrong
         if: failure()
@@ -76,31 +76,31 @@ jobs:
 
       - name: Build AU, VST3 and standalone app
         run: |
-          cmake --build build --target OZmosys_AU OZmosys_VST3 OZmosys_Standalone --parallel 2>&1 | tee build.log
+          cmake --build build --target VibraVII_AU VibraVII_VST3 VibraVII_Standalone --parallel 2>&1 | tee build.log
           exit ${PIPESTATUS[0]}
 
       - name: Make the Mac installer (.pkg)
         run: |
-          A=build/OZmosys_artefacts/Release
+          A=build/VibraVII_artefacts/Release
           ROOT=pkgroot
           mkdir -p "$ROOT/Library/Audio/Plug-Ins/Components" "$ROOT/Library/Audio/Plug-Ins/VST3" "$ROOT/Applications"
-          cp -R "$A/AU/OZ-mosys.component" "$ROOT/Library/Audio/Plug-Ins/Components/"
-          cp -R "$A/VST3/OZ-mosys.vst3"     "$ROOT/Library/Audio/Plug-Ins/VST3/"
-          cp -R "$A/Standalone/OZ-mosys.app" "$ROOT/Applications/"
+          cp -R "$A/AU/VIBRA-VII ChromaBed.component" "$ROOT/Library/Audio/Plug-Ins/Components/"
+          cp -R "$A/VST3/VIBRA-VII ChromaBed.vst3"     "$ROOT/Library/Audio/Plug-Ins/VST3/"
+          cp -R "$A/Standalone/VIBRA-VII ChromaBed.app" "$ROOT/Applications/"
           # ad-hoc signatures so Apple Silicon Macs will load the plugins
-          codesign --force --deep -s - "$ROOT/Library/Audio/Plug-Ins/Components/OZ-mosys.component"
-          codesign --force --deep -s - "$ROOT/Library/Audio/Plug-Ins/VST3/OZ-mosys.vst3"
-          codesign --force --deep -s - "$ROOT/Applications/OZ-mosys.app"
-          pkgbuild --root "$ROOT" --identifier com.ozmosys.synth --version 0.13.0 --install-location / OZ-mosys-Mac.pkg
-          (cd "$ROOT/Library/Audio/Plug-Ins" && zip -qry "$GITHUB_WORKSPACE/OZ-mosys-Mac.zip" Components/OZ-mosys.component VST3/OZ-mosys.vst3)
+          codesign --force --deep -s - "$ROOT/Library/Audio/Plug-Ins/Components/VIBRA-VII ChromaBed.component"
+          codesign --force --deep -s - "$ROOT/Library/Audio/Plug-Ins/VST3/VIBRA-VII ChromaBed.vst3"
+          codesign --force --deep -s - "$ROOT/Applications/VIBRA-VII ChromaBed.app"
+          pkgbuild --root "$ROOT" --identifier com.trance6.vibravii --version 0.13.0 --install-location / VIBRA-VII-Mac.pkg
+          (cd "$ROOT/Library/Audio/Plug-Ins" && zip -qry "$GITHUB_WORKSPACE/VIBRA-VII-Mac.zip" "Components/VIBRA-VII ChromaBed.component" "VST3/VIBRA-VII ChromaBed.vst3")
 
       - name: Check the AU passes Apple's validator
         run: |
           mkdir -p ~/Library/Audio/Plug-Ins/Components
-          cp -R pkgroot/Library/Audio/Plug-Ins/Components/OZ-mosys.component ~/Library/Audio/Plug-Ins/Components/
+          cp -R "pkgroot/Library/Audio/Plug-Ins/Components/VIBRA-VII ChromaBed.component" ~/Library/Audio/Plug-Ins/Components/
           killall -9 AudioComponentRegistrar 2>/dev/null || true
           sleep 3
-          auval -v aumu Ozms Ozmo > auval.log 2>&1 || true
+          auval -v aumu Vv7c Trc6 > auval.log 2>&1 || true
           tail -15 auval.log
           if grep -q "AU VALIDATION SUCCEEDED" auval.log; then
             echo "::notice title=auval::AU VALIDATION SUCCEEDED"
@@ -113,8 +113,8 @@ jobs:
         with:
           name: mac
           path: |
-            OZ-mosys-Mac.pkg
-            OZ-mosys-Mac.zip
+            VIBRA-VII-Mac.pkg
+            VIBRA-VII-Mac.zip
 
       - name: Show what went wrong
         if: failure()
@@ -143,16 +143,16 @@ jobs:
         with:
           tag_name: latest
           target_commitish: ${{ github.sha }}
-          name: OZ-mosys - latest build
+          name: VIBRA-VII ChromaBed - latest build
           body: |
-            **Windows:** download **OZ-mosys-Setup.exe**, double-click it, then rescan plugins in your DAW.
-            **Mac (AU + VST3):** download **OZ-mosys-Mac.pkg**, right-click it and choose **Open** (it isn't signed with an Apple developer certificate yet), then rescan plugins.
+            **Windows:** download **VIBRA-VII-Setup.exe**, double-click it, then rescan plugins in your DAW.
+            **Mac (AU + VST3):** download **VIBRA-VII-Mac.pkg**, right-click it and choose **Open** (it isn't signed with an Apple developer certificate yet), then rescan plugins.
             The .zip files hold the same plugins if you'd rather copy them by hand.
           prerelease: false
           make_latest: true
           files: |
-            out/**/OZ-mosys-Setup.exe
-            out/**/OZ-mosys-Windows.zip
-            out/**/OZ-mosys-Mac.pkg
-            out/**/OZ-mosys-Mac.zip
+            out/**/VIBRA-VII-Setup.exe
+            out/**/VIBRA-VII-Windows.zip
+            out/**/VIBRA-VII-Mac.pkg
+            out/**/VIBRA-VII-Mac.zip
           fail_on_unmatched_files: true

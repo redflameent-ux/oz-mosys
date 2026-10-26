@@ -7,7 +7,7 @@ namespace ff::packs
 {
 File expansionsFolder()
 {
-    auto d = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Expansions");
+    auto d = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Expansions");
     d.createDirectory();
     return d;
 }
@@ -15,7 +15,7 @@ File expansionsFolder()
 const char* taglineFor (const String& b)
 {
     static const std::pair<const char*, const char*> t[] = {
-        { "Signature", "The OZ-mosys sound, start here" },
+        { "Signature", "The VIBRA-VII sound, start here" },
         { "Dark & Cinematic", "Shadows, tension and wide screens" },
         { "Reggae & Dub", "Bass weight, skanks and echo chambers" },
         { "Trance & Electronic", "Supersaws, plucks and euphoric lifts" },
@@ -58,7 +58,7 @@ std::vector<Pack> builtInPacks()
         if (it == v.end())
         {
             Pack p;
-            p.name = f.category; p.tagline = taglineFor (f.category); p.author = "OZ-mosys";
+            p.name = f.category; p.tagline = taglineFor (f.category); p.author = "VIBRA-VII";
             p.style = styleFor (f.category); p.builtIn = true; p.presetCount = 1;
             v.push_back (p);
         }
@@ -102,7 +102,7 @@ Array<File> presetsIn (const Pack& p)
 bool install (const File& ozpack, String& nameOut, String& error)
 {
     ZipFile zip (ozpack);
-    if (zip.getNumEntries() == 0) { error = "That file isn't an OZ-mosys pack."; return false; }
+    if (zip.getNumEntries() == 0) { error = "That file isn't an VIBRA-VII pack."; return false; }
     auto tmp = File::getSpecialLocation (File::tempDirectory).getChildFile ("ozpack_" + String::toHexString (Random::getSystemRandom().nextInt()));
     tmp.createDirectory();
     // refuse anything that tries to escape the folder

@@ -1,6 +1,6 @@
 #pragma once
 // =====================================================================================
-//  Reveal Sound Spire (.spf) -> OZ-mosys, shared by the in-plugin importer (SpireImport.cpp)
+//  Reveal Sound Spire (.spf) -> VIBRA-VII, shared by the in-plugin importer (SpireImport.cpp)
 //  and the PluginProbe --spf2oz CLI. No plugin needed: a .spf is a fixed 3133-byte file - a text
 //  header (name @0, category @8, notes @17) then a float param block at offset 281 + (id-1)*4,
 //  1-based, normalised 0..1. The parameter name->id map is taken from the table inside Spire.vst3

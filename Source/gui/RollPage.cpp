@@ -1026,7 +1026,7 @@ void RollPage::clearAll()
 
 static File rollFolder()
 {
-    auto f = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Rolls");
+    auto f = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Rolls");
     f.createDirectory();
     return f;
 }
@@ -1117,7 +1117,7 @@ void RollPage::exportMidi()
     seq.updateMatchedPairs();
     seq.sort();
 
-    chooser = std::make_unique<FileChooser> ("Export MPE MIDI", rollFolder().getChildFile ("OZ-mosys pattern.mid"), "*.mid");
+    chooser = std::make_unique<FileChooser> ("Export MPE MIDI", rollFolder().getChildFile ("VIBRA-VII pattern.mid"), "*.mid");
     chooser->launchAsync (FileBrowserComponent::saveMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::warnAboutOverwriting,
         [this, seq, tpq] (const FileChooser& fc)
         {

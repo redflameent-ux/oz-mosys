@@ -472,7 +472,7 @@ bool convertArturiaPreset (const MemoryBlock& mb, const String& name, const Stri
     tags.insert (0, pigments ? "pigments" : "arturia");
     out.tags = tags.joinIntoString (", ");
     out.notes = String ("Imported from ") + (pigments ? "Arturia Pigments" : "Arturia (Analog Lab / V Collection)")
-              + ". Rebuilt with OZ-mosys engines"
+              + ". Rebuilt with VIBRA-VII engines"
               + (pigments ? String (" from the patch's own parameters.")
                           : String (" from its \"") + (type.isEmpty() ? String ("synth") : type) + "\" sound type, plus its real amp envelope, FX sends and arpeggiator.")
               + (comment.isNotEmpty() ? " Original note: " + comment : String());
@@ -602,7 +602,7 @@ int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apv
         }
     }
 
-    const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("OZ-mosys").getChildFile ("Expansions");
+    const auto expansions = File::getSpecialLocation (File::userDocumentsDirectory).getChildFile ("VIBRA-VII").getChildFile ("Expansions");
     int written = 0, failed = 0;
     std::map<String, int> perPack;
     std::set<String> usedFiles;   // output .ozpreset paths already taken, so same-named presets don't overwrite
@@ -623,7 +623,7 @@ int importArturia (const Array<File>& sources, AudioProcessorValueTreeState& apv
             packDir.createDirectory();
             XmlElement px ("Pack");
             px.setAttribute ("name", packName);
-            px.setAttribute ("tagline", "Your " + it.product + " patches, rebuilt in OZ-mosys");
+            px.setAttribute ("tagline", "Your " + it.product + " patches, rebuilt in VIBRA-VII");
             px.setAttribute ("author", "Imported");
             px.setAttribute ("style", "imported");
             px.writeTo (packDir.getChildFile ("pack.xml"));

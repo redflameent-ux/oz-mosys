@@ -4,8 +4,8 @@
 //  u-he presets are plain readable text: a /*@meta*/ header plus "#cm=<module>" sections
 //  of key=value parameters, every one named. So unlike the closed formats we read the real
 //  parameters directly - oscillators, filters, envelopes, LFOs, the full named mod matrix
-//  and the effects - and rebuild a close OZ-mosys cousin. Each top-level folder becomes one
-//  expansion "Hive - <name>" in Documents/OZ-mosys/Expansions. Returns presets written.
+//  and the effects - and rebuild a close VIBRA-VII cousin. Each top-level folder becomes one
+//  expansion "Hive - <name>" in Documents/VIBRA-VII/Expansions. Returns presets written.
 // =====================================================================================
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <functional>

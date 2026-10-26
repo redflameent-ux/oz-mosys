@@ -52,8 +52,8 @@ const Articulation* Instrument::get (int index) const
 static std::unique_ptr<juce::PropertiesFile> openSettings()
 {
     juce::PropertiesFile::Options o;
-    o.applicationName     = "OZ-mosys";
-    o.folderName          = "OZ-mosys";
+    o.applicationName     = "VIBRA-VII";
+    o.folderName          = "VIBRA-VII";
     o.filenameSuffix      = ".settings";
     o.osxLibrarySubFolder = "Application Support";
     return std::make_unique<juce::PropertiesFile> (o);
@@ -61,7 +61,7 @@ static std::unique_ptr<juce::PropertiesFile> openSettings()
 
 static juce::File homeFolder()
 {
-    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("OZ-mosys");
+    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("VIBRA-VII");
 }
 
 juce::File Library::defaultLibraryFolder() { return homeFolder().getChildFile ("Samples"); }

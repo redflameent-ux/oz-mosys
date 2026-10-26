@@ -53,7 +53,7 @@ each validated to read sane values across several banks.
 PluginProbe --fxp2oz "<PackName>" <preset.fxp | folder>
 ```
 
-writes `.ozpreset` cousins into `Documents/OZ-mosys/Expansions/<PackName>`, mirroring the source
+writes `.ozpreset` cousins into `Documents/VIBRA-VII/Expansions/<PackName>`, mirroring the source
 sub-folders. The `arap` block is located by searching for its tag (its offset moves in
 wavetable-heavy presets), and only files with fxID `DNE3` are read (DUNE 2, fxID `DUE2`, is a
 different format and is skipped).

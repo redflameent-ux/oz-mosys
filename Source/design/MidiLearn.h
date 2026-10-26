@@ -1,6 +1,6 @@
 #pragma once
 // MIDI learn: link a hardware knob/fader (MIDI CC) to any control.
-// The mapping belongs to your setup, not to a sound, so it's kept in the OZ-mosys settings
+// The mapping belongs to your setup, not to a sound, so it's kept in the VIBRA-VII settings
 // file and stays the same across presets and projects.
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_events/juce_events.h>
@@ -149,7 +149,7 @@ private:
     static std::unique_ptr<juce::PropertiesFile> settings()
     {
         juce::PropertiesFile::Options o;
-        o.applicationName = "OZ-mosys"; o.folderName = "OZ-mosys"; o.filenameSuffix = ".settings";
+        o.applicationName = "VIBRA-VII"; o.folderName = "VIBRA-VII"; o.filenameSuffix = ".settings";
         o.osxLibrarySubFolder = "Application Support";
         return std::make_unique<juce::PropertiesFile> (o);
     }
