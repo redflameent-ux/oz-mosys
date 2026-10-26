@@ -256,7 +256,6 @@ FourfoldEditor::FourfoldEditor (FourfoldProcessor& p)
     splash.logo = juce::ImageCache::getFromMemory (BinaryData::logo_png, BinaryData::logo_pngSize);
     addAndMakeVisible (splash);
     splash.start();
-    cornerLogo = juce::ImageCache::getFromMemory (BinaryData::logo_corner_png, BinaryData::logo_corner_pngSize);
     timerCallback();
     startTimerHz (30);
 }
@@ -318,15 +317,29 @@ void FourfoldEditor::paint (juce::Graphics& g)
     g.fillAll (col::bg);
     g.addTransform (juce::AffineTransform::scale (scale));
 
-    // logo wordmark (embedded ViBRA-VII ChromaBed image, text fallback)
-    if (cornerLogo.isValid())
-        g.drawImageWithin (cornerLogo, logoArea.getX(), logoArea.getY(), logoArea.getWidth(), logoArea.getHeight(),
-                           juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid | juce::RectanglePlacement::onlyReduceInSize);
-    else
+    // corner wordmark: crisp "VIBRA-VII" (chrome, rainbow VII) + "ChromaBed" subtitle
     {
-        g.setColour (col::text);
-        g.setFont (font (22.0f, true));
-        g.drawText ("VIBRA-VII", logoArea, juce::Justification::centredLeft);
+        const int lx = logoArea.getX() + 2;
+        const juce::Font big = font (18.0f, true);
+        const float baseY = (float) logoArea.getY() + 20.0f;
+        juce::GlyphArrangement g1; g1.addLineOfText (big, "VIBRA-", (float) lx, baseY);
+        juce::Path p1; g1.createPath (p1);
+        auto b1 = p1.getBounds();
+        juce::ColourGradient chrome (juce::Colour (0xfff2f0fb), 0.0f, b1.getY(),
+                                     juce::Colour (0xff8f88c4), 0.0f, b1.getBottom(), false);
+        chrome.addColour (0.5, col::silver);
+        g.setGradientFill (chrome); g.fillPath (p1);
+        const float aw = juce::GlyphArrangement::getStringWidth (big, "VIBRA-");
+        juce::GlyphArrangement g2; g2.addLineOfText (big, "VII", (float) lx + aw, baseY);
+        juce::Path p2; g2.createPath (p2);
+        auto b2 = p2.getBounds();
+        juce::ColourGradient rainbow (col::filter, b2.getX(), 0.0f, col::wavetable, b2.getRight(), 0.0f, false);
+        rainbow.addColour (0.33, col::sampler);
+        rainbow.addColour (0.66, col::resonator);
+        g.setGradientFill (rainbow); g.fillPath (p2);
+        g.setColour (col::silver.withAlpha (0.8f));
+        g.setFont (font (10.5f, true));
+        g.drawText ("ChromaBed", lx + 1, logoArea.getY() + 24, logoArea.getWidth(), 14, juce::Justification::topLeft);
     }
 
     for (auto& pnl : panels)
